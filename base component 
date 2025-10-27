@@ -1,0 +1,1722 @@
+🎯 Global Components Implementation
+
+1. Headline Component
+
+```blade
+{{-- components/global/headline.blade.php --}}
+@props([
+    'level' => 'h1',
+    'variant' => 'default', // default, primary, secondary, success, warning, error
+    'size' => 'lg', // sm, md, lg, xl, 2xl
+    'align' => 'left', // left, center, right
+    'thaiFont' => true,
+    'class' => '',
+    'icon' => null // optional icon image
+])
+
+@php
+    // Base classes
+    $baseClasses = 'font-bold leading-tight tracking-tight';
+    
+    // Thai font support
+    $fontFamily = $thaiFont ? 'font-sukhumvit' : 'font-sans';
+    
+    // Variant colors
+    $variantClasses = [
+        'default' => 'text-gray-900',
+        'primary' => 'text-blue-600',
+        'secondary' => 'text-gray-600',
+        'success' => 'text-green-600',
+        'warning' => 'text-yellow-600',
+        'error' => 'text-red-600',
+    ];
+    
+    // Size classes
+    $sizeClasses = [
+        'sm' => 'text-lg',
+        'md' => 'text-xl',
+        'lg' => 'text-2xl',
+        'xl' => 'text-3xl',
+        '2xl' => 'text-4xl',
+    ];
+    
+    // Alignment
+    $alignClasses = [
+        'left' => 'text-left',
+        'center' => 'text-center',
+        'right' => 'text-right',
+    ];
+    
+    $finalClasses = "{$baseClasses} {$fontFamily} {$variantClasses[$variant]} {$sizeClasses[$size]} {$alignClasses[$align]} {$class}";
+@endphp
+
+<{{ $level }} {{ $attributes->merge(['class' => $finalClasses]) }}>
+    @if($icon)
+        <img src="{{ asset($icon) }}" alt="" class="inline-block w-6 h-6 mr-2 align-middle">
+    @endif
+    {{ $slot }}
+</{{ $level }}>
+```
+
+2. Error Message Component
+
+```blade
+{{-- components/global/error-message.blade.php --}}
+@props([
+    'type' => 'validation', // validation, auth, payment, system, network
+    'showIcon' => true,
+    'dismissible' => false,
+    'thaiMessage' => true,
+    'class' => ''
+])
+
+@php
+    $config = [
+        'validation' => [
+            'icon' => 'images/icons/system/error.png',
+            'title' => $thaiMessage ? 'ข้อมูลไม่ถูกต้อง' : 'Validation Error',
+            'bg' => 'bg-red-50 border-red-200',
+            'text' => 'text-red-800',
+            'iconBg' => 'bg-red-100'
+        ],
+        'auth' => [
+            'icon' => 'images/icons/system/warning.png',
+            'title' => $thaiMessage ? 'การเข้าถึงถูกปฏิเสธ' : 'Authentication Error',
+            'bg' => 'bg-yellow-50 border-yellow-200',
+            'text' => 'text-yellow-800',
+            'iconBg' => 'bg-yellow-100'
+        ],
+        'payment' => [
+            'icon' => 'images/icons/system/payment-error.png',
+            'title' => $thaiMessage ? 'การชำระเงินมีปัญหา' : 'Payment Error',
+            'bg' => 'bg-orange-50 border-orange-200',
+            'text' => 'text-orange-800',
+            'iconBg' => 'bg-orange-100'
+        ],
+        'system' => [
+            'icon' => 'images/icons/system/system-error.png',
+            'title' => $thaiMessage ? 'ระบบขัดข้องชั่วคราว' : 'System Error',
+            'bg' => 'bg-purple-50 border-purple-200',
+            'text' => 'text-purple-800',
+            'iconBg' => 'bg-purple-100'
+        ],
+        'network' => [
+            'icon' => 'images/icons/system/network-error.png',
+            'title' => $thaiMessage ? 'การเชื่อมต่อมีปัญหา' : 'Network Error',
+            'bg' => 'bg-blue-50 border-blue-200',
+            'text' => 'text-blue-800',
+            'iconBg' => 'bg-blue-100'
+        ]
+    ][$type];
+@endphp
+
+<div {{ $attributes->merge(['class' => "rounded-lg border p-4 {$config['bg']} {$config['text']} {$class}"]) }}>
+    <div class="flex items-start">
+        @if($showIcon)
+            <div class="flex-shrink-0">
+                <img src="{{ asset($config['icon']) }}" alt="" class="w-5 h-5 {{ $config['iconBg'] }}} rounded-full p-1">
+            </div>
+        @endif
+        <div class="flex-1 ml-3">
+            <h4 class="font-medium mb-1">{{ $config['title'] }}</h4>
+            <div class="text-sm">
+                {{ $slot }}
+            </div>
+        </div>
+        @if($dismissible)
+            <button type="button" class="ml-auto flex-shrink-0" onclick="this.parentElement.parentElement.remove()">
+                <img src="{{ asset('images/icons/system/close.png') }}" alt="ปิด" class="w-4 h-4 opacity-60 hover:opacity-100">
+            </button>
+        @endif
+    </div>
+</div>
+```
+
+3. Form Input Component
+
+```blade
+{{-- components/global/form-input.blade.php --}}
+@props([
+    'label' => '',
+    'type' => 'text',
+    'name' => '',
+    'value' => '',
+    'placeholder' => '',
+    'required' => false,
+    'disabled' => false,
+    'readonly' => false,
+    'error' => null,
+    'helpText' => '',
+    'thaiLabel' => true,
+    'icon' => null,
+    'prefix' => null,
+    'suffix' => null,
+    'class' => ''
+])
+
+@php
+    $baseClasses = "w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors";
+    $disabledClasses = "bg-gray-100 text-gray-500 cursor-not-allowed";
+    $errorClasses = "border-red-500 focus:ring-red-500 focus:border-red-500";
+    $finalClasses = $baseClasses . ($disabled ? " {$disabledClasses}" : '') . ($error ? " {$errorClasses}" : '') . " {$class}";
+@endphp
+
+<div class="form-input-group">
+    @if($label)
+        <label for="{{ $name }}" class="block text-sm font-medium text-gray-700 mb-1">
+            {{ $label }}
+            @if($required)
+                <span class="text-red-500">*</span>
+            @endif
+        </label>
+    @endif
+    
+    <div class="relative">
+        @if($icon)
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <img src="{{ asset($icon) }}" alt="" class="w-5 h-5 text-gray-400">
+            </div>
+        @endif
+        
+        @if($prefix)
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <span class="text-gray-500">{{ $prefix }}</span>
+            </div>
+        @endif
+        
+        <input 
+            type="{{ $type }}"
+            name="{{ $name }}"
+            id="{{ $name }}"
+            value="{{ $value }}"
+            placeholder="{{ $placeholder }}"
+            {{ $required ? 'required' : '' }}
+            {{ $disabled ? 'disabled' : '' }}
+            {{ $readonly ? 'readonly' : '' }}
+            {{ $attributes->merge(['class' => $finalClasses]) }}
+            @if($icon) class="pl-10" @endif
+            @if($prefix) class="pl-12" @endif
+            @if($suffix) class="pr-12" @endif
+        >
+        
+        @if($suffix)
+            <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                <span class="text-gray-500">{{ $suffix }}</span>
+            </div>
+        @endif
+    </div>
+    
+    @if($error)
+        <p class="mt-1 text-sm text-red-600 flex items-center">
+            <img src="{{ asset('images/icons/system/error-small.png') }}" alt="" class="w-4 h-4 mr-1">
+            {{ $error }}
+        </p>
+    @endif
+    
+    @if($helpText)
+        <p class="mt-1 text-sm text-gray-500">{{ $helpText }}</p>
+    @endif
+</div>
+```
+
+4. Form Select Component
+
+```blade
+{{-- components/global/form-select.blade.php --}}
+@props([
+    'label' => '',
+    'name' => '',
+    'options' => [],
+    'selected' => '',
+    'required' => false,
+    'disabled' => false,
+    'error' => null,
+    'helpText' => '',
+    'placeholder' => 'เลือกตัวเลือก',
+    'thaiLabel' => true,
+    'class' => ''
+])
+
+@php
+    $baseClasses = "w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors appearance-none bg-white";
+    $disabledClasses = "bg-gray-100 text-gray-500 cursor-not-allowed";
+    $errorClasses = "border-red-500 focus:ring-red-500 focus:border-red-500";
+    $finalClasses = $baseClasses . ($disabled ? " {$disabledClasses}" : '') . ($error ? " {$errorClasses}" : '') . " {$class}";
+@endphp
+
+<div class="form-select-group">
+    @if($label)
+        <label for="{{ $name }}" class="block text-sm font-medium text-gray-700 mb-1">
+            {{ $label }}
+            @if($required)
+                <span class="text-red-500">*</span>
+            @endif
+        </label>
+    @endif
+    
+    <div class="relative">
+        <select 
+            name="{{ $name }}"
+            id="{{ $name }}"
+            {{ $required ? 'required' : '' }}
+            {{ $disabled ? 'disabled' : '' }}
+            {{ $attributes->merge(['class' => $finalClasses]) }}
+        >
+            @if($placeholder)
+                <option value="">{{ $placeholder }}</option>
+            @endif
+            
+            @foreach($options as $value => $text)
+                <option value="{{ $value }}" {{ $selected == $value ? 'selected' : '' }}>
+                    {{ $text }}
+                </option>
+            @endforeach
+        </select>
+        
+        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+            <img src="{{ asset('images/icons/system/chevron-down.png') }}" alt="" class="w-4 h-4">
+        </div>
+    </div>
+    
+    @if($error)
+        <p class="mt-1 text-sm text-red-600 flex items-center">
+            <img src="{{ asset('images/icons/system/error-small.png') }}" alt="" class="w-4 h-4 mr-1">
+            {{ $error }}
+        </p>
+    @endif
+    
+    @if($helpText)
+        <p class="mt-1 text-sm text-gray-500">{{ $helpText }}</p>
+    @endif
+</div>
+```
+
+5. Form Textarea Component
+
+```blade
+{{-- components/global/form-textarea.blade.php --}}
+@props([
+    'label' => '',
+    'name' => '',
+    'value' => '',
+    'placeholder' => '',
+    'rows' => 4,
+    'required' => false,
+    'disabled' => false,
+    'readonly' => false,
+    'error' => null,
+    'helpText' => '',
+    'thaiLabel' => true,
+    'showCounter' => false,
+    'maxLength' => null,
+    'class' => ''
+])
+
+@php
+    $baseClasses = "w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors resize-vertical";
+    $disabledClasses = "bg-gray-100 text-gray-500 cursor-not-allowed";
+    $errorClasses = "border-red-500 focus:ring-red-500 focus:border-red-500";
+    $finalClasses = $baseClasses . ($disabled ? " {$disabledClasses}" : '') . ($error ? " {$errorClasses}" : '') . " {$class}";
+    
+    $charCount = strlen($value);
+@endphp
+
+<div class="form-textarea-group">
+    @if($label)
+        <label for="{{ $name }}" class="block text-sm font-medium text-gray-700 mb-1">
+            {{ $label }}
+            @if($required)
+                <span class="text-red-500">*</span>
+            @endif
+        </label>
+    @endif
+    
+    <textarea 
+        name="{{ $name }}"
+        id="{{ $name }}"
+        rows="{{ $rows }}"
+        placeholder="{{ $placeholder }}"
+        {{ $required ? 'required' : '' }}
+        {{ $disabled ? 'disabled' : '' }}
+        {{ $readonly ? 'readonly' : '' }}
+        @if($maxLength) maxlength="{{ $maxLength }}" @endif
+        {{ $attributes->merge(['class' => $finalClasses]) }}
+    >{{ $value }}</textarea>
+    
+    <div class="flex justify-between items-center mt-1">
+        @if($error)
+            <p class="text-sm text-red-600 flex items-center">
+                <img src="{{ asset('images/icons/system/error-small.png') }}" alt="" class="w-4 h-4 mr-1">
+                {{ $error }}
+            </p>
+        @elseif($helpText)
+            <p class="text-sm text-gray-500">{{ $helpText }}</p>
+        @endif
+        
+        @if($showCounter && $maxLength)
+            <div class="text-xs text-gray-500 ml-auto">
+                <span class="{{ $charCount > $maxLength ? 'text-red-600' : '' }}">
+                    {{ $charCount }}
+                </span>
+                / {{ $maxLength }}
+            </div>
+        @endif
+    </div>
+</div>
+```
+
+6. File Upload Component
+
+```blade
+{{-- components/global/file-upload.blade.php --}}
+@props([
+    'label' => 'อัพโหลดไฟล์',
+    'name' => 'file',
+    'accept' => '*',
+    'multiple' => false,
+    'required' => false,
+    'disabled' => false,
+    'error' => null,
+    'helpText' => '',
+    'maxSize' => '5MB', // Display only
+    'maxSizeBytes' => 5242880, // 5MB in bytes
+    'thaiLabel' => true,
+    'class' => ''
+])
+
+@php
+    $baseClasses = "file-upload-area border-2 border-dashed border-gray-300 rounded-lg p-6 text-center transition-colors hover:border-gray-400";
+    $dragOverClasses = "border-blue-500 bg-blue-50";
+    $errorClasses = "border-red-500 bg-red-50";
+    $disabledClasses = "bg-gray-100 cursor-not-allowed";
+    $finalClasses = $baseClasses . ($error ? " {$errorClasses}" : '') . ($disabled ? " {$disabledClasses}" : '') . " {$class}";
+@endphp
+
+<div class="file-upload-component" 
+     x-data="{
+         isDragging: false,
+         fileName: null,
+         handleFileSelect(event) {
+             const file = event.target.files[0] || event.dataTransfer.files[0];
+             if (file) {
+                 this.fileName = file.name;
+                 // Validate file size
+                 if (file.size > {{ $maxSizeBytes }}) {
+                     alert('ไฟล์มีขนาดใหญ่เกินไป (สูงสุด: {{ $maxSize }})');
+                     return;
+                 }
+                 // You can handle the file upload here via Livewire or Alpine
+             }
+         },
+         handleDragOver(event) {
+             event.preventDefault();
+             this.isDragging = true;
+         },
+         handleDragLeave(event) {
+             event.preventDefault();
+             this.isDragging = false;
+         },
+         handleDrop(event) {
+             event.preventDefault();
+             this.isDragging = false;
+             this.handleFileSelect(event);
+         }
+     }"
+     @dragover="handleDragOver"
+     @dragleave="handleDragLeave"
+     @drop="handleDrop"
+     :class="isDragging ? '{{ $dragOverClasses }}' : ''"
+>
+    <div {{ $attributes->merge(['class' => $finalClasses]) }}>
+        <input 
+            type="file"
+            name="{{ $name }}"
+            id="{{ $name }}"
+            accept="{{ $accept }}"
+            {{ $multiple ? 'multiple' : '' }}
+            {{ $required ? 'required' : '' }}
+            {{ $disabled ? 'disabled' : '' }}
+            class="hidden"
+            x-on:change="handleFileSelect($event)"
+        >
+        
+        <div class="upload-content">
+            <img src="{{ asset('images/icons/system/upload-cloud.png') }}" alt="อัพโหลด" class="w-12 h-12 mx-auto mb-3 opacity-60">
+            
+            <div class="upload-text mb-2">
+                <span class="font-medium text-gray-700">ลากไฟล์มาวางที่นี่หรือ</span>
+                <label for="{{ $name }}" class="text-blue-600 cursor-pointer hover:text-blue-700 ml-1">
+                    อัพโหลดไฟล์
+                </label>
+            </div>
+            
+            <p class="text-sm text-gray-500">
+                รองรับไฟล์สูงสุด {{ $maxSize }}
+            </p>
+            
+            <div x-show="fileName" class="mt-3 p-2 bg-green-50 border border-green-200 rounded">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center">
+                        <img src="{{ asset('images/icons/system/file-success.png') }}" alt="ไฟล์" class="w-5 h-5 mr-2">
+                        <span class="text-sm text-green-800" x-text="fileName"></span>
+                    </div>
+                    <button type="button" @click="fileName = null; $refs.fileInput.value = ''" class="text-green-600 hover:text-green-700">
+                        <img src="{{ asset('images/icons/system/close-small.png') }}" alt="ลบ" class="w-4 h-4">
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    @if($error)
+        <p class="mt-2 text-sm text-red-600 flex items-center">
+            <img src="{{ asset('images/icons/system/error-small.png') }}" alt="" class="w-4 h-4 mr-1">
+            {{ $error }}
+        </p>
+    @endif
+    
+    @if($helpText)
+        <p class="mt-2 text-sm text-gray-500">{{ $helpText }}</p>
+    @endif
+</div>
+```
+
+7. Multi File Upload Component
+
+```blade
+{{-- components/global/multi-file-upload.blade.php --}}
+@props([
+    'label' => 'อัพโหลดหลายไฟล์',
+    'name' => 'files[]',
+    'accept' => 'image/*',
+    'maxFiles' => 5,
+    'required' => false,
+    'disabled' => false,
+    'error' => null,
+    'helpText' => '',
+    'maxSize' => '5MB',
+    'maxSizeBytes' => 5242880,
+    'thaiLabel' => true,
+    'class' => ''
+])
+
+<div class="multi-file-upload-component" 
+     x-data="{
+         files: [],
+         isDragging: false,
+         addFiles(newFiles) {
+             for (let file of newFiles) {
+                 if (this.files.length >= {{ $maxFiles }}) {
+                     alert('อัพโหลดได้สูงสุด {{ $maxFiles }} ไฟล์');
+                     break;
+                 }
+                 if (file.size > {{ $maxSizeBytes }}) {
+                     alert(`ไฟล์ ${file.name} มีขนาดใหญ่เกินไป (สูงสุด: {{ $maxSize }})`);
+                     continue;
+                 }
+                 
+                 const reader = new FileReader();
+                 reader.onload = (e) => {
+                     this.files.push({
+                         name: file.name,
+                         size: this.formatFileSize(file.size),
+                         preview: file.type.startsWith('image/') ? e.target.result : null,
+                         file: file
+                     });
+                 };
+                 reader.readAsDataURL(file);
+             }
+         },
+         removeFile(index) {
+             this.files.splice(index, 1);
+         },
+         formatFileSize(bytes) {
+             if (bytes === 0) return '0 Bytes';
+             const k = 1024;
+             const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+             const i = Math.floor(Math.log(bytes) / Math.log(k));
+             return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+         },
+         handleDragOver(event) {
+             event.preventDefault();
+             this.isDragging = true;
+         },
+         handleDragLeave(event) {
+             event.preventDefault();
+             this.isDragging = false;
+         },
+         handleDrop(event) {
+             event.preventDefault();
+             this.isDragging = false;
+             this.addFiles(event.dataTransfer.files);
+         }
+     }"
+>
+    @if($label)
+        <label class="block text-sm font-medium text-gray-700 mb-2">
+            {{ $label }}
+            @if($required)
+                <span class="text-red-500">*</span>
+            @endif
+        </label>
+    @endif
+
+    <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 transition-colors"
+         :class="isDragging ? 'border-blue-500 bg-blue-50' : ''"
+         @dragover="handleDragOver"
+         @dragleave="handleDragLeave"
+         @drop="handleDrop">
+        
+        <div class="text-center">
+            <img src="{{ asset('images/icons/system/upload-multiple.png') }}" alt="อัพโหลดหลายไฟล์" class="w-12 h-12 mx-auto mb-3 opacity-60">
+            
+            <p class="text-gray-600 mb-2">
+                ลากไฟล์มาวางที่นี่หรือ 
+                <label for="{{ $name }}" class="text-blue-600 cursor-pointer hover:text-blue-700">
+                    เลือกไฟล์
+                </label>
+            </p>
+            
+            <p class="text-sm text-gray-500">
+                อัพโหลดได้สูงสุด {{ $maxFiles }} ไฟล์, ขนาดไฟล์ไม่เกิน {{ $maxSize }} ต่อไฟล์
+            </p>
+        </div>
+
+        <input 
+            type="file"
+            name="{{ $name }}"
+            id="{{ $name }}"
+            accept="{{ $accept }}"
+            multiple
+            {{ $required ? 'required' : '' }}
+            {{ $disabled ? 'disabled' : '' }}
+            class="hidden"
+            x-on:change="addFiles($event.target.files)"
+        >
+
+        <!-- File List -->
+        <div class="mt-4 space-y-2" x-show="files.length > 0">
+            <template x-for="(file, index) in files" :key="index">
+                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg border">
+                    <div class="flex items-center space-x-3">
+                        <template x-if="file.preview">
+                            <img :src="file.preview" :alt="file.name" class="w-10 h-10 object-cover rounded">
+                        </template>
+                        <template x-if="!file.preview">
+                            <img src="{{ asset('images/icons/system/file.png') }}" alt="ไฟล์" class="w-10 h-10 p-2 bg-white rounded border">
+                        </template>
+                        <div>
+                            <div class="font-medium text-gray-900" x-text="file.name"></div>
+                            <div class="text-sm text-gray-500" x-text="file.size"></div>
+                        </div>
+                    </div>
+                    <button type="button" 
+                            @click="removeFile(index)" 
+                            class="text-red-500 hover:text-red-700 transition-colors">
+                        <img src="{{ asset('images/icons/system/trash.png') }}" alt="ลบ" class="w-5 h-5">
+                    </button>
+                </div>
+            </template>
+        </div>
+    </div>
+
+    @if($error)
+        <p class="mt-2 text-sm text-red-600 flex items-center">
+            <img src="{{ asset('images/icons/system/error-small.png') }}" alt="" class="w-4 h-4 mr-1">
+            {{ $error }}
+        </p>
+    @endif
+
+    @if($helpText)
+        <p class="mt-2 text-sm text-gray-500">{{ $helpText }}</p>
+    @endif
+</div>
+```
+
+8. Thai Address Form Component
+
+```blade
+{{-- components/global/thai-address-form.blade.php --}}
+@props([
+    'provinces' => [],
+    'districts' => [],
+    'subdistricts' => [],
+    'selectedProvince' => null,
+    'selectedDistrict' => null,
+    'selectedSubdistrict' => null,
+    'zipcode' => null,
+    'addressLine' => '',
+    'showAddressLine' => true,
+    'required' => false,
+    'error' => null,
+    'class' => ''
+])
+
+<div class="thai-address-form space-y-4 {{ $class }}">
+    @if($showAddressLine)
+        <x-global.form-textarea
+            label="ที่อยู่บรรทัดแรก"
+            name="address_line"
+            value="{{ $addressLine }}"
+            placeholder="บ้านเลขที่, หมู่, ถนน, อาคาร"
+            :required="$required"
+            :error="$error"
+            thai-label
+            rows="2"
+        />
+    @endif
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <!-- Province -->
+        <x-global.form-select
+            label="จังหวัด"
+            name="province_id"
+            :options="$provinces"
+            :selected="$selectedProvince"
+            :required="$required"
+            thai-label
+            placeholder="เลือกจังหวัด"
+        />
+
+        <!-- District -->
+        <x-global.form-select
+            label="อำเภอ/เขต"
+            name="district_id"
+            :options="$districts"
+            :selected="$selectedDistrict"
+            :required="$required"
+            thai-label
+            placeholder="เลือกอำเภอ/เขต"
+            :disabled="!$selectedProvince"
+        />
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <!-- Subdistrict -->
+        <x-global.form-select
+            label="ตำบล/แขวง"
+            name="subdistrict_id"
+            :options="$subdistricts"
+            :selected="$selectedSubdistrict"
+            :required="$required"
+            thai-label
+            placeholder="เลือกตำบล/แขวง"
+            :disabled="!$selectedDistrict"
+        />
+
+        <!-- Zipcode -->
+        <x-global.form-input
+            label="รหัสไปรษณีย์"
+            name="zipcode"
+            value="{{ $zipcode }}"
+            :required="$required"
+            thai-label
+            placeholder="10240"
+            :readonly="!!$zipcode"
+            :class="$zipcode ? 'bg-gray-100' : ''"
+        />
+    </div>
+
+    <!-- Auto-fill notice -->
+    <div x-data="{ showNotice: true }" x-show="showNotice" class="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+        <div class="flex items-start justify-between">
+            <div class="flex items-start">
+                <img src="{{ asset('images/icons/system/info.png') }}" alt="ข้อมูล" class="w-5 h-5 mr-2 mt-0.5 flex-shrink-0">
+                <div class="text-sm text-blue-800">
+                    <strong>หมายเหตุ:</strong> รหัสไปรษณีย์จะถูกกำหนดอัตโนมัติเมื่อเลือกตำบล/แขวง
+                </div>
+            </div>
+            <button @click="showNotice = false" class="text-blue-600 hover:text-blue-800">
+                <img src="{{ asset('images/icons/system/close-small.png') }}" alt="ปิด" class="w-4 h-4">
+            </button>
+        </div>
+    </div>
+</div>
+```
+
+9. Thai Currency Component
+
+```blade
+{{-- components/global/thai-currency.blade.php --}}
+@props([
+    'amount' => 0,
+    'showSymbol' => true,
+    'variant' => 'default', // default, discount, original, free, highlight
+    'size' => 'md', // sm, md, lg, xl
+    'showDecimal' => false,
+    'class' => ''
+])
+
+@php
+    $variantClasses = [
+        'default' => 'text-gray-900',
+        'discount' => 'text-orange-600 font-semibold',
+        'original' => 'text-gray-400 line-through',
+        'free' => 'text-green-600 font-semibold',
+        'highlight' => 'text-blue-600 font-bold'
+    ];
+    
+    $sizeClasses = [
+        'sm' => 'text-sm',
+        'md' => 'text-base',
+        'lg' => 'text-lg',
+        'xl' => 'text-xl'
+    ];
+    
+    $finalClasses = "{$variantClasses[$variant]} {$sizeClasses[$size]} {$class}";
+    
+    $formattedAmount = $showDecimal ? 
+        number_format($amount, 2) : 
+        number_format($amount);
+@endphp
+
+<span {{ $attributes->merge(['class' => $finalClasses]) }}>
+    @if($amount > 0)
+        @if($showSymbol)฿@endif{{ $formattedAmount }}
+    @else
+        ฟรี
+    @endif
+</span>
+```
+
+10. Auth Modal Component
+
+```blade
+{{-- components/global/auth-modal.blade.php --}}
+@props([
+    'show' => false,
+    'initialView' => 'role', // role, login, register, forgot-password
+    'redirectTo' => null
+])
+
+<div x-data="authModal()" 
+     x-show="show" 
+     x-cloak
+     class="fixed inset-0 z-50 overflow-y-auto"
+     x-on:keydown.escape="closeModal">
+    
+    <!-- Backdrop -->
+    <div class="fixed inset-0 bg-black bg-opacity-50 transition-opacity" x-show="show"
+         x-transition:enter="ease-out duration-300"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="ease-in duration-200"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0">
+    </div>
+
+    <!-- Modal -->
+    <div class="flex min-h-full items-center justify-center p-4">
+        <div class="relative bg-white rounded-xl shadow-xl max-w-md w-full"
+             x-show="show"
+             x-transition:enter="ease-out duration-300"
+             x-transition:enter-start="opacity-0 scale-95"
+             x-transition:enter-end="opacity-100 scale-100"
+             x-transition:leave="ease-in duration-200"
+             x-transition:leave-start="opacity-100 scale-100"
+             x-transition:leave-end="opacity-0 scale-95">
+            
+            <!-- Close Button -->
+            <button @click="closeModal" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors">
+                <img src="{{ asset('images/icons/system/close.png') }}" alt="ปิด" class="w-6 h-6">
+            </button>
+
+            <!-- Branding -->
+            <div class="p-6 border-b border-gray-200">
+                <div class="flex items-center justify-center">
+                    <img src="{{ asset('images/logo/logo-main.png') }}" alt="Blife" class="h-8">
+                </div>
+            </div>
+
+            <!-- Content -->
+            <div class="p-6">
+                <!-- Role Selection -->
+                <div x-show="currentView === 'role'">
+                    <h3 class="text-xl font-bold text-center mb-2">เลือกบทบาทการใช้งาน</h3>
+                    <p class="text-gray-600 text-center mb-6">เลือกประเภทบัญชีที่ต้องการ</p>
+                    
+                    <div class="space-y-3">
+                        <!-- Customer Role -->
+                        <button @click="selectRole('customer')" 
+                                class="w-full p-4 border-2 border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all text-left">
+                            <div class="flex items-center">
+                                <img src="{{ asset('images/icons/auth/customer-role.png') }}" alt="ลูกค้า" class="w-10 h-10 mr-3">
+                                <div>
+                                    <div class="font-semibold text-gray-900">ลูกค้า</div>
+                                    <div class="text-sm text-gray-600">ซื้อสินค้าและบริการ</div>
+                                </div>
+                            </div>
+                        </button>
+
+                        <!-- Vendor Role -->
+                        <button @click="selectRole('vendor')" 
+                                class="w-full p-4 border-2 border-gray-200 rounded-lg hover:border-green-500 hover:bg-green-50 transition-all text-left">
+                            <div class="flex items-center">
+                                <img src="{{ asset('images/icons/auth/vendor-role.png') }}" alt="ผู้ขาย" class="w-10 h-10 mr-3">
+                                <div>
+                                    <div class="font-semibold text-gray-900">ผู้ขาย</div>
+                                    <div class="text-sm text-gray-600">ขายสินค้าและรับค่าคอมมิชชั่น</div>
+                                </div>
+                            </div>
+                        </button>
+
+                        <!-- Admin Role -->
+                        <button @click="selectRole('admin')" 
+                                class="w-full p-4 border-2 border-gray-200 rounded-lg hover:border-purple-500 hover:bg-purple-50 transition-all text-left">
+                            <div class="flex items-center">
+                                <img src="{{ asset('images/icons/auth/admin-role.png') }}" alt="ผู้ดูแล" class="w-10 h-10 mr-3">
+                                <div>
+                                    <div class="font-semibold text-gray-900">ผู้ดูแลระบบ</div>
+                                    <div class="text-sm text-gray-600">จัดการระบบและผู้ใช้งาน</div>
+                                </div>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Login Form -->
+                <div x-show="currentView === 'login'">
+                    <h3 class="text-xl font-bold text-center mb-6">
+                        <span x-text="roleLabels[selectedRole]"></span> - เข้าสู่ระบบ
+                    </h3>
+                    
+                    <form wire:submit.prevent="login">
+                        <div class="space-y-4">
+                            <x-global.form-input
+                                label="อีเมล"
+                                type="email"
+                                wire:model="email"
+                                required
+                                thai-label
+                                icon="images/icons/system/email.png"
+                            />
+                            
+                            <x-global.form-input
+                                label="รหัสผ่าน"
+                                type="password"
+                                wire:model="password"
+                                required
+                                thai-label
+                                icon="images/icons/system/lock.png"
+                            />
+                            
+                            <button type="submit" class="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors font-medium">
+                                เข้าสู่ระบบ
+                            </button>
+                        </div>
+                    </form>
+                    
+                    <div class="text-center mt-4">
+                        <button @click="showView('forgot-password')" class="text-sm text-blue-600 hover:text-blue-700">
+                            ลืมรหัสผ่าน?
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function authModal() {
+    return {
+        show: @json($show),
+        currentView: @json($initialView),
+        selectedRole: null,
+        roleLabels: {
+            customer: 'ลูกค้า',
+            vendor: 'ผู้ขาย',
+            admin: 'ผู้ดูแลระบบ'
+        },
+        
+        init() {
+            // Listen for auth modal triggers
+            window.addEventListener('open-auth-modal', (event) => {
+                this.show = true;
+                this.currentView = event.detail.view || 'role';
+                this.selectedRole = event.detail.role || null;
+            });
+        },
+        
+        closeModal() {
+            this.show = false;
+            this.currentView = 'role';
+            this.selectedRole = null;
+        },
+        
+        selectRole(role) {
+            this.selectedRole = role;
+            this.showView('login');
+        },
+        
+        showView(view) {
+            this.currentView = view;
+        }
+    }
+}
+</script>
+```
+
+🎯 Global Components - Phase 2 (Completion)
+
+11. Loading Spinner Component
+
+```blade
+{{-- components/global/loading-spinner.blade.php --}}
+@props([
+    'size' => 'md', // sm, md, lg, xl
+    'type' => 'spinner', // spinner, dots, bars
+    'text' => null,
+    'overlay' => false,
+    'class' => ''
+])
+
+@php
+    $sizeClasses = [
+        'sm' => 'w-4 h-4',
+        'md' => 'w-8 h-8',
+        'lg' => 'w-12 h-12',
+        'xl' => 'w-16 h-16'
+    ];
+
+    $textSizes = [
+        'sm' => 'text-sm',
+        'md' => 'text-base',
+        'lg' => 'text-lg',
+        'xl' => 'text-xl'
+    ];
+@endphp
+
+@if($overlay)
+<div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+@endif
+
+<div {{ $attributes->merge(['class' => "loading-spinner flex flex-col items-center justify-center {$class}"]) }}>
+    @if($type === 'spinner')
+        <div class="animate-spin rounded-full border-2 border-gray-300 border-t-blue-600 {{ $sizeClasses[$size] }}"></div>
+    @elseif($type === 'dots')
+        <div class="flex space-x-1 {{ $sizeClasses[$size] }}">
+            <div class="w-1/3 h-full bg-blue-600 rounded-full animate-bounce"></div>
+            <div class="w-1/3 h-full bg-blue-600 rounded-full animate-bounce" style="animation-delay: 0.1s"></div>
+            <div class="w-1/3 h-full bg-blue-600 rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
+        </div>
+    @elseif($type === 'bars')
+        <img src="{{ asset('images/loading/loading-bars.gif') }}" 
+             alt="กำลังโหลด..." 
+             class="{{ $sizeClasses[$size] }}">
+    @endif
+
+    @if($text)
+        <p class="mt-2 text-gray-600 {{ $textSizes[$size] }}">{{ $text }}</p>
+    @endif
+</div>
+
+@if($overlay)
+</div>
+@endif
+```
+
+12. Empty State Component
+
+```blade
+{{-- components/global/empty-state.blade.php --}}
+@props([
+    'icon' => 'images/placeholders/empty-state.png',
+    'title' => 'ไม่มีข้อมูล',
+    'description' => null,
+    'actionLabel' => null,
+    'actionUrl' => null,
+    'actionClick' => null,
+    'size' => 'md', // sm, md, lg
+    'class' => ''
+])
+
+@php
+    $sizeConfig = [
+        'sm' => [
+            'icon' => 'w-16 h-16',
+            'title' => 'text-lg',
+            'description' => 'text-sm'
+        ],
+        'md' => [
+            'icon' => 'w-24 h-24',
+            'title' => 'text-xl',
+            'description' => 'text-base'
+        ],
+        'lg' => [
+            'icon' => 'w-32 h-32',
+            'title' => 'text-2xl',
+            'description' => 'text-lg'
+        ]
+    ];
+
+    $config = $sizeConfig[$size];
+@endphp
+
+<div {{ $attributes->merge(['class' => "empty-state text-center py-8 {$class}"]) }}>
+    <div class="empty-icon mb-4">
+        <img src="{{ asset($icon) }}" 
+             alt="{{ $title }}"
+             class="mx-auto opacity-50 {{ $config['icon'] }}">
+    </div>
+
+    <h3 class="font-semibold text-gray-700 mb-2 {{ $config['title'] }}">
+        {{ $title }}
+    </h3>
+
+    @if($description)
+        <p class="text-gray-500 mb-6 max-w-md mx-auto {{ $config['description'] }}">
+            {{ $description }}
+        </p>
+    @endif
+
+    @if($actionLabel)
+        <div class="empty-action">
+            @if($actionUrl)
+                <a href="{{ $actionUrl }}" 
+                   class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                    <img src="{{ asset('images/icons/system/plus.png') }}" alt="" class="w-4 h-4 mr-2">
+                    {{ $actionLabel }}
+                </a>
+            @elseif($actionClick)
+                <button type="button" 
+                        onclick="{{ $actionClick }}"
+                        class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                    <img src="{{ asset('images/icons/system/plus.png') }}" alt="" class="w-4 h-4 mr-2">
+                    {{ $actionLabel }}
+                </button>
+            @else
+                <button type="button" 
+                        class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                    <img src="{{ asset('images/icons/system/plus.png') }}" alt="" class="w-4 h-4 mr-2">
+                    {{ $actionLabel }}
+                </button>
+            @endif
+        </div>
+    @endif
+</div>
+```
+
+13. Confirmation Modal Component
+
+```blade
+{{-- components/global/confirmation-modal.blade.php --}}
+@props([
+    'show' => false,
+    'title' => 'ยืนยันการดำเนินการ',
+    'message' => 'คุณแน่ใจที่จะดำเนินการนี้หรือไม่?',
+    'confirmText' => 'ยืนยัน',
+    'cancelText' => 'ยกเลิก',
+    'type' => 'warning', // info, warning, danger, success
+    'confirmAction' => null,
+    'cancelAction' => null,
+    'loading' => false,
+    'size' => 'md' // sm, md, lg
+])
+
+@php
+    $typeConfig = [
+        'info' => [
+            'icon' => 'images/icons/system/info.png',
+            'iconBg' => 'bg-blue-100',
+            'iconColor' => 'text-blue-600',
+            'button' => 'bg-blue-600 hover:bg-blue-700'
+        ],
+        'warning' => [
+            'icon' => 'images/icons/system/warning.png',
+            'iconBg' => 'bg-yellow-100',
+            'iconColor' => 'text-yellow-600',
+            'button' => 'bg-yellow-600 hover:bg-yellow-700'
+        ],
+        'danger' => [
+            'icon' => 'images/icons/system/error.png',
+            'iconBg' => 'bg-red-100',
+            'iconColor' => 'text-red-600',
+            'button' => 'bg-red-600 hover:bg-red-700'
+        ],
+        'success' => [
+            'icon' => 'images/icons/system/success.png',
+            'iconBg' => 'bg-green-100',
+            'iconColor' => 'text-green-600',
+            'button' => 'bg-green-600 hover:bg-green-700'
+        ]
+    ];
+
+    $sizeConfig = [
+        'sm' => 'max-w-sm',
+        'md' => 'max-w-md',
+        'lg' => 'max-w-lg'
+    ];
+
+    $config = $typeConfig[$type];
+@endphp
+
+<div x-data="confirmationModal()" 
+     x-show="show" 
+     x-cloak
+     class="fixed inset-0 z-50 overflow-y-auto"
+     x-on:keydown.escape="closeModal">
+
+    <!-- Backdrop -->
+    <div class="fixed inset-0 bg-black bg-opacity-50 transition-opacity"
+         x-show="show"
+         x-transition:enter="ease-out duration-300"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="ease-in duration-200"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0">
+    </div>
+
+    <!-- Modal -->
+    <div class="flex min-h-full items-center justify-center p-4">
+        <div class="relative bg-white rounded-xl shadow-xl {{ $sizeConfig[$size] }} w-full"
+             x-show="show"
+             x-transition:enter="ease-out duration-300"
+             x-transition:enter-start="opacity-0 scale-95"
+             x-transition:enter-end="opacity-100 scale-100"
+             x-transition:leave="ease-in duration-200"
+             x-transition:leave-start="opacity-100 scale-100"
+             x-transition:leave-end="opacity-0 scale-95">
+            
+            <!-- Header -->
+            <div class="flex items-center p-6 border-b border-gray-200">
+                <div class="flex items-center justify-center w-10 h-10 rounded-full {{ $config['iconBg'] }} {{ $config['iconColor'] }} mr-3">
+                    <img src="{{ asset($config['icon']) }}" alt="" class="w-5 h-5">
+                </div>
+                <h3 class="text-lg font-semibold text-gray-900">{{ $title }}</h3>
+            </div>
+
+            <!-- Body -->
+            <div class="p-6">
+                <p class="text-gray-700">{{ $message }}</p>
+            </div>
+
+            <!-- Footer -->
+            <div class="flex justify-end space-x-3 p-6 border-t border-gray-200">
+                <button type="button"
+                        @click="cancel"
+                        class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                        :disabled="loading">
+                    {{ $cancelText }}
+                </button>
+                
+                <button type="button"
+                        @click="confirm"
+                        class="px-4 py-2 text-white rounded-lg transition-colors {{ $config['button'] }}"
+                        :disabled="loading">
+                    <div class="flex items-center">
+                        <template x-if="loading">
+                            <img src="{{ asset('images/loading/spinner.gif') }}" alt="กำลังโหลด" class="w-4 h-4 mr-2">
+                        </template>
+                        {{ $confirmText }}
+                    </div>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function confirmationModal() {
+    return {
+        show: @json($show),
+        loading: @json($loading),
+        init() {
+            // Listen for confirmation modal triggers
+            window.addEventListener('open-confirmation-modal', (event) => {
+                this.show = true;
+                this.confirmAction = event.detail.confirmAction;
+                this.cancelAction = event.detail.cancelAction;
+            });
+        },
+        closeModal() {
+            this.show = false;
+            this.loading = false;
+        },
+        cancel() {
+            if (this.cancelAction) {
+                this.$dispatch(this.cancelAction);
+            }
+            this.closeModal();
+        },
+        confirm() {
+            this.loading = true;
+            if (this.confirmAction) {
+                this.$dispatch(this.confirmAction);
+            }
+            // Note: The parent component should handle closing the modal after the action completes
+        }
+    }
+}
+</script>
+```
+
+14. Notification Toast Component
+
+```blade
+{{-- components/global/notification-toast.blade.php --}}
+@props([
+    'id' => null,
+    'type' => 'info', // success, error, warning, info
+    'title' => null,
+    'message' => '',
+    'duration' => 5000, // ms, 0 for persistent
+    'position' => 'top-right', // top-right, top-left, bottom-right, bottom-left
+    'showClose' => true,
+    'action' => null,
+    'actionLabel' => null
+])
+
+@php
+    $typeConfig = [
+        'success' => [
+            'icon' => 'images/icons/system/success.png',
+            'bg' => 'bg-green-50 border-green-200',
+            'text' => 'text-green-800',
+            'iconBg' => 'bg-green-100'
+        ],
+        'error' => [
+            'icon' => 'images/icons/system/error.png',
+            'bg' => 'bg-red-50 border-red-200',
+            'text' => 'text-red-800',
+            'iconBg' => 'bg-red-100'
+        ],
+        'warning' => [
+            'icon' => 'images/icons/system/warning.png',
+            'bg' => 'bg-yellow-50 border-yellow-200',
+            'text' => 'text-yellow-800',
+            'iconBg' => 'bg-yellow-100'
+        ],
+        'info' => [
+            'icon' => 'images/icons/system/info.png',
+            'bg' => 'bg-blue-50 border-blue-200',
+            'text' => 'text-blue-800',
+            'iconBg' => 'bg-blue-100'
+        ]
+    ];
+
+    $positionClasses = [
+        'top-right' => 'top-4 right-4',
+        'top-left' => 'top-4 left-4',
+        'bottom-right' => 'bottom-4 right-4',
+        'bottom-left' => 'bottom-4 left-4'
+    ];
+
+    $config = $typeConfig[$type];
+@endphp
+
+<div x-data="notificationToast()"
+     x-show="show"
+     x-transition:enter="transform ease-out duration-300 transition"
+     x-transition:enter-start="translate-y-2 opacity-0 sm:translate-y-0 sm:translate-x-2"
+     x-transition:enter-end="translate-y-0 opacity-100 sm:translate-x-0"
+     x-transition:leave="transition ease-in duration-100"
+     x-transition:leave-start="opacity-100"
+     x-transition:leave-end="opacity-0"
+     class="fixed {{ $positionClasses[$position] }} z-50 max-w-sm w-full">
+    
+    <div class="rounded-lg shadow-lg border {{ $config['bg'] }} {{ $config['text'] }} overflow-hidden">
+        <div class="p-4">
+            <div class="flex items-start">
+                <!-- Icon -->
+                <div class="flex-shrink-0">
+                    <div class="w-8 h-8 rounded-full {{ $config['iconBg'] }} flex items-center justify-center">
+                        <img src="{{ asset($config['icon']) }}" alt="" class="w-4 h-4">
+                    </div>
+                </div>
+
+                <!-- Content -->
+                <div class="ml-3 flex-1">
+                    @if($title)
+                        <h4 class="font-medium">{{ $title }}</h4>
+                    @endif
+                    <p class="text-sm mt-1">{{ $message }}</p>
+
+                    @if($action && $actionLabel)
+                        <div class="mt-2">
+                            <button type="button" 
+                                    @click="handleAction"
+                                    class="text-sm font-medium underline hover:no-underline">
+                                {{ $actionLabel }}
+                            </button>
+                        </div>
+                    @endif
+                </div>
+
+                <!-- Close Button -->
+                @if($showClose)
+                    <div class="ml-4 flex-shrink-0">
+                        <button type="button" 
+                                @click="close"
+                                class="rounded-md inline-flex text-gray-400 hover:text-gray-500 focus:outline-none">
+                            <img src="{{ asset('images/icons/system/close.png') }}" alt="ปิด" class="w-4 h-4">
+                        </button>
+                    </div>
+                @endif
+            </div>
+        </div>
+
+        <!-- Progress Bar -->
+        @if($duration > 0)
+            <div class="h-1 bg-gray-200">
+                <div class="h-full {{ $config['iconBg'] }} transition-all duration-100 ease-linear"
+                     x-ref="progressBar"
+                     :style="`width: ${progress}%`">
+                </div>
+            </div>
+        @endif
+    </div>
+</div>
+
+<script>
+function notificationToast() {
+    return {
+        show: false,
+        progress: 100,
+        duration: @json($duration),
+        timer: null,
+        progressTimer: null,
+        
+        init() {
+            this.show = true;
+            
+            // Auto-hide if duration is set
+            if (this.duration > 0) {
+                this.startAutoHide();
+            }
+            
+            // Listen for close events
+            this.$watch('show', (value) => {
+                if (!value) {
+                    this.cleanup();
+                }
+            });
+        },
+        
+        startAutoHide() {
+            const interval = 50; // Update every 50ms
+            const steps = this.duration / interval;
+            const decrement = 100 / steps;
+            
+            this.progressTimer = setInterval(() => {
+                this.progress -= decrement;
+                if (this.progress <= 0) {
+                    this.close();
+                }
+            }, interval);
+            
+            this.timer = setTimeout(() => {
+                this.close();
+            }, this.duration);
+        },
+        
+        handleAction() {
+            @if($action)
+                this.$dispatch('{{ $action }}');
+            @endif
+            this.close();
+        },
+        
+        close() {
+            this.show = false;
+            this.cleanup();
+        },
+        
+        cleanup() {
+            if (this.timer) {
+                clearTimeout(this.timer);
+            }
+            if (this.progressTimer) {
+                clearInterval(this.progressTimer);
+            }
+        }
+    }
+}
+</script>
+```
+
+15. Toast Container Component (Additional - สำหรับจัดการหลาย toast)
+
+```blade
+{{-- components/global/toast-container.blade.php --}}
+@props([
+    'position' => 'top-right'
+])
+
+@php
+    $positionClasses = [
+        'top-right' => 'top-0 right-0',
+        'top-left' => 'top-0 left-0',
+        'bottom-right' => 'bottom-0 right-0',
+        'bottom-left' => 'bottom-0 left-0'
+    ];
+@endphp
+
+<div class="fixed {{ $positionClasses[$position] }} z-50 p-4 space-y-3 max-w-sm w-full"
+     x-data="toastContainer()"
+     x-show="toasts.length > 0">
+    
+    <template x-for="toast in toasts" :key="toast.id">
+        <div class="toast-item">
+            <x-global.notification-toast
+                :title="toast.title"
+                :message="toast.message"
+                :type="toast.type"
+                :duration="toast.duration"
+                :action="toast.action"
+                :action-label="toast.actionLabel"
+                x-show="toast.visible"
+                x-transition:enter="transform ease-out duration-300 transition"
+                x-transition:enter-start="translate-y-2 opacity-0"
+                x-transition:enter-end="translate-y-0 opacity-100"
+                x-transition:leave="transition ease-in duration-100"
+                x-transition:leave-start="opacity-100"
+                x-transition:leave-end="opacity-0"
+                @close="removeToast(toast.id)" />
+        </div>
+    </template>
+</div>
+
+<script>
+function toastContainer() {
+    return {
+        toasts: [],
+        nextId: 1,
+        
+        init() {
+            // Listen for toast notifications
+            window.addEventListener('show-toast', (event) => {
+                this.addToast(event.detail);
+            });
+        },
+        
+        addToast(toastData) {
+            const toast = {
+                id: this.nextId++,
+                visible: true,
+                ...toastData
+            };
+            
+            this.toasts.push(toast);
+            
+            // Auto-remove after duration
+            if (toast.duration > 0) {
+                setTimeout(() => {
+                    this.removeToast(toast.id);
+                }, toast.duration);
+            }
+        },
+        
+        removeToast(toastId) {
+            const toastIndex = this.toasts.findIndex(t => t.id === toastId);
+            if (toastIndex !== -1) {
+                this.toasts[toastIndex].visible = false;
+                
+                // Remove from array after transition
+                setTimeout(() => {
+                    this.toasts = this.toasts.filter(t => t.id !== toastId);
+                }, 100);
+            }
+        }
+    }
+}
+</script>
+```
+
+---
+
+🎯 Global Components Usage Examples
+
+ตัวอย่างการใช้งานทั้งหมด
+
+```blade
+{{-- 1. Headline --}}
+<x-global.headline level="h1" variant="primary" size="xl" icon="images/icons/system/featured.png">
+    สินค้าแนะนำ
+</x-global.headline>
+
+{{-- 2. Error Message --}}
+<x-global.error-message type="validation" dismissible>
+    กรุณากรอกข้อมูลให้ครบถ้วน
+</x-global.error-message>
+
+{{-- 3. Form Input --}}
+<x-global.form-input
+    label="อีเมล"
+    type="email"
+    name="email"
+    placeholder="example@blife.com"
+    required
+    icon="images/icons/system/email.png"
+    error="อีเมลนี้ถูกใช้งานแล้ว"
+/>
+
+{{-- 4. Form Select --}}
+<x-global.form-select
+    label="จังหวัด"
+    name="province"
+    :options="['bkk' => 'กรุงเทพ', 'cnx' => 'เชียงใหม่']"
+    placeholder="เลือกจังหวัด"
+    required
+/>
+
+{{-- 5. Form Textarea --}}
+<x-global.form-textarea
+    label="รายละเอียด"
+    name="description"
+    rows="4"
+    show-counter
+    max-length="500"
+    help-text="อธิบายรายละเอียดสินค้า"
+/>
+
+{{-- 6. File Upload --}}
+<x-global.file-upload
+    label="อัพโหลดรูปภาพ"
+    name="image"
+    accept="image/*"
+    max-size="2MB"
+/>
+
+{{-- 7. Multi File Upload --}}
+<x-global.multi-file-upload
+    label="อัพโหลดหลายรูป"
+    name="images"
+    accept="image/*"
+    max-files="5"
+    max-size="5MB"
+/>
+
+{{-- 8. Thai Address Form --}}
+<x-global.thai-address-form
+    :provinces="$provinces"
+    :districts="$districts"
+    :selected-province="$selectedProvince"
+/>
+
+{{-- 9. Thai Currency --}}
+<x-global.thai-currency :amount="1990" show-symbol variant="discount" />
+
+{{-- 10. Auth Modal --}}
+<x-global.auth-modal :show="$showAuthModal" />
+
+{{-- 11. Loading Spinner --}}
+<x-global.loading-spinner type="spinner" size="lg" text="กำลังโหลด..." overlay />
+
+{{-- 12. Empty State --}}
+<x-global.empty-state
+    title="ยังไม่มีสินค้า"
+    description="เริ่มต้นเพิ่มสินค้าแรกของคุณได้เลย"
+    action-label="เพิ่มสินค้า"
+    action-url="{{ route('vendor.products.create') }}"
+/>
+
+{{-- 13. Confirmation Modal --}}
+<x-global.confirmation-modal
+    :show="$showDeleteModal"
+    title="ลบสินค้า"
+    message="คุณแน่ใจที่จะลบสินค้านี้หรือไม่? การดำเนินการนี้ไม่สามารถย้อนกลับได้"
+    type="danger"
+    confirm-text="ลบสินค้า"
+    :confirm-action="'delete-product-' . $product->id"
+/>
+
+{{-- 14. Notification Toast --}}
+<x-global.notification-toast
+    type="success"
+    title="สำเร็จ"
+    message="บันทึกข้อมูลเรียบร้อยแล้ว"
+    duration="3000"
+/>
+
+{{-- 15. Toast Container --}}
+<x-global.toast-container position="top-right" />
+```
+
+---
+
+🚀 JavaScript Event Triggers
+
+การเปิด Modal และแสดง Toast ผ่าน JavaScript
+
+```javascript
+// เปิด Auth Modal
+window.dispatchEvent(new CustomEvent('open-auth-modal', {
+    detail: {
+        view: 'login',
+        role: 'customer'
+    }
+}));
+
+// เปิด Confirmation Modal
+window.dispatchEvent(new CustomEvent('open-confirmation-modal', {
+    detail: {
+        title: 'ลบสินค้า',
+        message: 'คุณแน่ใจหรือไม่?',
+        confirmAction: 'confirm-delete',
+        cancelAction: 'cancel-delete'
+    }
+}));
+
+// แสดง Toast
+window.dispatchEvent(new CustomEvent('show-toast', {
+    detail: {
+        type: 'success',
+        title: 'สำเร็จ',
+        message: 'บันทึกข้อมูลเรียบร้อย',
+        duration: 5000
+    }
+}));
+```
+
+Livewire Integration
+
+```php
+// ใน Livewire component
+public function showSuccessToast()
+{
+    $this->dispatch('show-toast', [
+        'type' => 'success',
+        'title' => 'สำเร็จ',
+        'message' => 'บันทึกข้อมูลเรียบร้อย',
+        'duration' => 3000
+    ]);
+}
+```
+
+---
+
+✅ สรุป Global Components ทั้งหมด
+
+```
+✅ COMPLETED - 15 Global Components:
+
+1.  headline.blade.php           - ตัวแสดงหัวข้อ
+2.  error-message.blade.php      - การจัดการข้อผิดพลาด  
+3.  form-input.blade.php         - Input field
+4.  form-select.blade.php        - Dropdown selector
+5.  form-textarea.blade.php      - Textarea
+6.  file-upload.blade.php        - อัพโหลดไฟล์เดียว
+7.  multi-file-upload.blade.php  - อัพโหลดหลายไฟล์
+8.  thai-address-form.blade.php  - ฟอร์มที่อยู่ไทย
+9.  thai-currency.blade.php      - การแสดงผลเงินบาท
+10. auth-modal.blade.php         - Modal ล็อกอิน/สมัคร
+11. loading-spinner.blade.php    - ตัวโหลด
+12. empty-state.blade.php        - สถานะว่างเปล่า
+13. confirmation-modal.blade.php - Modal ยืนยัน
+14. notification-toast.blade.php - การแจ้งเตือน
+15. toast-container.blade.php    - Container จัดการ Toast
+
+🎯 FEATURES:
+- ✅ รองรับภาษาไทยทั้งหมด
+- ✅ Responsive design
+- ✅ Accessibility
+- ✅ Variants และ customization
+- ✅ Event handling
+- ✅ Livewire integration
+- ✅ Error handling
+- ✅ Loading states
+```
+
+Global Components ทั้ง 15 ตัวนี้พร้อมใช้งานแล้ว
