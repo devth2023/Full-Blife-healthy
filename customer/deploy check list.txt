@@ -1,0 +1,46 @@
+ภาพที่ต้องเรียงตาม Folder 
+
+✅ wishlist/
+  - heart-empty.png (24x24px)
+  - heart-filled.png (24x24px)
+  - heart-added.png (24x24px)
+  - wishlist-empty.png (64x64px)
+
+✅ cart/
+  - cart-icon.png (24x24px)
+  - cart-empty.png (80x80px)
+  - delete-item.png (20x20px)
+  - quantity-decrease.png (16x16px)
+  - quantity-increase.png (16x16px)
+  - coupon-icon.png (20x20px)
+
+✅ checkout/
+  - step-address.png (24x24px)
+  - step-payment.png (24x24px)
+  - step-confirm.png (24x24px)
+  - step-completed.png (24x24px)
+  - secure-payment.png (20x20px)
+
+✅ payment/
+  - credit-card.png (32x32px)
+  - bank-transfer.png (32x32px)
+  - promptpay.png (32x32px)
+  - cod.png (32x32px)
+  - wallet.png (32x32px)
+
+✅ reviews/
+  - star-empty.png (20x20px)
+  - star-full.png (20x20px)
+  - star-half.png (20x20px)
+  - review-empty.png (64x64px)
+  - camera-upload.png (24x24px)
+
+✅ placeholders/
+  - product-small.jpg (80x80px)
+  - product-medium.jpg (120x120px)
+  - avatar-small.png (40x40px)
+
+✅ illustrations/
+  - shopping-cart.svg
+  - secure-checkout.svg
+  - order-confirmed.svg
