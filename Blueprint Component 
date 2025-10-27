@@ -1,0 +1,458 @@
+🏗️ Component Architecture Breakdown - 4 Layer System
+
+📦 GLOBAL COMPONENTS (Shared Across All Layers)
+
+1. Core UI Components
+
+```blade
+{{-- components/global/ --}}
+├── headine.blade.php           # ตัวแสดงหัวข้อพร้อม variants
+├── error-message.blade.php     # การจัดการข้อผิดพลาด
+├── form-input.blade.php        # Input field แบบต่างๆ
+├── form-select.blade.php       # Dropdown selector
+├── form-textarea.blade.php     # Textarea
+├── file-upload.blade.php       # อัพโหลดไฟล์
+├── multi-file-upload.blade.php # อัพโหลดหลายไฟล์
+├── thai-address-form.blade.php # ฟอร์มที่อยู่ไทย
+├── thai-currency.blade.php     # การแสดงผลเงินบาท
+├── auth-modal.blade.php        # Modal ล็อกอิน/สมัคร
+├── loading-spinner.blade.php   # ตัวโหลด
+├── empty-state.blade.php       # สถานะว่างเปล่า
+├── confirmation-modal.blade.php # Modal ยืนยัน
+└── notification-toast.blade.php # การแจ้งเตือน
+```
+
+2. Layout Components
+
+```blade
+{{-- components/layouts/ --}}
+├── app.blade.php              # Layout หลัก
+├── auth.blade.php             # Layout สำหรับหน้า Auth
+├── customer.blade.php         # Layout โซนลูกค้า
+├── vendor.blade.php           # Layout โซนผู้ขาย
+├── admin.blade.php            # Layout โซนแอดมิน
+├── navigation/                # ระบบนำทาง
+│   ├── header.blade.php       # Header หลัก
+│   ├── footer.blade.php       # Footer
+│   ├── customer-sidebar.blade.php
+│   ├── vendor-sidebar.blade.php
+│   └── admin-sidebar.blade.php
+└── responsive-grid.blade.php  # ระบบ Grid
+```
+
+---
+
+👤 CUSTOMER COMPONENTS
+
+1. Dashboard & Profile
+
+```blade
+{{-- components/customer/ --}}
+├── dashboard/
+│   ├── dashboard.blade.php           # หน้าหลักลูกค้า
+│   ├── stat-card.blade.php           # การ์ดสถิติ
+│   ├── quick-action.blade.php        # ปุ่มดำเนินการด่วน
+│   └── recent-orders.blade.php       # คำสั่งซื้อล่าสุด
+├── profile/
+│   ├── profile-form.blade.php        # แก้ไขโปรไฟล์
+│   ├── password-form.blade.php       # เปลี่ยนรหัสผ่าน
+│   ├── preferences-form.blade.php    # การตั้งค่า
+│   └── avatar-upload.blade.php       # อัพโหลดรูปโปรไฟล์
+├── addresses/
+│   ├── address-list.blade.php        # รายการที่อยู่
+│   ├── address-form.blade.php        # เพิ่ม/แก้ไขที่อยู่
+│   └── address-card.blade.php        # การ์ดที่อยู่
+└── orders/
+    ├── order-list.blade.php          # รายการคำสั่งซื้อ
+    ├── order-card.blade.php          # การ์ดคำสั่งซื้อ
+    ├── order-detail.blade.php        # รายละเอียดคำสั่งซื้อ
+    ├── order-tracking.blade.php      # ติดตามคำสั่งซื้อ
+    ├── invoice.blade.php             # ใบแจ้งหนี้
+    └── cancel-order-form.blade.php   # ยกเลิกคำสั่งซื้อ
+```
+
+2. Shopping & Cart
+
+```blade
+{{-- components/customer/shopping/ --}}
+├── wishlist/
+│   ├── wishlist-grid.blade.php       # กริดรายการโปรด
+│   ├── wishlist-card.blade.php       # การ์ดสินค้าในรายการโปรด
+│   └── add-to-wishlist.blade.php     # ปุ่มเพิ่มรายการโปรด
+├── cart/
+│   ├── cart-icon.blade.php           # ไอคอนตะกร้า (แสดงจำนวน)
+│   ├── cart-sidebar.blade.php        # ตะกร้าสินค้าแบบ slide-in
+│   ├── cart-items.blade.php          # รายการในตะกร้า
+│   ├── cart-summary.blade.php        # สรุปตะกร้า
+│   └── coupon-form.blade.php         # ฟอร์มใส่โค้ดส่วนลด
+├── checkout/
+│   ├── checkout-steps.blade.php      # ขั้นตอนการชำระเงิน
+│   ├── address-step.blade.php        # ขั้นตอนที่อยู่
+│   ├── payment-step.blade.php        # ขั้นตอนชำระเงิน
+│   ├── confirmation-step.blade.php   # ขั้นตอนยืนยัน
+│   └── payment-methods.blade.php     # วิธีการชำระเงิน
+└── reviews/
+    ├── review-list.blade.php         # รายการรีวิว
+    ├── review-form.blade.php         # ฟอร์มเขียนรีวิว
+    ├── review-card.blade.php         # การ์ดรีวิว
+    └── star-rating.blade.php         # การให้คะแนนดาว
+```
+
+3. Support System
+
+```blade
+{{-- components/customer/support/ --}}
+├── tickets/
+│   ├── ticket-list.blade.php         # รายการ Ticket
+│   ├── ticket-form.blade.php         # สร้าง Ticket ใหม่
+│   ├── ticket-detail.blade.php       # รายละเอียด Ticket
+│   └── ticket-reply.blade.php        # การตอบกลับ Ticket
+└── live-chat/
+    ├── chat-widget.blade.php         # วิดเจ็ทแชท
+    ├── chat-messages.blade.php       # รายการข้อความ
+    └── chat-input.blade.php          # Input สำหรับแชท
+```
+
+---
+
+🏪 VENDOR COMPONENTS
+
+1. Vendor Registration & Onboarding
+
+```blade
+{{-- components/vendor/auth/ --}}
+├── registration-wizard.blade.php     # ฟอร์มสมัครหลายขั้นตอน
+├── registration-step.blade.php       # ขั้นตอนการสมัคร
+├── personal-info-form.blade.php      # ข้อมูลส่วนตัว
+├── shop-setup-form.blade.php         # ตั้งค่าร้านค้า
+├── business-info-form.blade.php      # ข้อมูลธุรกิจ
+└── confirmation-step.blade.php       # ยืนยันการสมัคร
+```
+
+2. Vendor Dashboard & Analytics
+
+```blade
+{{-- components/vendor/dashboard/ --}}
+├── dashboard.blade.php               # แดชบอร์ดผู้ขาย
+├── stats-overview.blade.php          # ภาพรวมสถิติ
+├── metric-card.blade.php             # การ์ดเมตริก
+├── recent-orders-table.blade.php     # ตารางคำสั่งซื้อล่าสุด
+├── top-products.blade.php            # สินค้าขายดี
+└── sales-chart.blade.php             # กราฟยอดขาย
+```
+
+3. Product Management
+
+```blade
+{{-- components/vendor/products/ --}}
+├── product-list.blade.php            # รายการสินค้า
+├── product-table.blade.php           # ตารางสินค้า
+├── product-form.blade.php            # ฟอร์มเพิ่ม/แก้ไขสินค้า
+├── variant-manager.blade.php         # จัดการ Variants
+├── variant-matrix.blade.php          # เมทริกซ์ Variants
+├── inventory-manager.blade.php       # จัดการสต็อก
+├── bulk-actions.blade.php            # การดำเนินการแบบกลุ่ม
+├── image-gallery.blade.php           # แกลเลอรี่รูปภาพ
+└── category-selector.blade.php       # เลือกหมวดหมู่
+```
+
+4. ⭐ MLM Snowball Integration
+
+```blade
+{{-- components/vendor/snowball/ --}}
+├── snowball-dashboard.blade.php      # แดชบอร์ด Snowball
+├── package-selector.blade.php        # เลือกแพ็คเกจ
+├── package-card.blade.php            # การ์ดแพ็คเกจ
+├── variable-input.blade.php          # Input ตัวแปร
+├── commission-calculator.blade.php   # เครื่องคิดเลขคอมมิชชั่น
+├── commission-preview.blade.php      # ตัวอย่างคอมมิชชั่น
+├── products-list.blade.php           # สินค้าที่ใช้ Snowball
+├── performance-metrics.blade.php     # เมตริกประสิทธิภาพ
+└── commission-reports.blade.php      # รายงานคอมมิชชั่น
+```
+
+5. Order Management
+
+```blade
+{{-- components/vendor/orders/ --}}
+├── order-list.blade.php              # รายการคำสั่งซื้อ
+├── order-table.blade.php             # ตารางคำสั่งซื้อ
+├── order-detail.blade.php            # รายละเอียดคำสั่งซื้อ
+├── status-updater.blade.php          # อัพเดทสถานะ
+├── shipping-tracker.blade.php        # ติดตามการจัดส่ง
+└── order-actions.blade.php           # การดำเนินการกับคำสั่งซื้อ
+```
+
+6. Vendor Profile & Settings
+
+```blade
+{{-- components/vendor/settings/ --}}
+├── profile-form.blade.php            # โปรไฟล์ร้านค้า
+├── payout-info-form.blade.php        # ข้อมูลการจ่ายเงิน
+├── bank-account-form.blade.php       # บัญชีธนาคาร
+├── shop-settings-form.blade.php      # ตั้งค่าร้านค้า
+└── notification-settings.blade.php   # การแจ้งเตือน
+```
+
+---
+
+👑 ADMIN COMPONENTS
+
+1. Admin Authentication & Security
+
+```blade
+{{-- components/admin/auth/ --}}
+├── login-form.blade.php              # ฟอร์มล็อกอินแอดมิน
+├── security-check.blade.php          # การตรวจสอบความปลอดภัย
+└── access-denied.blade.php           # หน้าไม่ได้รับอนุญาต
+```
+
+2. Admin Dashboard & Analytics
+
+```blade
+{{-- components/admin/dashboard/ --}}
+├── dashboard-overview.blade.php      # ภาพรวมระบบ
+├── metric-card.blade.php             # การ์ดเมตริก
+├── quick-action.blade.php            # การดำเนินการด่วน
+├── activity-feed.blade.php           # ฟีดกิจกรรม
+├── system-health.blade.php           # สุขภาพระบบ
+├── revenue-chart.blade.php           # กราฟรายได้
+└── real-time-stats.blade.php         # สถิติเรียลไทม์
+```
+
+3. User & Vendor Management
+
+```blade
+{{-- components/admin/users/ --}}
+├── user-list.blade.php               # รายการผู้ใช้
+├── user-table.blade.php              # ตารางผู้ใช้
+├── user-detail.blade.php             # รายละเอียดผู้ใช้
+├── user-form.blade.php               # เพิ่ม/แก้ไขผู้ใช้
+├── role-assigner.blade.php           # กำหนดบทบาท
+└── impersonation-tool.blade.php      # เครื่องมือเข้าเป็นผู้ใช้
+```
+
+```blade
+{{-- components/admin/vendors/ --}}
+├── vendor-list.blade.php             # รายการผู้ขาย
+├── vendor-table.blade.php            # ตารางผู้ขาย
+├── vendor-detail.blade.php           # รายละเอียดผู้ขาย
+├── approval-queue.blade.php          # คิวรออนุมัติ
+├── commission-settings.blade.php     # ตั้งค่าคอมมิชชั่น
+└── payout-manager.blade.php          # จัดการการจ่ายเงิน
+```
+
+4. Product & Catalog Management
+
+```blade
+{{-- components/admin/products/ --}}
+├── product-list.blade.php            # รายการสินค้าทั้งหมด
+├── product-table.blade.php           # ตารางสินค้า
+├── product-approval.blade.php        # อนุมัติสินค้า
+├── bulk-product-actions.blade.php    # การดำเนินการกลุ่ม
+└── category-manager.blade.php        # จัดการหมวดหมู่
+```
+
+5. ⭐ MLM Snowball Management
+
+```blade
+{{-- components/admin/snowball/ --}}
+├── package-manager.blade.php         # จัดการแพ็คเกจ
+├── package-form.blade.php            # ฟอร์มแพ็คเกจ
+├── formula-builder.blade.php         # สร้างสูตรคำนวณ
+├── commission-reports.blade.php      # รายงานคอมมิชชั่น
+├── payout-processor.blade.php        # ประมวลผลการจ่ายเงิน
+├── mlm-analytics.blade.php           # วิเคราะห์ MLM
+└── api-integration.blade.php         # การเชื่อมต่อ API
+```
+
+6. System & Configuration
+
+```blade
+{{-- components/admin/settings/ --}}
+├── general-settings.blade.php        # ตั้งค่าทั่วไป
+├── payment-settings.blade.php        # ตั้งค่าการชำระเงิน
+├── shipping-settings.blade.php       # ตั้งค่าการจัดส่ง
+├── email-settings.blade.php          # ตั้งค่าอีเมล
+├── tax-settings.blade.php            # ตั้งค่าภาษี
+└── maintenance-mode.blade.php        # โหมดบำรุงรักษา
+```
+
+7. Content Management
+
+```blade
+{{-- components/admin/cms/ --}}
+├── page-editor.blade.php             # Editor หน้าเพจ
+├── page-list.blade.php               # รายการเพจ
+├── blog-manager.blade.php            # จัดการบล็อก
+├── blog-editor.blade.php             # Editor บล็อก
+├── media-library.blade.php           # คลังสื่อ
+├── file-uploader.blade.php           # อัพโหลดไฟล์
+└── seo-manager.blade.php             # จัดการ SEO
+```
+
+8. Reports & Analytics
+
+```blade
+{{-- components/admin/reports/ --}}
+├── sales-reports.blade.php           # รายงานยอดขาย
+├── vendor-reports.blade.php          # รายงานผู้ขาย
+├── product-reports.blade.php         # รายงานสินค้า
+├── financial-reports.blade.php       # รายงานการเงิน
+├── export-tool.blade.php             # เครื่องมือส่งออก
+└── analytics-dashboard.blade.php     # แดชบอร์ดวิเคราะห์
+```
+
+9. Service Integration
+
+```blade
+{{-- components/admin/system/ --}}
+├── service-integration.blade.php     # การเชื่อมต่อบริการ
+├── api-status-monitor.blade.php      # ตรวจสอบสถานะ API
+├── service-card.blade.php            # การ์ดบริการ
+├── integration-tester.blade.php      # ทดสอบการเชื่อมต่อ
+└── log-viewer.blade.php              # ดูบันทึกระบบ
+```
+
+---
+
+🔧 LIVEWIRE COMPONENTS STRUCTURE
+
+Authentication & Registration
+
+```php
+{{-- app/Livewire/ --}}
+├── Auth/
+│   ├── CustomerRegister.php          # สมัครลูกค้า
+│   ├── VendorRegister.php            # สมัครผู้ขาย
+│   ├── AdminLogin.php                # ล็อกอินแอดมิน
+│   └── ForgotPassword.php            # ลืมรหัสผ่าน
+```
+
+Customer Zone
+
+```php
+{{-- app/Livewire/Customer/ --}}
+├── Dashboard/
+│   ├── CustomerDashboard.php         # แดชบอร์ดลูกค้า
+│   └── ProfileManager.php            # จัดการโปรไฟล์
+├── Orders/
+│   ├── OrderList.php                 # รายการคำสั่งซื้อ
+│   ├── OrderDetail.php               # รายละเอียดคำสั่งซื้อ
+│   └── OrderTracking.php             # ติดตามคำสั่งซื้อ
+├── Shopping/
+│   ├── CartManager.php               # จัดการตะกร้า
+│   ├── WishlistManager.php           # จัดการรายการโปรด
+│   ├── CheckoutProcess.php           # กระบวนการชำระเงิน
+│   └── ProductReviews.php            # รีวิวสินค้า
+└── Support/
+    ├── TicketSystem.php              # ระบบ Ticket
+    └── LiveChat.php                  # แชทสด
+```
+
+Vendor Zone
+
+```php
+{{-- app/Livewire/Vendor/ --}}
+├── Dashboard/
+│   ├── VendorDashboard.php           # แดชบอร์ดผู้ขาย
+│   └── SalesAnalytics.php            # วิเคราะห์ยอดขาย
+├── Products/
+│   ├── ProductList.php               # รายการสินค้า
+│   ├── ProductForm.php               # ฟอร์มสินค้า
+│   ├── VariantManager.php            # จัดการ Variants
+│   └── InventoryManager.php          # จัดการสต็อก
+├── Orders/
+│   ├── VendorOrderList.php           # รายการคำสั่งซื้อ
+│   └── OrderStatusManager.php        # จัดการสถานะ
+├── Snowball/                         # ⭐ MLM System
+│   ├── SnowballDashboard.php         # แดชบอร์ด Snowball
+│   ├── PackageManager.php            # จัดการแพ็คเกจ
+│   ├── CommissionCalculator.php      # คำนวณคอมมิชชั่น
+│   └── CommissionReports.php         # รายงานคอมมิชชั่น
+└── Settings/
+    ├── VendorProfile.php             # โปรไฟล์ร้านค้า
+    └── PayoutSettings.php            # ตั้งค่าการจ่ายเงิน
+```
+
+Admin Zone
+
+```php
+{{-- app/Livewire/Admin/ --}}
+├── Dashboard/
+│   ├── AdminDashboard.php            # แดชบอร์ดแอดมิน
+│   └── SystemOverview.php            # ภาพรวมระบบ
+├── Management/
+│   ├── UserManagement.php            # จัดการผู้ใช้
+│   ├── VendorManagement.php          # จัดการผู้ขาย
+│   ├── ProductManagement.php         # จัดการสินค้า
+│   └── OrderManagement.php           # จัดการคำสั่งซื้อ
+├── Snowball/                         # ⭐ MLM Admin
+│   ├── SnowballPackageManager.php    # จัดการแพ็คเกจ
+│   ├── CommissionManagement.php      # จัดการคอมมิชชั่น
+│   └── MlmAnalytics.php              # วิเคราะห์ MLM
+├── Settings/
+│   ├── SystemSettings.php            # ตั้งค่าระบบ
+│   └── ServiceIntegration.php        # การเชื่อมต่อบริการ
+└── Reports/
+    ├── SalesReports.php              # รายงานยอดขาย
+    └── FinancialReports.php          # รายงานการเงิน
+```
+
+---
+
+🎨 STYLING & THEMING STRUCTURE
+
+CSS/SCSS Architecture
+
+```scss
+resources/css/
+├── app.scss                         # ไฟล์หลัก
+├── components/                      # สไตล์คอมโพเนนต์
+│   ├── _global.scss                 # คอมโพเนนต์ global
+│   ├── _customer.scss               # คอมโพเนนต์ลูกค้า
+│   ├── _vendor.scss                 # คอมโพเนนต์ผู้ขาย
+│   ├── _admin.scss                  # คอมโพเนนต์แอดมิน
+│   └── _snowball.scss               # ⭐ สไตล์ MLM
+├── layouts/                         # สไตล์เลย์เอาต์
+│   ├── _auth.scss                   # เลย์เอาต์ Auth
+│   ├── _customer.scss               # เลย์เอาต์ลูกค้า
+│   ├── _vendor.scss                 # เลย์เอาต์ผู้ขาย
+│   └── _admin.scss                  # เลย์เอาต์แอดมิน
+├── utilities/                       # Utility classes
+│   ├── _variables.scss              # ตัวแปร
+│   ├── _mixins.scss                 # Mixins
+│   └── _animations.scss             # Animation
+└── pages/                           # สไตล์หน้าเพจ
+    ├── _public.scss                  # หน้าสาธารณะ
+    ├── _customer-pages.scss          # หน้าลูกค้า
+    ├── _vendor-pages.scss            # หน้าผู้ขาย
+    └── _admin-pages.scss             # หน้าแอดมิน
+```
+
+---
+
+📊 SUMMARY: TOTAL COMPONENT COUNT
+
+```
+🌍 GLOBAL COMPONENTS:      ~15 components
+👤 CUSTOMER COMPONENTS:   ~35 components  
+🏪 VENDOR COMPONENTS:     ~30 components
+👑 ADMIN COMPONENTS:      ~45 components
+🔧 LIVEWIRE COMPONENTS:   ~40 components
+🎨 STYLING FILES:         ~15 files
+────────────────────────────
+📦 TOTAL:                ~180 components/files
+```
+
+ระบบ Component นี้ถูกออกแบบมาเพื่อรองรับ:
+
+· ✅ การแยกบทบาทอย่างชัดเจน (ลูกค้า/ผู้ขาย/แอดมิน)
+· ✅ ฟอร์มสมัครผู้ขายที่สมบูรณ์ (4 ขั้นตอน)
+· ✅ การรองรับ MLM Snowball ในสินค้า
+· ✅ ระบบล็อกอินที่แยกตามบทบาท
+· ✅ มาตรฐานการออกแบบที่สม่ำเสมอ
+· ✅ การจัดการข้อผิดพลาดและ variants
+· ✅ การรองรับผู้ใช้ไทย (ภาษา, สกุลเงิน, ที่อยู่)
+
+ทุก Component ถูกออกแบบให้ทำงานร่วมกันได้อย่างสมบูรณ์ พร้อมรองรับการขยายระบบในอนาคต
