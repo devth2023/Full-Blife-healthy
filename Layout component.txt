@@ -1,0 +1,1078 @@
+🏗️ Layout Components - Complete Implementation
+
+📐 1. Main App Layout
+
+```blade
+{{-- resources/views/components/layouts/app.blade.php --}}
+<!DOCTYPE html>
+<html lang="th" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>@yield('title', 'Blife Platform - Multi-Vendor E-commerce')</title>
+    
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="@yield('description', 'Blife Platform - ระบบ E-commerce แบบ Multi-Vendor พร้อมระบบ MLM')">
+    <meta name="keywords" content="@yield('keywords', 'ecommerce, multi-vendor, mlm, thailand')">
+    
+    <!-- Favicon & Icons -->
+    <link rel="icon" href="{{ asset('images/logo/logo-icon.png') }}" type="image/png">
+    <link rel="apple-touch-icon" href="{{ asset('images/logo/logo-icon.png') }}">
+    
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Styles -->
+    <link href="{{ mix('css/app.css') }}" rel="stylesheet">
+    
+    <!-- Scripts -->
+    <script src="{{ mix('js/app.js') }}" defer></script>
+    
+    <!-- Additional Head Content -->
+    @yield('head')
+</head>
+<body class="font-sans antialiased bg-gray-50 text-gray-900 h-full">
+    <!-- Loading Spinner -->
+    <div id="global-loading" class="fixed inset-0 bg-white bg-opacity-90 flex items-center justify-center z-50 hidden">
+        <div class="text-center">
+            <img src="{{ asset('images/loading/spinner.gif') }}" alt="กำลังโหลด..." class="w-12 h-12 mx-auto mb-4">
+            <p class="text-gray-600">กำลังโหลด...</p>
+        </div>
+    </div>
+
+    <!-- Notification Toast Container -->
+    <div id="toast-container" class="fixed top-4 right-4 z-40 space-y-2 max-w-sm"></div>
+
+    <!-- Main Layout Structure -->
+    <div class="min-h-full flex flex-col">
+        <!-- Global Header -->
+        <x-layouts.navigation.header />
+        
+        <!-- Main Content -->
+        <main class="flex-1">
+            <!-- Page Header Section -->
+            @hasSection('page-header')
+            <section class="bg-white border-b border-gray-200">
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+                    @yield('page-header')
+                </div>
+            </section>
+            @endif
+
+            <!-- Flash Messages -->
+            @if(session('success'))
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+                <x-global.notification-toast 
+                    type="success" 
+                    :message="session('success')"
+                    dismissible
+                    thai-message
+                />
+            </div>
+            @endif
+
+            @if(session('error'))
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+                <x-global.notification-toast 
+                    type="error" 
+                    :message="session('error')"
+                    dismissible
+                    thai-message
+                />
+            </div>
+            @endif
+
+            <!-- Main Content Area -->
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                @yield('content')
+            </div>
+        </main>
+
+        <!-- Global Footer -->
+        <x-layouts.navigation.footer />
+    </div>
+
+    <!-- Global Modals -->
+    <x-global.auth-modal />
+    <x-global.confirmation-modal />
+
+    <!-- Scripts -->
+    @stack('scripts')
+    
+    <!-- Livewire Scripts -->
+    @livewireScripts
+    
+    <!-- Global JavaScript -->
+    <script>
+        // Global loading indicator
+        document.addEventListener('DOMContentLoaded', function() {
+            // Handle global loading
+            window.showGlobalLoading = function() {
+                document.getElementById('global-loading').classList.remove('hidden');
+            };
+            
+            window.hideGlobalLoading = function() {
+                document.getElementById('global-loading').classList.add('hidden');
+            };
+
+            // Toast notification system
+            window.showToast = function(type, message) {
+                const container = document.getElementById('toast-container');
+                const toast = document.createElement('div');
+                toast.className = `toast-notification ${type}`;
+                toast.innerHTML = `
+                    <x-global.notification-toast 
+                        :type="type"
+                        :message="message"
+                        dismissible
+                        thai-message
+                    />
+                `;
+                container.appendChild(toast);
+                
+                // Auto remove after 5 seconds
+                setTimeout(() => {
+                    toast.remove();
+                }, 5000);
+            };
+
+            // Error handling
+            window.handleError = function(error) {
+                console.error('Global error:', error);
+                showToast('error', error.message || 'เกิดข้อผิดพลาด');
+            };
+        });
+
+        // Livewire event listeners
+        document.addEventListener('livewire:load', function() {
+            // Show loading on Livewire requests
+            Livewire.hook('request', ({ uri, options, respond }) => {
+                showGlobalLoading();
+                
+                respond(() => {
+                    hideGlobalLoading();
+                });
+            });
+            
+            // Handle Livewire errors
+            Livewire.hook('message.failed', (message, component) => {
+                hideGlobalLoading();
+                showToast('error', 'การเชื่อมต่อมีปัญหา กรุณาลองใหม่');
+            });
+        });
+    </script>
+</body>
+</html>
+```
+
+🔐 2. Auth Layout
+
+```blade
+{{-- resources/views/components/layouts/auth.blade.php --}}
+<!DOCTYPE html>
+<html lang="th" class="h-full bg-gray-50">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>@yield('title', 'เข้าสู่ระบบ - Blife Platform')</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" href="{{ asset('images/logo/logo-icon.png') }}" type="image/png">
+    
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Styles -->
+    <link href="{{ mix('css/app.css') }}" rel="stylesheet">
+    
+    <!-- Scripts -->
+    <script src="{{ mix('js/app.js') }}" defer></script>
+</head>
+<body class="font-sans antialiased h-full">
+    <!-- Background Pattern -->
+    <div class="absolute inset-0 bg-gradient-to-br from-blue-50 to-indigo-100"></div>
+    
+    <!-- Main Container -->
+    <div class="min-h-full flex flex-col justify-center py-12 sm:px-6 lg:px-8 relative z-10">
+        <!-- Header -->
+        <div class="sm:mx-auto sm:w-full sm:max-w-md">
+            <!-- Logo -->
+            <div class="flex justify-center">
+                <a href="{{ route('home') }}" class="inline-flex items-center">
+                    <img src="{{ asset('images/logo/logo-main.png') }}" 
+                         alt="Blife Platform" 
+                         class="h-12 w-auto">
+                </a>
+            </div>
+            
+            <!-- Page Title -->
+            <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
+                @yield('auth-title', 'เข้าสู่ระบบ')
+            </h2>
+            
+            <!-- Page Description -->
+            @hasSection('auth-description')
+            <p class="mt-2 text-center text-sm text-gray-600">
+                @yield('auth-description')
+            </p>
+            @endif
+
+            <!-- Role Badge -->
+            @hasSection('auth-role')
+            <div class="mt-3 flex justify-center">
+                @yield('auth-role')
+            </div>
+            @endif
+        </div>
+
+        <!-- Content Area -->
+        <div class="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
+            <div class="bg-white py-8 px-4 shadow-xl sm:rounded-lg sm:px-10">
+                <!-- Flash Messages -->
+                @if(session('status'))
+                <div class="mb-6">
+                    <x-global.notification-toast 
+                        type="success" 
+                        :message="session('status')"
+                        thai-message
+                    />
+                </div>
+                @endif
+
+                @if($errors->any())
+                <div class="mb-6">
+                    <x-global.error-message 
+                        type="validation"
+                        thai-messages
+                    >
+                        <ul class="list-disc list-inside text-sm">
+                            @foreach($errors->all() as $error)
+                                <li>{{ $error }}</li>
+                            @endforeach
+                        </ul>
+                    </x-global.error-message>
+                </div>
+                @endif
+
+                <!-- Main Auth Content -->
+                @yield('auth-content')
+                
+                <!-- Additional Links -->
+                @hasSection('auth-links')
+                <div class="mt-6">
+                    @yield('auth-links')
+                </div>
+                @endif
+            </div>
+            
+            <!-- Bottom Links -->
+            <div class="mt-6 text-center">
+                <!-- Back to Home -->
+                <a href="{{ route('home') }}" class="text-sm text-blue-600 hover:text-blue-500">
+                    ← กลับไปหน้าหลัก
+                </a>
+                
+                <!-- Role Switcher -->
+                @hasSection('role-switcher')
+                <div class="mt-2">
+                    @yield('role-switcher')
+                </div>
+                @endif
+            </div>
+        </div>
+    </div>
+
+    <!-- Decorative Elements -->
+    <div class="absolute bottom-0 left-0 right-0 h-16 bg-white/50 backdrop-blur-sm border-t border-gray-200/50"></div>
+    
+    <!-- Scripts -->
+    @stack('scripts')
+</body>
+</html>
+```
+
+👤 3. Customer Layout
+
+```blade
+{{-- resources/views/components/layouts/customer.blade.php --}}
+@extends('components.layouts.app')
+
+@section('content')
+<div class="flex min-h-screen bg-gray-50">
+    <!-- Sidebar -->
+    <div class="hidden lg:flex lg:w-64 lg:flex-col lg:fixed lg:inset-y-0">
+        <x-layouts.navigation.customer-sidebar />
+    </div>
+
+    <!-- Main Content -->
+    <div class="lg:pl-64 flex flex-col flex-1">
+        <!-- Mobile Menu Button -->
+        <div class="lg:hidden">
+            <div class="flex items-center justify-between bg-white border-b border-gray-200 px-4 py-2">
+                <button @click="mobileMenuOpen = true" class="text-gray-500 hover:text-gray-600">
+                    <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                    </svg>
+                </button>
+                <a href="{{ route('home') }}" class="flex-shrink-0">
+                    <img src="{{ asset('images/logo/logo-main.png') }}" alt="Blife" class="h-8">
+                </a>
+                <div class="w-6"></div> <!-- Spacer for balance -->
+            </div>
+        </div>
+
+        <!-- Mobile Sidebar -->
+        <div x-show="mobileMenuOpen" x-cloak class="lg:hidden fixed inset-0 z-40">
+            <div class="fixed inset-0 bg-gray-600 bg-opacity-75" @click="mobileMenuOpen = false"></div>
+            <div class="fixed inset-0 flex z-40">
+                <div class="relative flex-1 flex flex-col max-w-xs w-full bg-white">
+                    <div class="absolute top-0 right-0 -mr-12 pt-2">
+                        <button @click="mobileMenuOpen = false" class="ml-1 flex items-center justify-center h-10 w-10 rounded-full focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white">
+                            <svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </div>
+                    <x-layouts.navigation.customer-sidebar mobile />
+                </div>
+            </div>
+        </div>
+
+        <!-- Page Content -->
+        <main class="flex-1 pb-8">
+            <!-- Page Header -->
+            <div class="bg-white shadow">
+                <div class="px-4 sm:px-6 lg:px-8">
+                    <div class="py-6">
+                        @hasSection('page-header')
+                            @yield('page-header')
+                        @else
+                            <div class="flex justify-between items-center">
+                                <div>
+                                    <h1 class="text-2xl font-bold text-gray-900">
+                                        @yield('title', 'แดชบอร์ดลูกค้า')
+                                    </h1>
+                                    <p class="mt-1 text-sm text-gray-600">
+                                        @yield('description', 'จัดการบัญชีและคำสั่งซื้อของคุณ')
+                                    </p>
+                                </div>
+                                <div class="flex items-center space-x-3">
+                                    @yield('header-actions')
+                                </div>
+                            </div>
+                        @endif
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Content -->
+            <div class="mt-8">
+                <div class="px-4 sm:px-6 lg:px-8">
+                    @yield('customer-content')
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+
+<script>
+    // Mobile menu state
+    document.addEventListener('alpine:init', () => {
+        Alpine.data('customerLayout', () => ({
+            mobileMenuOpen: false
+        }));
+    });
+</script>
+@endsection
+```
+
+🏪 4. Vendor Layout
+
+```blade
+{{-- resources/views/components/layouts/vendor.blade.php --}}
+@extends('components.layouts.app')
+
+@section('content')
+<div class="flex h-screen bg-gray-50">
+    <!-- Vendor Sidebar -->
+    <x-layouts.navigation.vendor-sidebar />
+
+    <!-- Main Content -->
+    <div class="flex-1 flex flex-col overflow-hidden">
+        <!-- Vendor Header -->
+        <header class="bg-white shadow-sm border-b border-gray-200">
+            <div class="flex justify-between items-center px-6 py-4">
+                <!-- Left Section: Menu Button & Breadcrumb -->
+                <div class="flex items-center space-x-4">
+                    <!-- Mobile menu button -->
+                    <button @click="sidebarOpen = true" class="lg:hidden text-gray-500 hover:text-gray-600">
+                        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                        </svg>
+                    </button>
+
+                    <!-- Breadcrumb -->
+                    <nav class="flex" aria-label="Breadcrumb">
+                        <ol class="flex items-center space-x-2">
+                            <li>
+                                <a href="{{ route('vendor.dashboard') }}" class="text-gray-400 hover:text-gray-500">
+                                    <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                                        <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
+                                    </svg>
+                                </a>
+                            </li>
+                            @hasSection('breadcrumbs')
+                                @yield('breadcrumbs')
+                            @else
+                                <li>
+                                    <span class="text-gray-500 mx-2">/</span>
+                                    <span class="text-gray-900 font-medium">@yield('title', 'แดชบอร์ดผู้ขาย')</span>
+                                </li>
+                            @endif
+                        </ol>
+                    </nav>
+                </div>
+
+                <!-- Right Section: User Menu & Notifications -->
+                <div class="flex items-center space-x-4">
+                    <!-- Quick Stats -->
+                    <div class="hidden md:flex items-center space-x-4 text-sm">
+                        <div class="text-center">
+                            <div class="font-semibold text-green-600">฿{{ number_format($todayRevenue ?? 0) }}</div>
+                            <div class="text-gray-500">วันนี้</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="font-semibold">{{ $pendingOrders ?? 0 }}</div>
+                            <div class="text-gray-500">รอจัดส่ง</div>
+                        </div>
+                    </div>
+
+                    <!-- Notifications -->
+                    <button class="p-2 text-gray-400 hover:text-gray-500 relative">
+                        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                        </svg>
+                        <span class="absolute top-0 right-0 block h-2 w-2 rounded-full bg-red-400"></span>
+                    </button>
+
+                    <!-- User Menu -->
+                    <div class="relative" x-data="{ open: false }">
+                        <button @click="open = !open" class="flex items-center space-x-2 text-sm focus:outline-none">
+                            <div class="h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center text-white font-semibold">
+                                {{ strtoupper(substr(auth()->user()->name, 0, 1)) }}
+                            </div>
+                            <span class="hidden md:block text-gray-700">{{ auth()->user()->name }}</span>
+                            <svg class="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                            </svg>
+                        </button>
+
+                        <!-- Dropdown Menu -->
+                        <div x-show="open" @click.away="open = false" 
+                             class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50">
+                            <a href="{{ route('vendor.profile') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                โปรไฟล์ร้านค้า
+                            </a>
+                            <a href="{{ route('vendor.settings') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                ตั้งค่า
+                            </a>
+                            <div class="border-t border-gray-100"></div>
+                            <form method="POST" action="{{ route('logout') }}">
+                                @csrf
+                                <button type="submit" class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                    ออกจากระบบ
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="flex-1 overflow-y-auto bg-gray-50">
+            <!-- Page Header -->
+            <div class="bg-white shadow-sm border-b border-gray-200">
+                <div class="px-6 py-4">
+                    @hasSection('vendor-page-header')
+                        @yield('vendor-page-header')
+                    @else
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <h1 class="text-2xl font-bold text-gray-900">
+                                    @yield('title', 'แดชบอร์ดผู้ขาย')
+                                </h1>
+                                <p class="mt-1 text-sm text-gray-600">
+                                    @yield('description', 'จัดการร้านค้าและคำสั่งซื้อของคุณ')
+                                </p>
+                            </div>
+                            <div class="flex items-center space-x-3">
+                                @yield('vendor-header-actions')
+                            </div>
+                        </div>
+                    @endif
+                </div>
+            </div>
+
+            <!-- Content Area -->
+            <div class="p-6">
+                <!-- Flash Messages -->
+                @if(session('success'))
+                <div class="mb-6">
+                    <x-global.notification-toast 
+                        type="success" 
+                        :message="session('success')"
+                        thai-message
+                        dismissible
+                    />
+                </div>
+                @endif
+
+                @if($errors->any())
+                <div class="mb-6">
+                    <x-global.error-message type="validation" thai-messages>
+                        <ul class="list-disc list-inside text-sm">
+                            @foreach($errors->all() as $error)
+                                <li>{{ $error }}</li>
+                            @endforeach
+                        </ul>
+                    </x-global.error-message>
+                </div>
+                @endif
+
+                <!-- Main Content -->
+                @yield('vendor-content')
+            </div>
+        </main>
+    </div>
+</div>
+
+<!-- Mobile Sidebar Backdrop -->
+<div x-show="sidebarOpen" class="fixed inset-0 flex z-40 lg:hidden" x-cloak>
+    <div x-show="sidebarOpen" class="fixed inset-0 bg-gray-600 bg-opacity-75" 
+         @click="sidebarOpen = false" x-transition:enter="transition-opacity ease-linear duration-300"
+         x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
+         x-transition:leave="transition-opacity ease-linear duration-300"
+         x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0">
+    </div>
+    
+    <!-- Mobile Sidebar -->
+    <div x-show="sidebarOpen" class="relative flex-1 flex flex-col max-w-xs w-full bg-white"
+         x-transition:enter="transition ease-in-out duration-300 transform"
+         x-transition:enter-start="-translate-x-full" x-transition:enter-end="translate-x-0"
+         x-transition:leave="transition ease-in-out duration-300 transform"
+         x-transition:leave-start="translate-x-0" x-transition:leave-end="-translate-x-full">
+        <div class="absolute top-0 right-0 -mr-12 pt-2">
+            <button @click="sidebarOpen = false" class="ml-1 flex items-center justify-center h-10 w-10 rounded-full focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white">
+                <svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+        <x-layouts.navigation.vendor-sidebar mobile />
+    </div>
+</div>
+
+<script>
+    document.addEventListener('alpine:init', () => {
+        Alpine.data('vendorLayout', () => ({
+            sidebarOpen: false,
+            init() {
+                // Close mobile sidebar on larger screens
+                const mediaQuery = window.matchMedia('(min-width: 1024px)');
+                mediaQuery.addListener((e) => {
+                    if (e.matches) this.sidebarOpen = false;
+                });
+            }
+        }));
+    });
+</script>
+@endsection
+```
+
+👑 5. Admin Layout
+
+```blade
+{{-- resources/views/components/layouts/admin.blade.php --}}
+@extends('components.layouts.app')
+
+@section('content')
+<div class="h-screen flex overflow-hidden bg-gray-100">
+    <!-- Admin Sidebar -->
+    <x-layouts.navigation.admin-sidebar />
+
+    <!-- Main Content -->
+    <div class="flex flex-col w-0 flex-1 overflow-hidden">
+        <!-- Admin Header -->
+        <div class="relative z-10 flex-shrink-0 flex bg-white shadow">
+            <button @click="sidebarOpen = true" class="px-4 border-r border-gray-200 text-gray-500 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500 md:hidden">
+                <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+            </button>
+            
+            <div class="flex-1 px-4 flex justify-between">
+                <div class="flex-1 flex items-center">
+                    <!-- Search Bar -->
+                    <div class="w-full flex md:ml-0">
+                        <div class="relative w-full text-gray-400 focus-within:text-gray-600">
+                            <div class="absolute inset-y-0 left-0 flex items-center pointer-events-none">
+                                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                </svg>
+                            </div>
+                            <input id="search-field" class="block w-full h-full pl-8 pr-3 py-2 border-transparent text-gray-900 placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-0 focus:border-transparent sm:text-sm" placeholder="ค้นหา..." type="search">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="ml-4 flex items-center md:ml-6">
+                    <!-- System Status -->
+                    <div class="hidden sm:flex items-center space-x-4 text-sm">
+                        <div class="flex items-center text-green-600">
+                            <svg class="h-4 w-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                            </svg>
+                            <span>ระบบปกติ</span>
+                        </div>
+                    </div>
+
+                    <!-- Notifications -->
+                    <button class="bg-white p-1 rounded-full text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                        </svg>
+                    </button>
+
+                    <!-- Profile dropdown -->
+                    <div class="ml-3 relative" x-data="{ open: false }">
+                        <div>
+                            <button @click="open = !open" class="max-w-xs bg-white flex items-center text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" id="user-menu-button" aria-expanded="false" aria-haspopup="true">
+                                <span class="sr-only">เปิดเมนูผู้ใช้</span>
+                                <div class="h-8 w-8 rounded-full bg-indigo-600 flex items-center justify-center text-white font-bold">
+                                    A
+                                </div>
+                            </button>
+                        </div>
+
+                        <!-- Dropdown menu -->
+                        <div x-show="open" @click.away="open = false" class="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg py-1 bg-white ring-1 ring-black ring-opacity-5 focus:outline-none" role="menu" aria-orientation="vertical" aria-labelledby="user-menu-button" tabindex="-1">
+                            <a href="{{ route('admin.profile') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem" tabindex="-1" id="user-menu-item-0">โปรไฟล์ของคุณ</a>
+                            <a href="{{ route('admin.settings') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem" tabindex="-1" id="user-menu-item-1">ตั้งค่า</a>
+                            <form method="POST" action="{{ route('logout') }}">
+                                @csrf
+                                <button type="submit" class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem" tabindex="-1" id="user-menu-item-2">ออกจากระบบ</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <main class="flex-1 relative overflow-y-auto focus:outline-none">
+            <!-- Page Header -->
+            <div class="bg-white shadow">
+                <div class="px-4 sm:px-6 lg:px-8">
+                    <div class="py-6">
+                        @hasSection('admin-page-header')
+                            @yield('admin-page-header')
+                        @else
+                            <div class="flex justify-between items-center">
+                                <div>
+                                    <h1 class="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
+                                        @yield('title', 'แดชบอร์ดผู้ดูแลระบบ')
+                                    </h1>
+                                    <p class="mt-1 text-sm text-gray-500">
+                                        @yield('description', 'จัดการระบบและผู้ใช้งานทั้งหมด')
+                                    </p>
+                                </div>
+                                <div class="flex items-center space-x-3">
+                                    @yield('admin-header-actions')
+                                </div>
+                            </div>
+                        @endif
+                    </div>
+                </div>
+            </div>
+
+            <!-- Content Area -->
+            <div class="px-4 sm:px-6 lg:px-8 py-8">
+                <!-- System Alerts -->
+                <div class="mb-6 space-y-4">
+                    <!-- Maintenance Mode Alert -->
+                    @if(app()->isDownForMaintenance())
+                    <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4">
+                        <div class="flex">
+                            <div class="flex-shrink-0">
+                                <svg class="h-5 w-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                                </svg>
+                            </div>
+                            <div class="ml-3">
+                                <p class="text-sm text-yellow-700">
+                                    <strong>โหมดบำรุงรักษา:</strong> ระบบกำลังอยู่ในโหมดบำรุงรักษา
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    @endif
+
+                    <!-- Flash Messages -->
+                    @if(session('success'))
+                    <x-global.notification-toast 
+                        type="success" 
+                        :message="session('success')"
+                        thai-message
+                        dismissible
+                    />
+                    @endif
+
+                    @if($errors->any())
+                    <x-global.error-message type="validation" thai-messages>
+                        <ul class="list-disc list-inside text-sm">
+                            @foreach($errors->all() as $error)
+                                <li>{{ $error }}</li>
+                            @endforeach
+                        </ul>
+                    </x-global.error-message>
+                    @endif
+                </div>
+
+                <!-- Main Content -->
+                @yield('admin-content')
+            </div>
+        </main>
+    </div>
+</div>
+
+<!-- Mobile sidebar -->
+<div x-show="sidebarOpen" class="md:hidden">
+    <div class="fixed inset-0 flex z-40">
+        <div x-show="sidebarOpen" class="fixed inset-0 bg-gray-600 bg-opacity-75" 
+             @click="sidebarOpen = false" x-transition:enter="transition-opacity ease-linear duration-300"
+             x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
+             x-transition:leave="transition-opacity ease-linear duration-300"
+             x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0">
+        </div>
+
+        <div x-show="sidebarOpen" class="relative flex-1 flex flex-col max-w-xs w-full bg-white"
+             x-transition:enter="transition ease-in-out duration-300 transform"
+             x-transition:enter-start="-translate-x-full" x-transition:enter-end="translate-x-0"
+             x-transition:leave="transition ease-in-out duration-300 transform"
+             x-transition:leave-start="translate-x-0" x-transition:leave-end="-translate-x-full">
+            <div class="absolute top-0 right-0 -mr-12 pt-2">
+                <button @click="sidebarOpen = false" class="ml-1 flex items-center justify-center h-10 w-10 rounded-full focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white">
+                    <svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <x-layouts.navigation.admin-sidebar mobile />
+        </div>
+        
+        <div class="flex-shrink-0 w-14"></div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('alpine:init', () => {
+        Alpine.data('adminLayout', () => ({
+            sidebarOpen: false
+        }));
+    });
+</script>
+@endsection
+```
+
+🧭 Navigation Components
+
+Header Navigation
+
+```blade
+{{-- resources/views/components/layouts/navigation/header.blade.php --}}
+<header class="bg-white shadow-sm border-b border-gray-200">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between items-center h-16">
+            <!-- Logo -->
+            <div class="flex-shrink-0">
+                <a href="{{ route('home') }}" class="flex items-center">
+                    <img src="{{ asset('images/logo/logo-main.png') }}" 
+                         alt="Blife Platform" 
+                         class="h-8 w-auto">
+                </a>
+            </div>
+
+            <!-- Desktop Navigation -->
+            <nav class="hidden md:flex space-x-8">
+                <a href="{{ route('shop.index') }}" class="text-gray-500 hover:text-gray-700 px-3 py-2 text-sm font-medium">
+                    ช้อปปิ้ง
+                </a>
+                <a href="{{ route('blog.index') }}" class="text-gray-500 hover:text-gray-700 px-3 py-2 text-sm font-medium">
+                    บล็อก
+                </a>
+                <a href="{{ route('about') }}" class="text-gray-500 hover:text-gray-700 px-3 py-2 text-sm font-medium">
+                    เกี่ยวกับเรา
+                </a>
+                <a href="{{ route('contact') }}" class="text-gray-500 hover:text-gray-700 px-3 py-2 text-sm font-medium">
+                    ติดต่อ
+                </a>
+            </nav>
+
+            <!-- Right Section -->
+            <div class="flex items-center space-x-4">
+                <!-- Search -->
+                <button class="p-2 text-gray-400 hover:text-gray-500">
+                    <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                </button>
+
+                <!-- Cart -->
+                <a href="{{ route('cart.index') }}" class="p-2 text-gray-400 hover:text-gray-500 relative">
+                    <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                    </svg>
+                    <span class="absolute -top-1 -right-1 bg-red-500 text-white rounded-full text-xs w-5 h-5 flex items-center justify-center">
+                        {{ Cart::count() }}
+                    </span>
+                </a>
+
+                <!-- User Menu -->
+                @auth
+                <div class="relative" x-data="{ open: false }">
+                    <button @click="open = !open" class="flex items-center space-x-2 text-sm focus:outline-none">
+                        <div class="h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center text-white font-semibold">
+                            {{ strtoupper(substr(auth()->user()->name, 0, 1)) }}
+                        </div>
+                        <span class="hidden md:block text-gray-700">{{ auth()->user()->name }}</span>
+                    </button>
+
+                    <!-- Dropdown Menu -->
+                    <div x-show="open" @click.away="open = false" 
+                         class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50">
+                        @if(auth()->user()->hasRole('customer'))
+                            <a href="{{ route('customer.dashboard') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                แดชบอร์ด
+                            </a>
+                        @elseif(auth()->user()->hasRole('seller'))
+                            <a href="{{ route('vendor.dashboard') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                ร้านค้าของฉัน
+                            </a>
+                        @elseif(auth()->user()->hasRole('admin'))
+                            <a href="{{ route('admin.dashboard') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                ผู้ดูแลระบบ
+                            </a>
+                        @endif
+                        
+                        <div class="border-t border-gray-100"></div>
+                        <form method="POST" action="{{ route('logout') }}">
+                            @csrf
+                            <button type="submit" class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                ออกจากระบบ
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                @else
+                <!-- Auth Buttons -->
+                <div class="flex items-center space-x-2">
+                    <button onclick="showAuthModal('login')" class="text-gray-500 hover:text-gray-700 text-sm font-medium">
+                        เข้าสู่ระบบ
+                    </button>
+                    <span class="text-gray-300">|</span>
+                    <button onclick="showAuthModal('register')" class="bg-blue-500 text-white px-4 py-2 rounded text-sm font-medium hover:bg-blue-600">
+                        สมัครสมาชิก
+                    </button>
+                </div>
+                @endauth
+            </div>
+        </div>
+    </div>
+</header>
+```
+
+Footer
+
+```blade
+{{-- resources/views/components/layouts/navigation/footer.blade.php --}}
+<footer class="bg-gray-800 text-white">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+            <!-- Company Info -->
+            <div class="col-span-1 md:col-span-2">
+                <img src="{{ asset('images/logo/logo-main.png') }}" alt="Blife Platform" class="h-8 mb-4">
+                <p class="text-gray-300 mb-4 max-w-md">
+                    Blife Platform - ระบบ E-commerce แบบ Multi-Vendor ที่ทันสมัย พร้อมระบบ MLM Snowball 
+                    สำหรับธุรกิจออนไลน์ในประเทศไทย
+                </p>
+                <div class="flex space-x-4">
+                    <a href="#" class="text-gray-300 hover:text-white">
+                        <span class="sr-only">Facebook</span>
+                        <svg class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                        </svg>
+                    </a>
+                    <a href="#" class="text-gray-300 hover:text-white">
+                        <span class="sr-only">Instagram</span>
+                        <svg class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12.017 0C5.396 0 .029 5.367.029 11.987c0 6.62 5.367 11.987 11.988 11.987 6.62 0 11.987-5.367 11.987-11.987C24.014 5.367 18.637.001 12.017.001zM8.449 16.988c-1.297 0-2.448-.49-3.323-1.297C4.23 14.806 3.74 13.655 3.74 12.36c0-1.297.49-2.448 1.297-3.323.857-.857 2.008-1.297 3.323-1.297 1.297 0 2.448.49 3.323 1.297.857.857 1.297 2.008 1.297 3.323 0 1.297-.49 2.448-1.297 3.323-.857.857-2.008 1.297-3.323 1.297z"/>
+                        </svg>
+                    </a>
+                    <a href="#" class="text-gray-300 hover:text-white">
+                        <span class="sr-only">Twitter</span>
+                        <svg class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M8.29 20.251c7.547 0 11.675-6.253 11.675-11.675 0-.178 0-.355-.012-.53A8.348 8.348 0 0022 5.92a8.19 8.19 0 01-2.357.646 4.118 4.118 0 001.804-2.27 8.224 8.224 0 01-2.605.996 4.107 4.107 0 00-6.993 3.743 11.65 11.65 0 01-8.457-4.287 4.106 4.106 0 001.27 5.477A4.072 4.072 0 012.8 9.713v.052a4.105 4.105 0 003.292 4.022 4.095 4.095 0 01-1.853.07 4.108 4.108 0 003.834 2.85A8.233 8.233 0 012 18.407a11.616 11.616 0 006.29 1.84"/>
+                        </svg>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Quick Links -->
+            <div>
+                <h3 class="text-sm font-semibold text-gray-300 tracking-wider uppercase mb-4">
+                    ลิงก์ด่วน
+                </h3>
+                <ul class="space-y-2">
+                    <li><a href="{{ route('shop.index') }}" class="text-gray-300 hover:text-white">สินค้าทั้งหมด</a></li>
+                    <li><a href="{{ route('vendor.register') }}" class="text-gray-300 hover:text-white">เปิดร้านค้า</a></li>
+                    <li><a href="{{ route('blog.index') }}" class="text-gray-300 hover:text-white">บทความ</a></li>
+                    <li><a href="{{ route('faq') }}" class="text-gray-300 hover:text-white">คำถามที่พบบ่อย</a></li>
+                </ul>
+            </div>
+
+            <!-- Support -->
+            <div>
+                <h3 class="text-sm font-semibold text-gray-300 tracking-wider uppercase mb-4">
+                    การสนับสนุน
+                </h3>
+                <ul class="space-y-2">
+                    <li><a href="{{ route('contact') }}" class="text-gray-300 hover:text-white">ติดต่อเรา</a></li>
+                    <li><a href="{{ route('shipping') }}" class="text-gray-300 hover:text-white">นโยบายการจัดส่ง</a></li>
+                    <li><a href="{{ route('returns') }}" class="text-gray-300 hover:text-white">นโยบายการคืนสินค้า</a></li>
+                    <li><a href="{{ route('privacy') }}" class="text-gray-300 hover:text-white">ความเป็นส่วนตัว</a></li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Bottom Bar -->
+        <div class="mt-8 border-t border-gray-700 pt-8 flex flex-col md:flex-row justify-between items-center">
+            <p class="text-gray-300 text-sm">
+                &copy; {{ date('Y') }} Blife Platform. สงวนลิขสิทธิ์ทุกประการ.
+            </p>
+            <div class="mt-4 md:mt-0 flex space-x-6">
+                <a href="{{ route('terms') }}" class="text-gray-300 hover:text-white text-sm">ข้อกำหนดการใช้งาน</a>
+                <a href="{{ route('privacy') }}" class="text-gray-300 hover:text-white text-sm">นโยบายความเป็นส่วนตัว</a>
+            </div>
+        </div>
+    </div>
+</footer>
+```
+
+📱 Responsive Grid Component
+
+```blade
+{{-- resources/views/components/layouts/responsive-grid.blade.php --}}
+@props([
+    'columns' => [
+        'default' => 1,
+        'sm' => 2, 
+        'md' => 3,
+        'lg' => 4,
+        'xl' => 5
+    ],
+    'gap' => '4'
+])
+
+@php
+    $gapClasses = [
+        '2' => 'gap-2',
+        '4' => 'gap-4',
+        '6' => 'gap-6',
+        '8' => 'gap-8'
+    ];
+    
+    $columnClasses = "grid grid-cols-{$columns['default']} {$gapClasses[$gap]}";
+    
+    foreach($columns as $breakpoint => $cols) {
+        if($breakpoint !== 'default') {
+            $columnClasses .= " {$breakpoint}:grid-cols-{$cols}";
+        }
+    }
+@endphp
+
+<div {{ $attributes->merge(['class' => $columnClasses]) }}>
+    {{ $slot }}
+</div>
+```
+
+---
+
+🎯 Usage Examples
+
+Using Customer Layout
+
+```blade
+{{-- resources/views/customer/dashboard.blade.php --}}
+@extends('components.layouts.customer')
+
+@section('title', 'แดชบอร์ดลูกค้า')
+@section('description', 'จัดการบัญชีและคำสั่งซื้อของคุณ')
+
+@section('customer-content')
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <!-- Stats Cards -->
+    <div class="lg:col-span-3">
+        <x-layouts.responsive-grid :columns="['default' => 1, 'sm' => 2, 'lg' => 4]" gap="6">
+            <x-customer.stat-card icon="🛒" label="คำสั่งซื้อทั้งหมด" :value="15" />
+            <x-customer.stat-card icon="⭐" label="คะแนนสะสม" :value="250" />
+            <x-customer.stat-card icon="❤️" label="รายการโปรด" :value="8" />
+            <x-customer.stat-card icon="💬" label="รีวิวของฉัน" :value="12" />
+        </x-layouts.responsive-grid>
+    </div>
+
+    <!-- Recent Orders -->
+    <div class="lg:col-span-2">
+        <x-customer.recent-orders :orders="$recentOrders" />
+    </div>
+
+    <!-- Quick Actions -->
+    <div>
+        <x-customer.quick-actions />
+    </div>
+</div>
+@endsection
+```
+
+Using Vendor Layout
+
+```blade
+{{-- resources/views/vendor/dashboard.blade.php --}}
+@extends('components.layouts.vendor')
+
+@section('title', 'แดชบอร์ดผู้ขาย')
+@section('description', 'จัดการร้านค้าและคำสั่งซื้อของคุณ')
+
+@section('vendor-header-actions')
+<button class="bg-blue-500 text-white px-4 py-2 rounded text-sm hover:bg-blue-600">
+    + เพิ่มสินค้า
+</button>
+@endsection
+
+@section('vendor-content')
+<div class="space-y-6">
+    <!-- Sales Overview -->
+    <x-vendor.sales-overview :stats="$salesStats" />
+    
+    <!-- Recent Orders -->
+    <x-vendor.recent-orders :orders="$recentOrders" />
+    
+    <!-- Product Performance -->
+    <x-vendor.product-performance :products="$topProducts" />
+</div>
+@endsection
+```
+
+ระบบ Layout นี้รองรับการใช้งานที่ครบถ้วนสำหรับทุกบทบาทผู้ใช้ พร้อมการออกแบบที่ Responsive และใช้งานได้จริงตามมาตรฐาน
