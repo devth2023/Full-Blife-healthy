@@ -1,0 +1,1836 @@
+🎯 Customer Components - Complete Implementation
+
+📊 DASHBOARD COMPONENTS
+
+1. Customer Dashboard (dashboard.blade.php)
+
+```blade
+{{-- resources/views/components/customer/dashboard/dashboard.blade.php --}}
+@props([
+    'user',
+    'recentOrders' => [],
+    'stats' => [
+        'total_orders' => 0,
+        'loyalty_points' => 0,
+        'wishlist_count' => 0,
+        'reviews_count' => 0,
+        'total_spent' => 0
+    ]
+])
+
+<div class="customer-dashboard space-y-8">
+    <!-- Welcome Section -->
+    <div class="welcome-section bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-6">
+        <div class="flex items-center justify-between">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-900 mb-2">
+                    สวัสดี, {{ $user->name }} 👋
+                </h1>
+                <p class="text-gray-600">
+                    ยินดีต้อนรับกลับสู่บัญชีผู้ใช้ Blife ของคุณ
+                </p>
+            </div>
+            <div class="text-right">
+                <div class="text-sm text-gray-500">สมาชิกตั้งแต่</div>
+                <div class="font-semibold text-gray-700">
+                    {{ $user->created_at->format('d/m/Y') }}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats Overview -->
+    <div class="stats-grid grid grid-cols-2 lg:grid-cols-5 gap-4">
+        <x-customer.dashboard.stat-card 
+            icon="📦"
+            label="คำสั่งซื้อทั้งหมด"
+            :value="$stats['total_orders']"
+            color="blue"
+            href="{{ route('customer.orders.index') }}"
+        />
+        
+        <x-customer.dashboard.stat-card 
+            icon="💰"
+            label="ยอดใช้จ่ายทั้งหมด"
+            :value="$stats['total_spent']"
+            format="currency"
+            color="green"
+        />
+        
+        <x-customer.dashboard.stat-card 
+            icon="⭐"
+            label="คะแนนสะสม"
+            :value="$stats['loyalty_points']"
+            color="yellow"
+        />
+        
+        <x-customer.dashboard.stat-card 
+            icon="❤️"
+            label="รายการโปรด"
+            :value="$stats['wishlist_count']"
+            color="red"
+            href="{{ route('customer.wishlist.index') }}"
+        />
+        
+        <x-customer.dashboard.stat-card 
+            icon="✏️"
+            label="รีวิวของฉัน"
+            :value="$stats['reviews_count']"
+            color="purple"
+            href="{{ route('customer.reviews.index') }}"
+        />
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="quick-actions-section">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">การดำเนินการด่วน</h2>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <x-customer.dashboard.quick-action 
+                icon="🛒"
+                label="ช้อปปิ้งต่อ"
+                href="{{ route('shop.index') }}"
+                color="blue"
+            />
+            
+            <x-customer.dashboard.quick-action 
+                icon="📦"
+                label="ติดตามคำสั่งซื้อ"
+                href="{{ route('customer.orders.index') }}"
+                color="green"
+            />
+            
+            <x-customer.dashboard.quick-action 
+                icon="❤️"
+                label="รายการโปรด"
+                href="{{ route('customer.wishlist.index') }}"
+                color="red"
+            />
+            
+            <x-customer.dashboard.quick-action 
+                icon="👤"
+                label="แก้ไขโปรไฟล์"
+                href="{{ route('customer.profile.edit') }}"
+                color="purple"
+            />
+        </div>
+    </div>
+
+    <!-- Recent Orders -->
+    <div class="recent-orders-section">
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-lg font-semibold text-gray-900">คำสั่งซื้อล่าสุด</h2>
+            <a href="{{ route('customer.orders.index') }}" class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                ดูทั้งหมด →
+            </a>
+        </div>
+
+        @if(count($recentOrders) > 0)
+            <div class="bg-white rounded-lg border border-gray-200 divide-y divide-gray-200">
+                @foreach($recentOrders as $order)
+                    <x-customer.dashboard.recent-orders 
+                        :order="$order"
+                        :show-actions="true"
+                    />
+                @endforeach
+            </div>
+        @else
+            <x-global.empty-state 
+                icon="📦"
+                title="ยังไม่มีคำสั่งซื้อ"
+                description="เริ่มช้อปปิ้งและดูคำสั่งซื้อของคุณได้ที่นี่"
+                action-label="ช้อปปิ้งเลย"
+                action-url="{{ route('shop.index') }}"
+            />
+        @endif
+    </div>
+
+    <!-- Recommended Products -->
+    <div class="recommended-section">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">สินค้าที่คุณอาจชอบ</h2>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <!-- Dynamic recommended products would go here -->
+            <div class="text-center py-8 text-gray-500">
+                กำลังโหลดคำแนะนำ...
+            </div>
+        </div>
+    </div>
+</div>
+```
+
+2. Stat Card Component (stat-card.blade.php)
+
+```blade
+{{-- resources/views/components/customer/dashboard/stat-card.blade.php --}}
+@props([
+    'icon' => '📊',
+    'label' => 'Label',
+    'value' => 0,
+    'format' => 'number', // number, currency, points
+    'color' => 'blue',
+    'href' => null,
+    'trend' => null, // up, down, stable
+    'trendValue' => null
+])
+
+@php
+    $colorClasses = [
+        'blue' => 'bg-blue-50 border-blue-200 text-blue-700',
+        'green' => 'bg-green-50 border-green-200 text-green-700',
+        'red' => 'bg-red-50 border-red-200 text-red-700',
+        'yellow' => 'bg-yellow-50 border-yellow-200 text-yellow-700',
+        'purple' => 'bg-purple-50 border-purple-200 text-purple-700',
+        'gray' => 'bg-gray-50 border-gray-200 text-gray-700'
+    ];
+
+    $trendIcons = [
+        'up' => '↗️',
+        'down' => '↘️',
+        'stable' => '→'
+    ];
+
+    $formattedValue = match($format) {
+        'currency' => '฿' . number_format($value, 0),
+        'points' => number_format($value) . ' คะแนน',
+        default => number_format($value)
+    };
+@endphp
+
+<div class="stat-card {{ $colorClasses[$color] }} border rounded-xl p-4 hover:shadow-md transition-shadow">
+    @if($href)
+        <a href="{{ $href }}" class="block">
+    @endif
+
+    <div class="flex items-center justify-between">
+        <div class="flex-1">
+            <div class="text-2xl font-bold mb-1">{{ $formattedValue }}</div>
+            <div class="text-sm opacity-80">{{ $label }}</div>
+        </div>
+        
+        <div class="flex flex-col items-end space-y-1">
+            <div class="text-2xl">{{ $icon }}</div>
+            @if($trend && $trendValue)
+                <div class="flex items-center text-xs {{ $trend === 'up' ? 'text-green-600' : ($trend === 'down' ? 'text-red-600' : 'text-gray-600') }}">
+                    <span class="mr-1">{{ $trendIcons[$trend] }}</span>
+                    <span>{{ $trendValue }}%</span>
+                </div>
+            @endif
+        </div>
+    </div>
+
+    @if($href)
+        </a>
+    @endif
+</div>
+```
+
+3. Quick Action Component (quick-action.blade.php)
+
+```blade
+{{-- resources/views/components/customer/dashboard/quick-action.blade.php --}}
+@props([
+    'icon' => '⚡',
+    'label' => 'Action',
+    'href' => '#',
+    'color' => 'blue',
+    'badge' => null
+])
+
+@php
+    $colorClasses = [
+        'blue' => 'bg-blue-50 text-blue-700 hover:bg-blue-100 border-blue-200',
+        'green' => 'bg-green-50 text-green-700 hover:bg-green-100 border-green-200',
+        'red' => 'bg-red-50 text-red-700 hover:bg-red-100 border-red-200',
+        'purple' => 'bg-purple-50 text-purple-700 hover:bg-purple-100 border-purple-200',
+        'gray' => 'bg-gray-50 text-gray-700 hover:bg-gray-100 border-gray-200'
+    ];
+@endphp
+
+<a href="{{ $href }}" class="quick-action block {{ $colorClasses[$color] }} border rounded-lg p-4 text-center hover:shadow-md transition-all duration-200 group">
+    <div class="flex flex-col items-center space-y-2">
+        <div class="text-2xl transform group-hover:scale-110 transition-transform">
+            {{ $icon }}
+        </div>
+        <div class="font-medium text-sm">{{ $label }}</div>
+        
+        @if($badge)
+            <div class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                {{ $badge }}
+            </div>
+        @endif
+    </div>
+</a>
+```
+
+4. Recent Orders Component (recent-orders.blade.php)
+
+```blade
+{{-- resources/views/components/customer/dashboard/recent-orders.blade.php --}}
+@props([
+    'order',
+    'showActions' => true
+])
+
+@php
+    $statusConfig = [
+        'pending' => ['color' => 'yellow', 'label' => 'รอดำเนินการ'],
+        'confirmed' => ['color' => 'blue', 'label' => 'ยืนยันแล้ว'],
+        'processing' => ['color' => 'purple', 'label' => 'กำลังเตรียมสินค้า'],
+        'shipped' => ['color' => 'indigo', 'label' => 'จัดส่งแล้ว'],
+        'delivered' => ['color' => 'green', 'label' => 'จัดส่งสำเร็จ'],
+        'cancelled' => ['color' => 'red', 'label' => 'ยกเลิกแล้ว']
+    ];
+
+    $status = $statusConfig[$order->status] ?? $statusConfig['pending'];
+@endphp
+
+<div class="recent-order-item p-4 hover:bg-gray-50 transition-colors">
+    <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-3 lg:space-y-0">
+        <!-- Order Info -->
+        <div class="flex-1">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:space-x-4">
+                <div class="flex items-center space-x-3">
+                    <div class="text-lg">📦</div>
+                    <div>
+                        <div class="font-semibold text-gray-900">
+                            #{{ $order->order_code }}
+                        </div>
+                        <div class="text-sm text-gray-500">
+                            {{ $order->created_at->format('d/m/Y H:i') }}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex items-center space-x-2 mt-2 sm:mt-0">
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-{{ $status['color'] }}-100 text-{{ $status['color'] }}-800">
+                        {{ $status['label'] }}
+                    </span>
+                </div>
+            </div>
+
+            <div class="mt-2 flex flex-wrap gap-2">
+                <div class="text-sm text-gray-600">
+                    จำนวนสินค้า: <span class="font-medium">{{ $order->items_count }} ชิ้น</span>
+                </div>
+                <div class="text-sm text-gray-600">
+                    ยอดรวม: <span class="font-medium text-green-600">฿{{ number_format($order->total_amount) }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Actions -->
+        @if($showActions)
+            <div class="flex space-x-2">
+                <a href="{{ route('customer.orders.show', $order) }}" 
+                   class="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                    ดูรายละเอียด
+                </a>
+                
+                @if($order->status === 'shipped')
+                    <a href="{{ route('customer.orders.track', $order) }}" 
+                       class="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
+                        ติดตามพัสดุ
+                    </a>
+                @endif
+            </div>
+        @endif
+    </div>
+</div>
+```
+
+---
+
+👤 PROFILE COMPONENTS
+
+5. Profile Form (profile-form.blade.php)
+
+```blade
+{{-- resources/views/components/customer/profile/profile-form.blade.php --}}
+@props(['user'])
+
+<div class="profile-form space-y-6">
+    <div class="bg-white rounded-lg border border-gray-200 p-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-6">ข้อมูลส่วนตัว</h2>
+
+        <form wire:submit="updateProfile" class="space-y-6">
+            <!-- Avatar Section -->
+            <div class="flex items-center space-x-6">
+                <div class="flex-shrink-0">
+                    <x-customer.profile.avatar-upload :user="$user" />
+                </div>
+                <div>
+                    <h3 class="text-sm font-medium text-gray-900">รูปโปรไฟล์</h3>
+                    <p class="text-sm text-gray-500">JPG, GIF หรือ PNG ขนาดไม่เกิน 5MB</p>
+                </div>
+            </div>
+
+            <!-- Basic Information -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <x-global.form-input
+                    label="ชื่อจริง"
+                    wire:model="firstName"
+                    required
+                    thai-label
+                    placeholder="กรอกชื่อจริง"
+                />
+
+                <x-global.form-input
+                    label="นามสกุล"
+                    wire:model="lastName"
+                    required
+                    thai-label
+                    placeholder="กรอกนามสกุล"
+                />
+
+                <x-global.form-input
+                    label="อีเมล"
+                    type="email"
+                    wire:model="email"
+                    required
+                    thai-label
+                    placeholder="example@email.com"
+                />
+
+                <x-global.form-input
+                    label="เบอร์โทรศัพท์"
+                    type="tel"
+                    wire:model="phone"
+                    thai-label
+                    placeholder="081-234-5678"
+                />
+
+                <div class="md:col-span-2">
+                    <x-global.form-input
+                        label="ที่อยู่"
+                        wire:model="address"
+                        thai-label
+                        placeholder="กรอกที่อยู่ปัจจุบัน"
+                    />
+                </div>
+            </div>
+
+            <!-- Date of Birth -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <x-global.form-select
+                    label="วัน"
+                    :options="collect(range(1, 31))->mapWithKeys(fn($day) => [$day => $day])"
+                    wire:model="birthDay"
+                    thai-label
+                />
+
+                <x-global.form-select
+                    label="เดือน"
+                    :options="[
+                        1 => 'มกราคม', 2 => 'กุมภาพันธ์', 3 => 'มีนาคม',
+                        4 => 'เมษายน', 5 => 'พฤษภาคม', 6 => 'มิถุนายน',
+                        7 => 'กรกฎาคม', 8 => 'สิงหาคม', 9 => 'กันยายน',
+                        10 => 'ตุลาคม', 11 => 'พฤศจิกายน', 12 => 'ธันวาคม'
+                    ]"
+                    wire:model="birthMonth"
+                    thai-label
+                />
+
+                <x-global.form-select
+                    label="ปี"
+                    :options="collect(range(1950, now()->year))->mapWithKeys(fn($year) => [$year => $year])->reverse()"
+                    wire:model="birthYear"
+                    thai-label
+                />
+            </div>
+
+            <!-- Gender -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">เพศ</label>
+                <div class="flex space-x-4">
+                    <label class="inline-flex items-center">
+                        <input type="radio" wire:model="gender" value="male" class="text-blue-600">
+                        <span class="ml-2">ชาย</span>
+                    </label>
+                    <label class="inline-flex items-center">
+                        <input type="radio" wire:model="gender" value="female" class="text-blue-600">
+                        <span class="ml-2">หญิง</span>
+                    </label>
+                    <label class="inline-flex items-center">
+                        <input type="radio" wire:model="gender" value="other" class="text-blue-600">
+                        <span class="ml-2">อื่นๆ</span>
+                    </label>
+                    <label class="inline-flex items-center">
+                        <input type="radio" wire:model="gender" value="prefer_not_to_say" class="text-blue-600">
+                        <span class="ml-2">ไม่ระบุ</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Form Actions -->
+            <div class="flex justify-end pt-6 border-t border-gray-200">
+                <button type="button" wire:click="resetForm" class="btn btn-outline mr-3">
+                    ยกเลิก
+                </button>
+                <button type="submit" class="btn btn-primary" wire:loading.attr="disabled">
+                    <span wire:loading.remove>บันทึกการเปลี่ยนแปลง</span>
+                    <span wire:loading>กำลังบันทึก...</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+```
+
+6. Password Form (password-form.blade.php)
+
+```blade
+{{-- resources/views/components/customer/profile/password-form.blade.php --}}
+<div class="password-form">
+    <div class="bg-white rounded-lg border border-gray-200 p-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-6">เปลี่ยนรหัสผ่าน</h2>
+
+        <form wire:submit="updatePassword" class="space-y-6 max-w-md">
+            <!-- Current Password -->
+            <x-global.form-input
+                label="รหัสผ่านปัจจุบัน"
+                type="password"
+                wire:model="currentPassword"
+                required
+                thai-label
+                placeholder="กรอกรหัสผ่านปัจจุบัน"
+            />
+
+            <!-- New Password -->
+            <x-global.form-input
+                label="รหัสผ่านใหม่"
+                type="password"
+                wire:model="newPassword"
+                required
+                thai-label
+                placeholder="รหัสผ่านใหม่อย่างน้อย 8 ตัวอักษร"
+            />
+
+            <!-- Confirm New Password -->
+            <x-global.form-input
+                label="ยืนยันรหัสผ่านใหม่"
+                type="password"
+                wire:model="newPasswordConfirmation"
+                required
+                thai-label
+                placeholder="กรอกรหัสผ่านใหม่อีกครั้ง"
+            />
+
+            <!-- Password Strength Indicator -->
+            <div class="password-strength">
+                <div class="flex items-center space-x-2 mb-2">
+                    <div class="text-sm font-medium text-gray-700">ความแข็งแกร่งของรหัสผ่าน:</div>
+                    <div class="text-sm font-semibold {{ $passwordStrengthColor }}">{{ $passwordStrengthText }}</div>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-2">
+                    <div class="h-2 rounded-full {{ $passwordStrengthColor }}" style="width: {{ $passwordStrength }}%"></div>
+                </div>
+            </div>
+
+            <!-- Password Requirements -->
+            <div class="password-requirements text-sm text-gray-600 space-y-1">
+                <div class="{{ $hasUppercase ? 'text-green-600' : 'text-gray-400' }}">✓ ต้องมีตัวพิมพ์ใหญ่</div>
+                <div class="{{ $hasLowercase ? 'text-green-600' : 'text-gray-400' }}">✓ ต้องมีตัวพิมพ์เล็ก</div>
+                <div class="{{ $hasNumber ? 'text-green-600' : 'text-gray-400' }}">✓ ต้องมีตัวเลข</div>
+                <div class="{{ $hasSpecialChar ? 'text-green-600' : 'text-gray-400' }}">✓ ต้องมีอักขระพิเศษ</div>
+                <div class="{{ $isLongEnough ? 'text-green-600' : 'text-gray-400' }}">✓ ต้องมีความยาวอย่างน้อย 8 ตัวอักษร</div>
+            </div>
+
+            <!-- Form Actions -->
+            <div class="flex justify-end pt-6 border-t border-gray-200">
+                <button type="submit" class="btn btn-primary" wire:loading.attr="disabled" {{ !$canSubmit ? 'disabled' : '' }}>
+                    <span wire:loading.remove>เปลี่ยนรหัสผ่าน</span>
+                    <span wire:loading>กำลังดำเนินการ...</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+```
+
+7. Preferences Form (preferences-form.blade.php)
+
+```blade
+{{-- resources/views/components/customer/profile/preferences-form.blade.php --}}
+@props(['user'])
+
+<div class="preferences-form">
+    <div class="bg-white rounded-lg border border-gray-200 p-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-6">การตั้งค่าการแจ้งเตือน</h2>
+
+        <form wire:submit="updatePreferences" class="space-y-6">
+            <!-- Email Notifications -->
+            <div class="notification-section">
+                <h3 class="text-md font-medium text-gray-900 mb-4">การแจ้งเตือนทางอีเมล</h3>
+                <div class="space-y-3">
+                    @foreach([
+                        'order_updates' => 'อัพเดทคำสั่งซื้อ',
+                        'promotions' => 'โปรโมชั่นและส่วนลด',
+                        'product_updates' => 'สินค้าใหม่และอัพเดท',
+                        'newsletter' => 'จดหมายข่าว',
+                        'security_alerts' => 'การแจ้งเตือนความปลอดภัย'
+                    ] as $key => $label)
+                        <label class="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50">
+                            <div>
+                                <div class="font-medium text-gray-900">{{ $label }}</div>
+                                <div class="text-sm text-gray-500">
+                                    @if($key === 'order_updates')
+                                        อัพเดทสถานะคำสั่งซื้อและการจัดส่ง
+                                    @elseif($key === 'promotions')
+                                        ส่วนลดพิเศษและข้อเสนอ
+                                    @elseif($key === 'product_updates')
+                                        สินค้าใหม่และสินค้าที่คุณอาจสนใจ
+                                    @elseif($key === 'newsletter')
+                                        ข่าวสารและอัพเดทจาก Blife
+                                    @else
+                                        การแจ้งเตือนเกี่ยวกับบัญชีผู้ใช้
+                                    @endif
+                                </div>
+                            </div>
+                            <input type="checkbox" 
+                                   wire:model="emailPreferences.{{ $key }}" 
+                                   class="toggle-switch">
+                        </label>
+                    @endforeach
+                </div>
+            </div>
+
+            <!-- SMS Notifications -->
+            <div class="notification-section">
+                <h3 class="text-md font-medium text-gray-900 mb-4">การแจ้งเตือนทาง SMS</h3>
+                <div class="space-y-3">
+                    @foreach([
+                        'order_confirmation' => 'ยืนยันคำสั่งซื้อ',
+                        'shipping_updates' => 'อัพเดทการจัดส่ง',
+                        'promotional_sms' => 'ข้อเสนอพิเศษทาง SMS'
+                    ] as $key => $label)
+                        <label class="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50">
+                            <div>
+                                <div class="font-medium text-gray-900">{{ $label }}</div>
+                                <div class="text-sm text-gray-500">
+                                    @if($key === 'order_confirmation')
+                                        การยืนยันคำสั่งซื้อทาง SMS
+                                    @elseif($key === 'shipping_updates')
+                                        อัพเดทการจัดส่งและติดตามพัสดุ
+                                    @else
+                                        ข้อเสนอพิเศษและโปรโมชั่นทาง SMS
+                                    @endif
+                                </div>
+                            </div>
+                            <input type="checkbox" 
+                                   wire:model="smsPreferences.{{ $key }}" 
+                                   class="toggle-switch">
+                        </label>
+                    @endforeach
+                </div>
+            </div>
+
+            <!-- Privacy Settings -->
+            <div class="privacy-section border-t pt-6">
+                <h3 class="text-md font-medium text-gray-900 mb-4">การตั้งค่าความเป็นส่วนตัว</h3>
+                <div class="space-y-3">
+                    <label class="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50">
+                        <div>
+                            <div class="font-medium text-gray-900">แสดงโปรไฟล์สาธารณะ</div>
+                            <div class="text-sm text-gray-500">อนุญาตให้ผู้ใช้คนอื่นเห็นโปรไฟล์ของคุณ</div>
+                        </div>
+                        <input type="checkbox" wire:model="publicProfile" class="toggle-switch">
+                    </label>
+
+                    <label class="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50">
+                        <div>
+                            <div class="font-medium text-gray-900">อนุญาตการติดตามกิจกรรม</div>
+                            <div class="text-sm text-gray-500">ช่วยเราปรับปรุงบริการด้วยการเก็บข้อมูลการใช้งาน</div>
+                        </div>
+                        <input type="checkbox" wire:model="activityTracking" class="toggle-switch">
+                    </label>
+                </div>
+            </div>
+
+            <!-- Form Actions -->
+            <div class="flex justify-end pt-6 border-t border-gray-200">
+                <button type="submit" class="btn btn-primary" wire:loading.attr="disabled">
+                    <span wire:loading.remove>บันทึกการตั้งค่า</span>
+                    <span wire:loading>กำลังบันทึก...</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+.toggle-switch {
+    position: relative;
+    width: 44px;
+    height: 24px;
+    background-color: #d1d5db;
+    border-radius: 12px;
+    transition: all 0.3s;
+    cursor: pointer;
+}
+
+.toggle-switch:checked {
+    background-color: #3b82f6;
+}
+
+.toggle-switch:before {
+    content: '';
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background-color: white;
+    top: 2px;
+    left: 2px;
+    transition: all 0.3s;
+}
+
+.toggle-switch:checked:before {
+    transform: translateX(20px);
+}
+</style>
+```
+
+8. Avatar Upload (avatar-upload.blade.php)
+
+```blade
+{{-- resources/views/components/customer/profile/avatar-upload.blade.php --}}
+@props(['user'])
+
+<div class="avatar-upload" x-data="avatarUpload()">
+    <div class="flex flex-col items-center space-y-4">
+        <!-- Current Avatar -->
+        <div class="relative">
+            <img x-ref="avatarPreview" 
+                 src="{{ $user->avatar_url ?: asset('images/placeholders/avatar-placeholder.png') }}" 
+                 alt="Avatar" 
+                 class="w-24 h-24 rounded-full object-cover border-4 border-white shadow-lg">
+            
+            <!-- Upload Progress -->
+            <div x-show="isUploading" class="absolute inset-0 bg-black bg-opacity-50 rounded-full flex items-center justify-center">
+                <div class="text-white text-sm">กำลังอัพโหลด...</div>
+            </div>
+        </div>
+
+        <!-- Upload Controls -->
+        <div class="flex space-x-2">
+            <label for="avatar-input" class="btn btn-outline btn-sm cursor-pointer">
+                <span wire:loading.remove>เปลี่ยนรูป</span>
+                <span wire:loading>กำลังอัพโหลด...</span>
+                <input id="avatar-input" 
+                       type="file" 
+                       accept="image/*" 
+                       class="hidden" 
+                       wire:model="avatar"
+                       x-on:change="previewImage">
+            </label>
+
+            @if($user->avatar_url)
+                <button type="button" 
+                        wire:click="removeAvatar" 
+                        class="btn btn-outline btn-sm text-red-600 border-red-300 hover:bg-red-50">
+                    ลบรูป
+                </button>
+            @endif
+        </div>
+
+        <!-- Error Message -->
+        @error('avatar')
+            <div class="text-red-600 text-sm">{{ $message }}</div>
+        @enderror
+
+        <!-- Help Text -->
+        <p class="text-xs text-gray-500 text-center">
+            รูปภาพต้องเป็น JPG, PNG หรือ GIF<br>
+            ขนาดไม่เกิน 5MB
+        </p>
+    </div>
+</div>
+
+<script>
+function avatarUpload() {
+    return {
+        isUploading: false,
+        
+        previewImage(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    this.$refs.avatarPreview.src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+                this.isUploading = true;
+                
+                // Simulate upload completion (in real app, this would be handled by Livewire)
+                setTimeout(() => {
+                    this.isUploading = false;
+                }, 2000);
+            }
+        }
+    }
+}
+</script>
+```
+
+---
+
+🏠 ADDRESS COMPONENTS
+
+9. Address List (address-list.blade.php)
+
+```blade
+{{-- resources/views/components/customer/addresses/address-list.blade.php --}}
+@props(['addresses' => [], 'defaultAddressId' => null])
+
+<div class="address-list space-y-4">
+    <!-- Add New Address Button -->
+    <div class="flex justify-between items-center mb-6">
+        <h2 class="text-lg font-semibold text-gray-900">ที่อยู่ของฉัน</h2>
+        <button wire:click="$set('showAddressForm', true)" 
+                class="btn btn-primary">
+            + เพิ่มที่อยู่ใหม่
+        </button>
+    </div>
+
+    @if(count($addresses) > 0)
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            @foreach($addresses as $address)
+                <x-customer.addresses.address-card 
+                    :address="$address"
+                    :is-default="$address->id === $defaultAddressId"
+                />
+            @endforeach
+        </div>
+    @else
+        <x-global.empty-state 
+            icon="🏠"
+            title="ยังไม่มีที่อยู่"
+            description="เพิ่มที่อยู่แรกของคุณเพื่อเริ่มช้อปปิ้ง"
+            action-label="เพิ่มที่อยู่"
+            :action-handler="fn() => \$set('showAddressForm', true)"
+        />
+    @endif
+
+    <!-- Address Form Modal -->
+    @if($showAddressForm)
+        <x-customer.addresses.address-form 
+            :address="$editingAddress"
+            :mode="$editingAddress ? 'edit' : 'create'"
+            wire:submit="saveAddress"
+        />
+    @endif
+</div>
+```
+
+10. Address Form (address-form.blade.php)
+
+```blade
+{{-- resources/views/components/customer/addresses/address-form.blade.php --}}
+@props(['address' => null, 'mode' => 'create']) <!-- create or edit -->
+
+<div class="address-form-modal fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-lg max-w-md w-full max-h-[90vh] overflow-y-auto">
+        <div class="p-6">
+            <!-- Header -->
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-lg font-semibold text-gray-900">
+                    {{ $mode === 'create' ? 'เพิ่มที่อยู่ใหม่' : 'แก้ไขที่อยู่' }}
+                </h3>
+                <button wire:click="$set('showAddressForm', false)" 
+                        class="text-gray-400 hover:text-gray-600">
+                    ✕
+                </button>
+            </div>
+
+            <form wire:submit="saveAddress" class="space-y-4">
+                <!-- Address Type -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">ประเภทที่อยู่</label>
+                    <div class="flex space-x-4">
+                        @foreach(['home' => '🏠 บ้าน', 'office' => '🏢 ที่ทำงาน', 'other' => '📦 อื่นๆ'] as $value => $label)
+                            <label class="flex items-center">
+                                <input type="radio" 
+                                       wire:model="type" 
+                                       value="{{ $value }}" 
+                                       class="text-blue-600">
+                                <span class="ml-2 text-sm">{{ $label }}</span>
+                            </label>
+                        @endforeach
+                    </div>
+                </div>
+
+                <!-- Recipient Information -->
+                <div class="grid grid-cols-2 gap-4">
+                    <x-global.form-input
+                        label="ชื่อผู้รับ"
+                        wire:model="recipientName"
+                        required
+                        thai-label
+                    />
+
+                    <x-global.form-input
+                        label="เบอร์โทรศัพท์"
+                        type="tel"
+                        wire:model="phone"
+                        required
+                        thai-label
+                    />
+                </div>
+
+                <!-- Thai Address Form -->
+                <x-global.thai-address-form
+                    wire:model="addressData"
+                />
+
+                <!-- Address Details -->
+                <x-global.form-textarea
+                    label="ที่อยู่บรรทัดที่ 1"
+                    wire:model="addressLine1"
+                    required
+                    thai-label
+                    placeholder="บ้านเลขที่, หมู่, ถนน"
+                    rows="2"
+                />
+
+                <x-global.form-input
+                    label="ที่อยู่บรรทัดที่ 2 (ไม่จำเป็น)"
+                    wire:model="addressLine2"
+                    thai-label
+                    placeholder="หมู่บ้าน, ตึก, อาคาร"
+                />
+
+                <!-- Default Address Toggle -->
+                <label class="flex items-center space-x-3 p-3 border border-gray-200 rounded-lg">
+                    <input type="checkbox" wire:model="isDefault" class="rounded text-blue-600">
+                    <div>
+                        <div class="font-medium text-gray-900">ตั้งเป็นที่อยู่หลัก</div>
+                        <div class="text-sm text-gray-500">ใช้ที่อยู่นี้เป็นค่าเริ่มต้นสำหรับการจัดส่ง</div>
+                    </div>
+                </label>
+
+                <!-- Form Actions -->
+                <div class="flex justify-end space-x-3 pt-4 border-t">
+                    <button type="button" 
+                            wire:click="$set('showAddressForm', false)" 
+                            class="btn btn-outline">
+                        ยกเลิก
+                    </button>
+                    <button type="submit" class="btn btn-primary" wire:loading.attr="disabled">
+                        <span wire:loading.remove>
+                            {{ $mode === 'create' ? 'เพิ่มที่อยู่' : 'บันทึกการเปลี่ยนแปลง' }}
+                        </span>
+                        <span wire:loading>กำลังบันทึก...</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+```
+
+11. Address Card (address-card.blade.php)
+
+```blade
+{{-- resources/views/components/customer/addresses/address-card.blade.php --}}
+@props(['address', 'isDefault' => false])
+
+@php
+    $typeIcons = [
+        'home' => '🏠',
+        'office' => '🏢', 
+        'other' => '📦'
+    ];
+
+    $typeLabels = [
+        'home' => 'บ้าน',
+        'office' => 'ที่ทำงาน',
+        'other' => 'อื่นๆ'
+    ];
+@endphp
+
+<div class="address-card border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow {{ $isDefault ? 'border-blue-300 bg-blue-50' : '' }}">
+    <div class="flex justify-between items-start mb-3">
+        <div class="flex items-center space-x-2">
+            <span class="text-lg">{{ $typeIcons[$address->type] }}</span>
+            <span class="font-medium text-gray-900">{{ $typeLabels[$address->type] }}</span>
+            @if($isDefault)
+                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                    หลัก
+                </span>
+            @endif
+        </div>
+        
+        <div class="flex space-x-1">
+            <button wire:click="editAddress({{ $address->id }})" 
+                    class="p-1 text-gray-400 hover:text-blue-600 transition-colors"
+                    title="แก้ไข">
+                ✏️
+            </button>
+            <button wire:click="confirmDeleteAddress({{ $address->id }})" 
+                    class="p-1 text-gray-400 hover:text-red-600 transition-colors"
+                    title="ลบ">
+                🗑️
+            </button>
+        </div>
+    </div>
+
+    <div class="space-y-2 text-sm text-gray-600">
+        <div class="font-medium text-gray-900">{{ $address->recipient_name }}</div>
+        <div>{{ $address->phone }}</div>
+        <div class="leading-relaxed">
+            {{ $address->address_line_1 }}<br>
+            @if($address->address_line_2)
+                {{ $address->address_line_2 }}<br>
+            @endif
+            {{ $address->subdistrict }}, {{ $address->district }}<br>
+            {{ $address->province }} {{ $address->zipcode }}
+        </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="flex space-x-2 mt-4 pt-3 border-t border-gray-200">
+        @if(!$isDefault)
+            <button wire:click="setAsDefault({{ $address->id }})" 
+                    class="text-sm text-blue-600 hover:text-blue-800 font-medium">
+                ตั้งเป็นหลัก
+            </button>
+        @endif
+    </div>
+</div>
+```
+
+---
+
+📦 ORDER COMPONENTS
+
+12. Order List (order-list.blade.php)
+
+```blade
+{{-- resources/views/components/customer/orders/order-list.blade.php --}}
+@props(['orders' => [], 'filters' => []])
+
+<div class="order-list space-y-6">
+    <!-- Header with Filters -->
+    <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
+        <h1 class="text-2xl font-bold text-gray-900">ประวัติคำสั่งซื้อ</h1>
+        
+        <!-- Filters -->
+        <div class="flex flex-wrap gap-3">
+            <select wire:model="statusFilter" class="filter-select">
+                <option value="">สถานะทั้งหมด</option>
+                @foreach([
+                    'pending' => 'รอดำเนินการ',
+                    'confirmed' => 'ยืนยันแล้ว',
+                    'processing' => 'กำลังเตรียมสินค้า',
+                    'shipped' => 'จัดส่งแล้ว',
+                    'delivered' => 'จัดส่งสำเร็จ',
+                    'cancelled' => 'ยกเลิกแล้ว'
+                ] as $value => $label)
+                    <option value="{{ $value }}">{{ $label }}</option>
+                @endforeach
+            </select>
+
+            <select wire:model="dateFilter" class="filter-select">
+                <option value="">ทุกเวลา</option>
+                <option value="today">วันนี้</option>
+                <option value="week">7 วันที่ผ่านมา</option>
+                <option value="month">30 วันที่ผ่านมา</option>
+                <option value="3months">3 เดือนที่ผ่านมา</option>
+            </select>
+
+            <div class="relative">
+                <input type="text" 
+                       wire:model="searchTerm"
+                       placeholder="ค้นหาด้วยรหัสคำสั่งซื้อ..."
+                       class="filter-input pl-10">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    🔍
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Orders -->
+    @if(count($orders) > 0)
+        <div class="bg-white rounded-lg border border-gray-200 divide-y divide-gray-200">
+            @foreach($orders as $order)
+                <x-customer.orders.order-card :order="$order" />
+            @endforeach
+        </div>
+
+        <!-- Pagination -->
+        <div class="flex justify-center">
+            {{ $orders->links() }}
+        </div>
+    @else
+        <x-global.empty-state 
+            icon="📦"
+            title="ไม่พบคำสั่งซื้อ"
+            description="เราไม่พบคำสั่งซื้อที่ตรงกับการค้นหาของคุณ"
+            action-label="ช้อปปิ้งเลย"
+            action-url="{{ route('shop.index') }}"
+        />
+    @endif
+</div>
+
+<style>
+.filter-select, .filter-input {
+    @apply border border-gray-300 rounded-lg px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500;
+}
+
+.filter-select {
+    @apply pr-8;
+}
+</style>
+```
+
+13. Order Card (order-card.blade.php)
+
+```blade
+{{-- resources/views/components/customer/orders/order-card.blade.php --}}
+@props(['order'])
+
+@php
+    $statusConfig = [
+        'pending' => ['color' => 'yellow', 'label' => 'รอดำเนินการ', 'icon' => '⏳'],
+        'confirmed' => ['color' => 'blue', 'label' => 'ยืนยันแล้ว', 'icon' => '✅'],
+        'processing' => ['color' => 'purple', 'label' => 'กำลังเตรียมสินค้า', 'icon' => '🛠️'],
+        'shipped' => ['color' => 'indigo', 'label' => 'จัดส่งแล้ว', 'icon' => '🚚'],
+        'delivered' => ['color' => 'green', 'label' => 'จัดส่งสำเร็จ', 'icon' => '📬'],
+        'cancelled' => ['color' => 'red', 'label' => 'ยกเลิกแล้ว', 'icon' => '❌']
+    ];
+
+    $status = $statusConfig[$order->status] ?? $statusConfig['pending'];
+@endphp
+
+<div class="order-card p-6 hover:bg-gray-50 transition-colors">
+    <!-- Order Header -->
+    <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-4 space-y-2 lg:space-y-0">
+        <div class="flex items-center space-x-4">
+            <div class="text-2xl">{{ $status['icon'] }}</div>
+            <div>
+                <div class="font-semibold text-gray-900">#{{ $order->order_code }}</div>
+                <div class="text-sm text-gray-500">
+                    สั่งซื้อเมื่อ {{ $order->created_at->format('d/m/Y H:i') }}
+                </div>
+            </div>
+        </div>
+
+        <div class="flex items-center space-x-3">
+            <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-{{ $status['color'] }}-100 text-{{ $status['color'] }}-800">
+                {{ $status['label'] }}
+            </span>
+            
+            <div class="text-lg font-bold text-green-600">
+                ฿{{ number_format($order->total_amount) }}
+            </div>
+        </div>
+    </div>
+
+    <!-- Order Items -->
+    <div class="mb-4">
+        <div class="flex items-center space-x-2 mb-3">
+            <div class="text-sm font-medium text-gray-700">สินค้าในคำสั่งซื้อ:</div>
+            <div class="text-sm text-gray-500">{{ $order->items_count }} ชิ้น</div>
+        </div>
+        
+        <div class="flex space-x-2 overflow-x-auto pb-2">
+            @foreach($order->items->take(4) as $item)
+                <div class="flex-shrink-0 w-16 h-16 bg-gray-100 rounded-lg border border-gray-200 overflow-hidden">
+                    <img src="{{ $item->product->thumbnail }}" 
+                         alt="{{ $item->product->name }}"
+                         class="w-full h-full object-cover">
+                </div>
+            @endforeach
+            
+            @if($order->items_count > 4)
+                <div class="flex-shrink-0 w-16 h-16 bg-gray-100 rounded-lg border border-gray-200 flex items-center justify-center text-xs text-gray-500">
+                    +{{ $order->items_count - 4 }}
+                </div>
+            @endif
+        </div>
+    </div>
+
+    <!-- Order Actions -->
+    <div class="flex flex-wrap gap-2 pt-4 border-t border-gray-200">
+        <a href="{{ route('customer.orders.show', $order) }}" 
+           class="btn btn-outline btn-sm">
+            ดูรายละเอียด
+        </a>
+
+        @if($order->status === 'shipped')
+            <a href="{{ route('customer.orders.track', $order) }}" 
+               class="btn btn-primary btn-sm">
+                📦 ติดตามพัสดุ
+            </a>
+        @endif
+
+        @if($order->status === 'delivered')
+            <button wire:click="downloadInvoice({{ $order->id }})" 
+                    class="btn btn-outline btn-sm">
+                📄 ใบแจ้งหนี้
+            </button>
+            
+            @if(!$order->has_reviewed)
+                <a href="{{ route('customer.reviews.create', $order) }}" 
+                   class="btn btn-secondary btn-sm">
+                    ⭐ ให้คะแนน
+                </a>
+            @endif
+        @endif
+
+        @if(in_array($order->status, ['pending', 'confirmed']))
+            <x-customer.orders.cancel-order-form :order="$order" />
+        @endif
+    </div>
+</div>
+```
+
+14. Order Detail (order-detail.blade.php)
+
+```blade
+{{-- resources/views/components/customer/orders/order-detail.blade.php --}}
+@props(['order'])
+
+<div class="order-detail space-y-6">
+    <!-- Order Header -->
+    <div class="bg-white rounded-lg border border-gray-200 p-6">
+        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-6">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-900 mb-2">
+                    คำสั่งซื้อ #{{ $order->order_code }}
+                </h1>
+                <div class="text-sm text-gray-500">
+                    สั่งซื้อเมื่อ {{ $order->created_at->format('d/m/Y H:i') }}
+                </div>
+            </div>
+            
+            <div class="flex items-center space-x-3 mt-4 lg:mt-0">
+                <x-customer.orders.order-tracking :order="$order" />
+                
+                <button wire:click="downloadInvoice" 
+                        class="btn btn-outline btn-sm">
+                    📄 ดาวน์โหลดใบแจ้งหนี้
+                </button>
+            </div>
+        </div>
+
+        <!-- Order Status Badge -->
+        @php
+            $statusConfig = [
+                'pending' => ['color' => 'yellow', 'label' => 'รอดำเนินการ'],
+                'confirmed' => ['color' => 'blue', 'label' => 'ยืนยันแล้ว'],
+                'processing' => ['color' => 'purple', 'label' => 'กำลังเตรียมสินค้า'],
+                'shipped' => ['color' => 'indigo', 'label' => 'จัดส่งแล้ว'],
+                'delivered' => ['color' => 'green', 'label' => 'จัดส่งสำเร็จ'],
+                'cancelled' => ['color' => 'red', 'label' => 'ยกเลิกแล้ว']
+            ];
+            $status = $statusConfig[$order->status];
+        @endphp
+        
+        <div class="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium bg-{{ $status['color'] }}-100 text-{{ $status['color'] }}-800">
+            {{ $status['label'] }}
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Order Items -->
+        <div class="lg:col-span-2 space-y-6">
+            <!-- Items List -->
+            <div class="bg-white rounded-lg border border-gray-200 p-6">
+                <h2 class="text-lg font-semibold text-gray-900 mb-4">สินค้าในคำสั่งซื้อ</h2>
+                <div class="space-y-4">
+                    @foreach($order->items as $item)
+                        <div class="flex items-center space-x-4 py-3 border-b border-gray-200 last:border-b-0">
+                            <div class="flex-shrink-0 w-16 h-16 bg-gray-100 rounded-lg border border-gray-200 overflow-hidden">
+                                <img src="{{ $item->product->thumbnail }}" 
+                                     alt="{{ $item->product->name }}"
+                                     class="w-full h-full object-cover">
+                            </div>
+                            
+                            <div class="flex-1 min-w-0">
+                                <h3 class="text-sm font-medium text-gray-900 truncate">
+                                    {{ $item->product->name }}
+                                </h3>
+                                <p class="text-sm text-gray-500">
+                                    จำนวน: {{ $item->quantity }} ชิ้น
+                                </p>
+                                @if($item->variant)
+                                    <p class="text-xs text-gray-400">
+                                        {{ $item->variant->name }}
+                                    </p>
+                                @endif
+                            </div>
+                            
+                            <div class="text-right">
+                                <div class="text-sm font-medium text-gray-900">
+                                    ฿{{ number_format($item->unit_price * $item->quantity) }}
+                                </div>
+                                <div class="text-xs text-gray-500">
+                                    ฿{{ number_format($item->unit_price) }}/ชิ้น
+                                </div>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+
+            <!-- Order Summary -->
+            <div class="bg-white rounded-lg border border-gray-200 p-6">
+                <h2 class="text-lg font-semibold text-gray-900 mb-4">สรุปคำสั่งซื้อ</h2>
+                <div class="space-y-2">
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">ยอดรวมสินค้า</span>
+                        <span>฿{{ number_format($order->subtotal) }}</span>
+                    </div>
+                    
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">ค่าจัดส่ง</span>
+                        <span>฿{{ number_format($order->shipping_cost) }}</span>
+                    </div>
+                    
+                    @if($order->discount_amount > 0)
+                        <div class="flex justify-between text-green-600">
+                            <span>ส่วนลด</span>
+                            <span>-฿{{ number_format($order->discount_amount) }}</span>
+                        </div>
+                    @endif
+                    
+                    <div class="flex justify-between border-t border-gray-200 pt-2">
+                        <span class="font-semibold">ยอดรวมทั้งหมด</span>
+                        <span class="font-bold text-lg text-green-600">
+                            ฿{{ number_format($order->total_amount) }}
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Order Information Sidebar -->
+        <div class="space-y-6">
+            <!-- Shipping Address -->
+            <div class="bg-white rounded-lg border border-gray-200 p-6">
+                <h2 class="text-lg font-semibold text-gray-900 mb-4">ที่อยู่ในการจัดส่ง</h2>
+                <div class="space-y-2 text-sm text-gray-600">
+                    <div class="font-medium text-gray-900">{{ $order->shippingAddress->recipient_name }}</div>
+                    <div>{{ $order->shippingAddress->phone }}</div>
+                    <div class="leading-relaxed">
+                        {{ $order->shippingAddress->address_line_1 }}<br>
+                        @if($order->shippingAddress->address_line_2)
+                            {{ $order->shippingAddress->address_line_2 }}<br>
+                        @endif
+                        {{ $order->shippingAddress->subdistrict }}, {{ $order->shippingAddress->district }}<br>
+                        {{ $order->shippingAddress->province }} {{ $order->shippingAddress->zipcode }}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Payment Information -->
+            <div class="bg-white rounded-lg border border-gray-200 p-6">
+                <h2 class="text-lg font-semibold text-gray-900 mb-4">ข้อมูลการชำระเงิน</h2>
+                <div class="space-y-2 text-sm">
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">วิธีการชำระเงิน</span>
+                        <span class="font-medium">{{ $order->payment_method_label }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">สถานะการชำระเงิน</span>
+                        <span class="font-medium {{ $order->payment_status === 'paid' ? 'text-green-600' : 'text-yellow-600' }}">
+                            {{ $order->payment_status_label }}
+                        </span>
+                    </div>
+                    @if($order->paid_at)
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">วันที่ชำระเงิน</span>
+                            <span>{{ $order->paid_at->format('d/m/Y H:i') }}</span>
+                        </div>
+                    @endif
+                </div>
+            </div>
+
+            <!-- Order Actions -->
+            <div class="bg-white rounded-lg border border-gray-200 p-6">
+                <h2 class="text-lg font-semibold text-gray-900 mb-4">การดำเนินการ</h2>
+                <div class="space-y-3">
+                    @if(in_array($order->status, ['pending', 'confirmed']))
+                        <x-customer.orders.cancel-order-form :order="$order" />
+                    @endif
+                    
+                    @if($order->status === 'delivered' && !$order->has_reviewed)
+                        <a href="{{ route('customer.reviews.create', $order) }}" 
+                           class="btn btn-primary w-full justify-center">
+                            ⭐ ให้คะแนนสินค้า
+                        </a>
+                    @endif
+                    
+                    <a href="{{ route('customer.orders.track', $order) }}" 
+                       class="btn btn-outline w-full justify-center">
+                        📦 ติดตามพัสดุ
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+```
+
+15. Order Tracking (order-tracking.blade.php)
+
+```blade
+{{-- resources/views/components/customer/orders/order-tracking.blade.php --}}
+@props(['order'])
+
+<div class="order-tracking">
+    <h3 class="text-lg font-semibold text-gray-900 mb-4">ติดตามสถานะคำสั่งซื้อ</h3>
+    
+    <div class="relative">
+        <!-- Progress Line -->
+        <div class="absolute left-4 top-0 bottom-0 w-0.5 bg-gray-200"></div>
+        
+        <div class="space-y-6 relative">
+            @php
+                $steps = [
+                    'pending' => ['icon' => '⏳', 'label' => 'รอดำเนินการ', 'description' => 'ระบบได้รับคำสั่งซื้อของคุณแล้ว'],
+                    'confirmed' => ['icon' => '✅', 'label' => 'ยืนยันคำสั่งซื้อ', 'description' => 'ยืนยันการชำระเงินและคำสั่งซื้อ'],
+                    'processing' => ['icon' => '🛠️', 'label' => 'กำลังเตรียมสินค้า', 'description' => 'ร้านค้ากำลังเตรียมสินค้าของคุณ'],
+                    'shipped' => ['icon' => '🚚', 'label' => 'จัดส่งแล้ว', 'description' => 'สินค้าถูกจัดส่งแล้ว'],
+                    'delivered' => ['icon' => '📬', 'label' => 'จัดส่งสำเร็จ', 'description' => 'สินค้าถูกจัดส่งถึงคุณแล้ว']
+                ];
+                
+                $currentStepIndex = array_keys($steps);
+                $currentStep = array_search($order->status, $currentStepIndex);
+            @endphp
+
+            @foreach($steps as $step => $config)
+                @php
+                    $isCompleted = array_search($step, $currentStepIndex) <= $currentStep;
+                    $isCurrent = array_search($step, $currentStepIndex) === $currentStep;
+                @endphp
+                
+                <div class="flex items-start space-x-4">
+                    <!-- Step Icon -->
+                    <div class="flex-shrink-0 relative">
+                        <div class="w-8 h-8 rounded-full flex items-center justify-center text-sm
+                            {{ $isCompleted ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-500' }}
+                            {{ $isCurrent ? 'ring-2 ring-green-300 ring-offset-2' : '' }}">
+                            @if($isCompleted && !$isCurrent)
+                                ✅
+                            @else
+                                {{ $config['icon'] }}
+                            @endif
+                        </div>
+                    </div>
+
+                    <!-- Step Content -->
+                    <div class="flex-1 min-w-0 pb-6">
+                        <div class="flex items-center space-x-2">
+                            <h4 class="text-sm font-medium {{ $isCompleted ? 'text-green-600' : 'text-gray-500' }}">
+                                {{ $config['label'] }}
+                            </h4>
+                            @if($isCurrent)
+                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                                    ปัจจุบัน
+                                </span>
+                            @endif
+                        </div>
+                        
+                        <p class="text-sm text-gray-500 mt-1">
+                            {{ $config['description'] }}
+                        </p>
+
+                        <!-- Step Timeline -->
+                        @if($isCompleted && $order->{"{$step}_at"})
+                            <p class="text-xs text-gray-400 mt-2">
+                                {{ $order->{"{$step}_at"}->format('d/m/Y H:i') }}
+                            </p>
+                        @endif
+
+                        <!-- Tracking Info for Shipped Status -->
+                        @if($step === 'shipped' && $isCompleted && $order->tracking_number)
+                            <div class="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <div class="text-sm font-medium text-blue-900">
+                                            หมายเลขติดตาม: {{ $order->tracking_number }}
+                                        </div>
+                                        <div class="text-xs text-blue-700 mt-1">
+                                            {{ $order->shipping_provider }}
+                                        </div>
+                                    </div>
+                                    <a href="{{ $order->tracking_url }}" 
+                                       target="_blank"
+                                       class="btn btn-primary btn-sm">
+                                        ติดตามพัสดุ
+                                    </a>
+                                </div>
+                            </div>
+                        @endif
+                    </div>
+                </div>
+            @endforeach
+        </div>
+    </div>
+
+    <!-- Estimated Delivery -->
+    @if($order->status === 'shipped' && $order->estimated_delivery)
+        <div class="mt-6 p-4 bg-orange-50 rounded-lg border border-orange-200">
+            <div class="flex items-center">
+                <span class="text-orange-500 mr-3">📅</span>
+                <div>
+                    <div class="font-medium text-orange-900">กำหนดการจัดส่งโดยประมาณ</div>
+                    <div class="text-sm text-orange-700">
+                        {{ $order->estimated_delivery->format('d/m/Y') }}
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
+</div>
+```
+
+16. Invoice (invoice.blade.php)
+
+```blade
+{{-- resources/views/components/customer/orders/invoice.blade.php --}}
+@props(['order'])
+
+<div class="invoice bg-white rounded-lg border border-gray-200 p-8">
+    <!-- Invoice Header -->
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-8 pb-6 border-b border-gray-200">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900">ใบแจ้งหนี้</h1>
+            <div class="text-sm text-gray-500 mt-1">
+                หมายเลขใบแจ้งหนี้: INV-{{ $order->order_code }}
+            </div>
+        </div>
+        
+        <div class="mt-4 md:mt-0 text-right">
+            <div class="text-lg font-semibold text-gray-900">Blife Platform</div>
+            <div class="text-sm text-gray-500">ใบแจ้งหนี้ออนไลน์</div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+        <!-- Bill To -->
+        <div>
+            <h3 class="text-sm font-semibold text-gray-900 uppercase tracking-wider mb-3">ลูกค้า</h3>
+            <div class="text-sm text-gray-600 space-y-1">
+                <div class="font-medium">{{ $order->user->name }}</div>
+                <div>{{ $order->user->email }}</div>
+                <div>{{ $order->shippingAddress->phone }}</div>
+                <div class="mt-2">
+                    {{ $order->shippingAddress->address_line_1 }}<br>
+                    @if($order->shippingAddress->address_line_2)
+                        {{ $order->shippingAddress->address_line_2 }}<br>
+                    @endif
+                    {{ $order->shippingAddress->subdistrict }}, {{ $order->shippingAddress->district }}<br>
+                    {{ $order->shippingAddress->province }} {{ $order->shippingAddress->zipcode }}
+                </div>
+            </div>
+        </div>
+
+        <!-- Invoice Details -->
+        <div>
+            <h3 class="text-sm font-semibold text-gray-900 uppercase tracking-wider mb-3">รายละเอียดใบแจ้งหนี้</h3>
+            <div class="text-sm text-gray-600 space-y-2">
+                <div class="flex justify-between">
+                    <span>หมายเลขคำสั่งซื้อ:</span>
+                    <span class="font-medium">#{{ $order->order_code }}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span>วันที่สั่งซื้อ:</span>
+                    <span>{{ $order->created_at->format('d/m/Y') }}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span>วันที่ชำระเงิน:</span>
+                    <span>{{ $order->paid_at?->format('d/m/Y') ?? '-' }}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span>วิธีการชำระเงิน:</span>
+                    <span>{{ $order->payment_method_label }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Items Table -->
+    <div class="mb-8">
+        <table class="w-full text-sm">
+            <thead>
+                <tr class="border-b border-gray-200">
+                    <th class="text-left py-3 font-semibold text-gray-900">สินค้า</th>
+                    <th class="text-right py-3 font-semibold text-gray-900">ราคาต่อชิ้น</th>
+                    <th class="text-right py-3 font-semibold text-gray-900">จำนวน</th>
+                    <th class="text-right py-3 font-semibold text-gray-900">รวม</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach($order->items as $item)
+                    <tr class="border-b border-gray-100">
+                        <td class="py-4">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-12 h-12 bg-gray-100 rounded border border-gray-200 overflow-hidden flex-shrink-0">
+                                    <img src="{{ $item->product->thumbnail }}" 
+                                         alt="{{ $item->product->name }}"
+                                         class="w-full h-full object-cover">
+                                </div>
+                                <div>
+                                    <div class="font-medium text-gray-900">{{ $item->product->name }}</div>
+                                    @if($item->variant)
+                                        <div class="text-xs text-gray-500">{{ $item->variant->name }}</div>
+                                    @endif
+                                </div>
+                            </div>
+                        </td>
+                        <td class="text-right py-4 text-gray-600">
+                            ฿{{ number_format($item->unit_price) }}
+                        </td>
+                        <td class="text-right py-4 text-gray-600">
+                            {{ $item->quantity }}
+                        </td>
+                        <td class="text-right py-4 font-medium text-gray-900">
+                            ฿{{ number_format($item->unit_price * $item->quantity) }}
+                        </td>
+                    </tr>
+                @endforeach
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Totals -->
+    <div class="flex justify-end">
+        <div class="w-64 space-y-2">
+            <div class="flex justify-between text-sm">
+                <span class="text-gray-600">ยอดรวมสินค้า:</span>
+                <span>฿{{ number_format($order->subtotal) }}</span>
+            </div>
+            
+            <div class="flex justify-between text-sm">
+                <span class="text-gray-600">ค่าจัดส่ง:</span>
+                <span>฿{{ number_format($order->shipping_cost) }}</span>
+            </div>
+            
+            @if($order->discount_amount > 0)
+                <div class="flex justify-between text-sm text-green-600">
+                    <span>ส่วนลด:</span>
+                    <span>-฿{{ number_format($order->discount_amount) }}</span>
+                </div>
+            @endif
+            
+            <div class="flex justify-between text-lg font-bold border-t border-gray-200 pt-2">
+                <span>ยอดรวมทั้งหมด:</span>
+                <span>฿{{ number_format($order->total_amount) }}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="mt-12 pt-6 border-t border-gray-200 text-center text-xs text-gray-500">
+        <p>นี่คือใบแจ้งหนี้ออนไลน์ที่ถูกต้องตามกฎหมาย</p>
+        <p class="mt-1">Blife Platform - {{ config('app.url') }}</p>
+        <p class="mt-2">พิมพ์เมื่อ: {{ now()->format('d/m/Y H:i') }}</p>
+    </div>
+</div>
+
+<style>
+@media print {
+    .btn { display: none; }
+    .invoice { border: none; box-shadow: none; }
+}
+</style>
+```
+
+17. Cancel Order Form (cancel-order-form.blade.php)
+
+```blade
+{{-- resources/views/components/customer/orders/cancel-order-form.blade.php --}}
+@props(['order'])
+
+<div class="cancel-order-form" x-data="{ showForm: false }">
+    <button @click="showForm = true" 
+            class="btn btn-outline btn-sm text-red-600 border-red-300 hover:bg-red-50">
+        ยกเลิกคำสั่งซื้อ
+    </button>
+
+    <!-- Cancel Order Modal -->
+    <div x-show="showForm" 
+         class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-lg max-w-md w-full">
+            <div class="p-6">
+                <!-- Header -->
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-semibold text-gray-900">ยกเลิกคำสั่งซื้อ</h3>
+                    <button @click="showForm = false" 
+                            class="text-gray-400 hover:text-gray-600">
+                        ✕
+                    </button>
+                </div>
+
+                <!-- Warning Message -->
+                <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <span class="text-yellow-400">⚠️</span>
+                        </div>
+                        <div class="ml-3">
+                            <h4 class="text-sm font-medium text-yellow-800">โปรดทราบ</h4>
+                            <div class="mt-1 text-sm text-yellow-700">
+                                <p>การยกเลิกคำสั่งซื้อไม่สามารถย้อนกลับได้</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <form wire:submit="cancelOrder" class="space-y-4">
+                    <!-- Order Summary -->
+                    <div class="bg-gray-50 rounded-lg p-4">
+                        <h4 class="font-medium text-gray-900 mb-2">รายการที่จะยกเลิก</h4>
+                        <div class="text-sm text-gray-600">
+                            <div>คำสั่งซื้อ: #{{ $order->order_code }}</div>
+                            <div>จำนวนสินค้า: {{ $order->items_count }} ชิ้น</div>
+                            <div>ยอดรวม: ฿{{ number_format($order->total_amount) }}</div>
+                        </div>
+                    </div>
+
+                    <!-- Cancellation Reason -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            เหตุผลในการยกเลิก *
+                        </label>
+                        <select wire:model="cancellationReason" 
+                                class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500" required>
+                            <option value="">เลือกเหตุผล</option>
+                            @foreach([
+                                'change_mind' => 'เปลี่ยนใจไม่ต้องการซื้อ',
+                                'found_cheaper' => 'พบสินค้าราคาถูกกว่า',
+                                'shipping_too_long' => 'ระยะเวลาจัดส่งนานเกินไป',
+                                'wrong_item' => 'สั่งซื้อสินค้าผิด',
+                                'payment_issue' => 'ปัญหาการชำระเงิน',
+                                'other' => 'อื่นๆ'
+                            ] as $value => $label)
+                                <option value="{{ $value }}">{{ $label }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <!-- Additional Notes -->
+                    <div x-show="cancellationReason === 'other'">
+                        <x-global.form-textarea
+                            label="ระบุเหตุผลเพิ่มเติม"
+                            wire:model="cancellationNotes"
+                            placeholder="โปรดระบุเหตุผลโดยละเอียด..."
+                            rows="3"
+                            thai-label
+                        />
+                    </div>
+
+                    <!-- Refund Information -->
+                    @if($order->payment_status === 'paid')
+                        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                            <div class="flex">
+                                <div class="flex-shrink-0">
+                                    <span class="text-blue-400">💳</span>
+                                </div>
+                                <div class="ml-3">
+                                    <h4 class="text-sm font-medium text-blue-800">ข้อมูลการคืนเงิน</h4>
+                                    <div class="mt-1 text-sm text-blue-700">
+                                        <p>จำนวนเงิน ฿{{ number_format($order->total_amount) }} จะถูกคืนให้คุณภายใน 3-5 วันทำการ</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    @endif
+
+                    <!-- Form Actions -->
+                    <div class="flex justify-end space-x-3 pt-4 border-t">
+                        <button type="button" 
+                                @click="showForm = false" 
+                                class="btn btn-outline">
+                            ยกเลิก
+                        </button>
+                        <button type="submit" 
+                                class="btn btn-danger" 
+                                wire:loading.attr="disabled">
+                            <span wire:loading.remove>ยืนยันการยกเลิก</span>
+                            <span wire:loading>กำลังดำเนินการ...</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+```
+
+---
+
+🎨 STYLING FOR CUSTOMER COMPONENTS
+
+Customer-specific CSS
+
+```scss
+// resources/css/components/_customer.scss
+
+.customer-dashboard {
+  .stats-grid {
+    .stat-card {
+      transition: all 0.3s ease;
+      
+      &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      }
+    }
+  }
+  
+  .quick-action {
+    transition: all 0.3s ease;
+    
+    &:hover {
+      transform: translateY(-1px);
+    }
+  }
+}
+
+.order-tracking {
+  .step-icon {
+    transition: all 0.3s ease;
+  }
+}
+
+.address-card {
+  transition: all 0.3s ease;
+  
+  &:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+}
+
+.profile-form, .password-form, .preferences-form {
+  .form-section {
+    transition: all 0.3s ease;
+  }
+}
+
+// Responsive adjustments
+@media (max-width: 768px) {
+  .customer-dashboard {
+    .stats-grid {
+      grid-template-columns: 1fr;
+    }
+    
+    .quick-actions-section {
+      .grid {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+  }
+  
+  .order-detail {
+    .grid {
+      grid-template-columns: 1fr;
+    }
+  }
+}
+```
+
+ทั้งหมดนี้คือ Customer Components ที่สมบูรณ์ พร้อมการออกแบบที่สวยงาม การใช้งานที่ง่ายดาย และรองรับการแสดงผลบนอุปกรณ์ต่างๆ ทุก Component ถูกออกแบบมาสำหรับผู้ใช้ภาษาไทยโดยเฉพาะ
