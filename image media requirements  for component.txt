@@ -1,0 +1,452 @@
+🖼️ Media & Image Requirements for Components
+
+📁 Media Folder Structure
+
+```
+public/
+├── images/
+│   ├── logo/
+│   │   ├── logo-main.png          # โลโก้หลัก 120x40px
+│   │   ├── logo-icon.png          # ไอคอนโลโก้ 32x32px
+│   │   └── logo-admin.png         # โลโก้แอดมิน 100x40px
+│   ├── icons/
+│   │   ├── auth/
+│   │   │   ├── customer-role.png  # ไอคอนลูกค้า 48x48px
+│   │   │   ├── vendor-role.png    # ไอคอนผู้ขาย 48x48px
+│   │   │   └── admin-role.png     # ไอคอนแอดมิน 48x48px
+│   │   ├── dashboard/
+│   │   │   ├── orders.png         # ไอคอนคำสั่งซื้อ 32x32px
+│   │   │   ├── revenue.png        # ไอคอนรายได้ 32x32px
+│   │   │   ├── products.png       # ไอคอนสินค้า 32x32px
+│   │   │   └── users.png          # ไอคอนผู้ใช้ 32x32px
+│   │   └── system/
+│   │       ├── success.png        # สำเร็จ 24x24px
+│   │       ├── error.png          # ข้อผิดพลาด 24x24px
+│   │       ├── warning.png        # คำเตือน 24x24px
+│   │       └── info.png           # ข้อมูล 24x24px
+│   ├── placeholders/
+│   │   ├── product-placeholder.jpg    # ภาพสินค้า placeholder 400x400px
+│   │   ├── avatar-placeholder.png     # ภาพโปรไฟล์ placeholder 200x200px
+│   │   ├── shop-banner-placeholder.jpg # แบนเนอร์ร้านค้า 1200x300px
+│   │   └── empty-state.png        # ภาพสถานะว่างเปล่า 150x150px
+│   ├── loading/
+│   │   ├── spinner.gif            # ตัวโหลดแบบหมุน 40x40px
+│   │   └── loading-bars.gif       # แถบโหลด 200x40px
+│   └── illustrations/
+│       ├── auth-hero.jpg          # ภาพ hero หน้าล็อกอิน 800x600px
+│       ├── vendor-registration.png # ภาพประกอบสมัครผู้ขาย 600x400px
+│       └── success-checkmark.png  # ภาพเครื่องหมายสำเร็จ 64x64px
+└── assets/
+    └── fonts/
+        └── sukhumvit/             # ฟอนต์ภาษาไทย
+            ├── SukhumvitSet-Bold.ttf
+            ├── SukhumvitSet-Medium.ttf
+            └── SukhumvitSet-Text.ttf
+```
+
+---
+
+🎯 COMPONENT-SPECIFIC MEDIA REQUIREMENTS
+
+1. Global Components
+
+auth-modal.blade.php
+
+```blade
+{{-- ต้องการภาพ: --}}
+<div class="role-icon">
+    <!-- สำหรับลูกค้า -->
+    <img src="{{ asset('images/icons/auth/customer-role.png') }}" 
+         alt="ลูกค้า" 
+         width="48" height="48">
+    
+    <!-- สำหรับผู้ขาย -->
+    <img src="{{ asset('images/icons/auth/vendor-role.png') }}" 
+         alt="ผู้ขาย" 
+         width="48" height="48">
+    
+    <!-- สำหรับแอดมิน -->
+    <img src="{{ asset('images/icons/auth/admin-role.png') }}" 
+         alt="ผู้ดูแลระบบ" 
+         width="48" height="48">
+</div>
+
+{{-- Hero Image สำหรับหน้าล็อกอิน --}}
+<div class="auth-hero">
+    <img src="{{ asset('images/illustrations/auth-hero.jpg') }}" 
+         alt="Blife Platform"
+         width="800" height="600">
+</div>
+```
+
+รายการภาพที่ต้องมี:
+
+· customer-role.png (48x48px) - ไอคอนลูกค้า (🛒 ในรูปแบบภาพ)
+· vendor-role.png (48x48px) - ไอคอนผู้ขาย (🏪 ในรูปแบบภาพ)
+· admin-role.png (48x48px) - ไอคอนแอดมิน (👑 ในรูปแบบภาพ)
+· auth-hero.jpg (800x600px) - ภาพประกอบหน้าล็อกอิน
+
+loading-spinner.blade.php
+
+```blade
+{{-- ต้องการภาพ: --}}
+<div class="loading-spinner">
+    <img src="{{ asset('images/loading/spinner.gif') }}" 
+         alt="กำลังโหลด..."
+         width="40" height="40">
+</div>
+```
+
+รายการภาพที่ต้องมี:
+
+· spinner.gif (40x40px) - อนิเมชันโหลดแบบหมุน
+
+empty-state.blade.php
+
+```blade
+{{-- ต้องการภาพ: --}}
+<div class="empty-state">
+    <img src="{{ asset('images/placeholders/empty-state.png') }}" 
+         alt="ไม่มีข้อมูล"
+         width="150" height="150">
+    <h3>{{ $title }}</h3>
+    <p>{{ $description }}</p>
+</div>
+```
+
+รายการภาพที่ต้องมี:
+
+· empty-state.png (150x150px) - ภาพแสดงสถานะว่างเปล่า
+
+notification-toast.blade.php
+
+```blade
+{{-- ต้องการภาพ: --}}
+<div class="toast-icon">
+    @if($type === 'success')
+    <img src="{{ asset('images/icons/system/success.png') }}" 
+         alt="สำเร็จ" width="24" height="24">
+    @elseif($type === 'error')
+    <img src="{{ asset('images/icons/system/error.png') }}" 
+         alt="ข้อผิดพลาด" width="24" height="24">
+    @elseif($type === 'warning')
+    <img src="{{ asset('images/icons/system/warning.png') }}" 
+         alt="คำเตือน" width="24" height="24">
+    @endif
+</div>
+```
+
+รายการภาพที่ต้องมี:
+
+· success.png (24x24px) - ไอคอนสำเร็จ (✅)
+· error.png (24x24px) - ไอคอนข้อผิดพลาด (❌)
+· warning.png (24x24px) - ไอคอนคำเตือน (⚠️)
+· info.png (24x24px) - ไอคอนข้อมูล (ℹ️)
+
+file-upload.blade.php & multi-file-upload.blade.php
+
+```blade
+{{-- ต้องการภาพ: --}}
+<div class="upload-placeholder">
+    <img src="{{ asset('images/icons/system/upload.png') }}" 
+         alt="อัพโหลดไฟล์"
+         width="48" height="48">
+    <p>ลากไฟล์มาวางที่นี่หรือคลิกเพื่อเลือกไฟล์</p>
+</div>
+```
+
+รายการภาพที่ต้องมี:
+
+· upload.png (48x48px) - ไอคอนอัพโหลด (☁️)
+
+---
+
+2. Customer Components
+
+dashboard.blade.php
+
+```blade
+{{-- ต้องการภาพสำหรับการ์ดสถิติ: --}}
+<div class="stat-card">
+    <div class="stat-icon">
+        <img src="{{ asset('images/icons/dashboard/orders.png') }}" 
+             alt="คำสั่งซื้อ" width="32" height="32">
+    </div>
+    <div class="stat-info">
+        <h3>{{ $stats['total_orders'] }}</h3>
+        <p>คำสั่งซื้อทั้งหมด</p>
+    </div>
+</div>
+```
+
+รายการภาพที่ต้องมี:
+
+· orders.png (32x32px) - ไอคอนคำสั่งซื้อ
+· revenue.png (32x32px) - ไอคอนรายได้
+· products.png (32x32px) - ไอคอนสินค้า
+· users.png (32x32px) - ไอคอนผู้ใช้
+
+order-tracking.blade.php
+
+```blade
+{{-- ต้องการภาพสำหรับขั้นตอนการติดตาม: --}}
+<div class="tracking-step">
+    <img src="{{ asset('images/icons/order/confirmed.png') }}" 
+         alt="ยืนยันคำสั่งซื้อ" width="24" height="24">
+    <span>ยืนยันคำสั่งซื้อ</span>
+</div>
+```
+
+รายการภาพที่ต้องมี:
+
+· confirmed.png (24x24px) - ยืนยันคำสั่งซื้อ
+· processing.png (24x24px) - กำลังเตรียมสินค้า
+· shipped.png (24x24px) - จัดส่งแล้ว
+· delivered.png (24x24px) - จัดส่งสำเร็จ
+
+---
+
+3. Vendor Components
+
+registration-wizard.blade.php
+
+```blade
+{{-- ต้องการภาพสำหรับขั้นตอนการสมัคร: --}}
+<div class="registration-hero">
+    <img src="{{ asset('images/illustrations/vendor-registration.png') }}" 
+         alt="สมัครเป็นผู้ขาย"
+         width="600" height="400">
+</div>
+```
+
+รายการภาพที่ต้องมี:
+
+· vendor-registration.png (600x400px) - ภาพประกอบการสมัครผู้ขาย
+
+product-form.blade.php
+
+```blade
+{{-- ต้องการภาพ placeholder สำหรับสินค้า: --}}
+<div class="image-preview">
+    <img src="{{ $image ?? asset('images/placeholders/product-placeholder.jpg') }}" 
+         alt="ภาพสินค้า"
+         width="400" height="400">
+</div>
+```
+
+รายการภาพที่ต้องมี:
+
+· product-placeholder.jpg (400x400px) - ภาพสินค้า placeholder
+
+dashboard.blade.php
+
+```blade
+{{-- ต้องการภาพสำหรับเมตริกผู้ขาย: --}}
+<div class="vendor-metric">
+    <img src="{{ asset('images/icons/dashboard/sales.png') }}" 
+         alt="ยอดขาย" width="32" height="32">
+    <div class="metric-info">
+        <h3>฿{{ number_format($todaySales) }}</h3>
+        <p>ยอดขายวันนี้</p>
+    </div>
+</div>
+```
+
+รายการภาพที่ต้องมี:
+
+· sales.png (32x32px) - ไอคอนยอดขาย
+· commission.png (32x32px) - ไอคอนคอมมิชชั่น
+
+---
+
+4. Admin Components
+
+login-form.blade.php
+
+```blade
+{{-- ต้องการโลโก้แอดมิน: --}}
+<div class="admin-branding">
+    <img src="{{ asset('images/logo/logo-admin.png') }}" 
+         alt="Blife Admin"
+         width="100" height="40">
+    <h1>Blife Admin</h1>
+</div>
+```
+
+รายการภาพที่ต้องมี:
+
+· logo-admin.png (100x40px) - โลโก้โซนแอดมิน
+
+dashboard-overview.blade.php
+
+```blade
+{{-- ต้องการภาพสำหรับเมตริกระบบ: --}}
+<div class="admin-metric">
+    <div class="metric-icon">
+        <img src="{{ asset('images/icons/dashboard/total-users.png') }}" 
+             alt="ผู้ใช้งานทั้งหมด" width="32" height="32">
+    </div>
+    <div class="metric-info">
+        <h3>{{ $totalUsers }}</h3>
+        <p>ผู้ใช้งานทั้งหมด</p>
+    </div>
+</div>
+```
+
+รายการภาพที่ต้องมี:
+
+· total-users.png (32x32px) - ผู้ใช้งานทั้งหมด
+· total-vendors.png (32x32px) - ร้านค้าทั้งหมด
+· today-orders.png (32x32px) - คำสั่งซื้อวันนี้
+· revenue.png (32x32px) - รายได้
+
+---
+
+🎨 IMAGE SPECIFICATIONS & GUIDELINES
+
+โลโก้และแบรนด์
+
+```blade
+{{-- โลโก้หลัก --}}
+<img src="{{ asset('images/logo/logo-main.png') }}" 
+     alt="Blife Platform" 
+     width="120" height="40">
+
+{{-- โลโก้ไอคอน --}}
+<img src="{{ asset('images/logo/logo-icon.png') }}" 
+     alt="Blife" 
+     width="32" height="32">
+```
+
+ข้อกำหนด:
+
+· รูปแบบ: PNG with transparent background
+· สี: ตาม brand guideline
+· ขนาด: ตามที่ระบุในแต่ละตำแหน่ง
+
+ไอคอนระบบ
+
+```blade
+{{-- ตัวอย่างการใช้งานไอคอน --}}
+<img src="{{ asset('images/icons/system/success.png') }}" 
+     alt="สำเร็จ" 
+     width="24" height="24">
+```
+
+ข้อกำหนด:
+
+· รูปแบบ: PNG/SVG
+· สไตล์: Outline หรือ Flat design
+· สี: Consistent color scheme
+· ขนาด: 24x24px, 32x32px, 48x48px
+
+ภาพ Placeholder
+
+```blade
+{{-- ภาพสินค้า placeholder --}}
+<img src="{{ asset('images/placeholders/product-placeholder.jpg') }}" 
+     alt="สินค้า" 
+     width="400" height="400">
+
+{{-- ภาพโปรไฟล์ placeholder --}}
+<img src="{{ asset('images/placeholders/avatar-placeholder.png') }}" 
+     alt="โปรไฟล์" 
+     width="200" height="200">
+```
+
+ข้อกำหนด:
+
+· รูปแบบ: JPG/PNG
+· สไตล์: Neutral, professional
+· สี: Background สีอ่อน
+
+อนิเมชัน loading
+
+```blade
+{{-- ตัวโหลดแบบหมุน --}}
+<img src="{{ asset('images/loading/spinner.gif') }}" 
+     alt="กำลังโหลด..." 
+     width="40" height="40">
+```
+
+ข้อกำหนด:
+
+· รูปแบบ: GIF
+· ระยะเวลา: 1-2 seconds loop
+· สี: สีธีมของระบบ
+
+---
+
+📱 RESPONSIVE IMAGE HANDLING
+
+Picture Element สำหรับ Responsive
+
+```blade
+<picture>
+    <!-- สำหรับ desktop -->
+    <source media="(min-width: 1024px)" 
+            srcset="{{ asset('images/logo/logo-main.png') }}">
+    <!-- สำหรับ tablet -->
+    <source media="(min-width: 768px)" 
+            srcset="{{ asset('images/logo/logo-main-tablet.png') }}">
+    <!-- สำหรับ mobile -->
+    <img src="{{ asset('images/logo/logo-main-mobile.png') }}" 
+         alt="Blife Platform"
+         class="logo-image">
+</picture>
+```
+
+Image Optimization
+
+```blade
+{{-- ใช้ WebP format เมื่อ supported --}}
+<picture>
+    <source srcset="{{ asset('images/logo/logo-main.webp') }}" type="image/webp">
+    <source srcset="{{ asset('images/logo/logo-main.png') }}" type="image/png">
+    <img src="{{ asset('images/logo/logo-main.png') }}" alt="Blife Platform">
+</picture>
+```
+
+---
+
+🚀 DEPLOYMENT INSTRUCTIONS
+
+ขั้นตอนการเพิ่มภาพ:
+
+1. สร้างโฟลเดอร์ ตามโครงสร้างด้านบน
+2. เตรียมภาพ ตามขนาดและรูปแบบที่กำหนด
+3. อัพโหลดภาพ ไปยังโฟลเดอร์ที่เหมาะสม
+4. ทดสอบ การแสดงผลบน devices ต่างๆ
+
+คำสั่ง Laravel สำหรับจัดการภาพ:
+
+```bash
+# สร้าง symbolic link สำหรับ storage
+php artisan storage:link
+
+# Clear cache หลังจากเพิ่มภาพใหม่
+php artisan config:clear
+php artisan cache:clear
+```
+
+ตัวอย่างการตั้งค่าใน config/filesystems.php
+
+```php
+'disks' => [
+    'public' => [
+        'driver' => 'local',
+        'root' => storage_path('app/public'),
+        'url' => env('APP_URL').'/storage',
+        'visibility' => 'public',
+    ],
+    
+    'images' => [
+        'driver' => 'local',
+        'root' => public_path('images'),
+        'url' => env('APP_URL').'/images',
+        'visibility' => 'public',
+    ],
+],
+```
+
+ระบบภาพนี้ถูกออกแบบมาเพื่อรองรับการแสดงผลที่คมชัดบนทุกอุปกรณ์ พร้อมการโหลดที่รวดเร็วและประสิทธิภาพการแสดงผลที่ดีที่สุด
