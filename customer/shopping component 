@@ -1,0 +1,728 @@
+🛒 Media Requirements for Customer Shopping Components
+
+📁 Shopping Media Folder Structure
+
+```
+public/images/shopping/
+├── icons/
+│   ├── wishlist/
+│   │   ├── heart-empty.png           # หัวใจว่าง 24x24px
+│   │   ├── heart-filled.png          # หัวใจเต็ม 24x24px
+│   │   ├── heart-added.png           # หัวใจเมื่อเพิ่มแล้ว 24x24px
+│   │   └── wishlist-empty.png        # รายการโปรดว่าง 64x64px
+│   ├── cart/
+│   │   ├── cart-icon.png             # ไอคอนตะกร้า 24x24px
+│   │   ├── cart-empty.png            # ตะกร้าว่าง 80x80px
+│   │   ├── delete-item.png           # ลบสินค้า 20x20px
+│   │   └── quantity-controls.png     # ปุ่มเพิ่มลด 16x16px
+│   ├── checkout/
+│   │   ├── step-address.png          # ขั้นตอนที่อยู่ 32x32px
+│   │   ├── step-payment.png          # ขั้นตอนชำระเงิน 32x32px
+│   │   ├── step-confirm.png          # ขั้นตอนยืนยัน 32x32px
+│   │   ├── step-completed.png        # ขั้นตอนเสร็จสิ้น 32x32px
+│   │   └── secure-payment.png        # การชำระเงินปลอดภัย 48x48px
+│   ├── payment/
+│   │   ├── credit-card.png           # บัตรเครดิต 32x32px
+│   │   ├── bank-transfer.png         # โอนเงิน 32x32px
+│   │   ├── promptpay.png             # พร้อมเพย์ 32x32px
+│   │   ├── cod.png                   # เก็บเงินปลายทาง 32x32px
+│   │   └── wallet.png                # กระเป๋าเงิน 32x32px
+│   └── reviews/
+│       ├── star-empty.png            # ดาวว่าง 20x20px
+│       ├── star-half.png             # ดาวครึ่งซีก 20x20px
+│       ├── star-full.png             # ดาวเต็ม 20x20px
+│       ├── review-empty.png          # ยังไม่มีรีวิว 64x64px
+│       └── camera-upload.png         # อัพโหลดรูป 24x24px
+├── placeholders/
+│   ├── product-small.jpg             # ภาพสินค้าขนาดเล็ก 80x80px
+│   ├── product-medium.jpg            # ภาพสินค้าขนาดกลาง 120x120px
+│   └── avatar-small.png              # ภาพโปรไฟล์เล็ก 40x40px
+└── illustrations/
+    ├── shopping-cart.svg              # ภาพประกอบตะกร้าสินค้า
+    ├── secure-checkout.svg            # ภาพประกอบการชำระเงิน
+    └── order-confirmed.svg            # ภาพประกอบการยืนยันคำสั่งซื้อ
+```
+
+---
+
+❤️ WISHLIST COMPONENTS
+
+wishlist-grid.blade.php
+
+```blade
+{{-- ต้องการภาพสำหรับสถานะว่างเปล่า --}}
+<div class="wishlist-empty-state">
+    <img src="{{ asset('images/shopping/icons/wishlist/wishlist-empty.png') }}" 
+         alt="ยังไม่มีรายการโปรด"
+         width="64" height="64">
+    <h3>ยังไม่มีรายการโปรด</h3>
+    <p>เพิ่มสินค้าที่คุณชอบลงในรายการโปรดสิ!</p>
+    <a href="{{ route('shop.index') }}" class="btn btn-primary">
+        ไปช้อปปิ้งเลย
+    </a>
+</div>
+```
+
+รายการภาพที่ต้องมี:
+
+· wishlist-empty.png (64x64px) - ภาพแสดงรายการโปรดว่างเปล่า
+
+wishlist-card.blade.php
+
+```blade
+{{-- ต้องการภาพสินค้าและไอคอนหัวใจ --}}
+<div class="wishlist-card">
+    <!-- ภาพสินค้า -->
+    <div class="product-image">
+        <img src="{{ $product->thumbnail ?: asset('images/shopping/placeholders/product-medium.jpg') }}" 
+             alt="{{ $product->name }}"
+             width="120" height="120">
+    </div>
+    
+    <!-- ปุ่มลบออกจากรายการโปรด -->
+    <button class="remove-wishlist" wire:click="removeFromWishlist({{ $product->id }})">
+        <img src="{{ asset('images/shopping/icons/wishlist/heart-filled.png') }}" 
+             alt="ลบออกจากรายการโปรด"
+             width="20" height="20">
+    </button>
+    
+    <!-- สถานะสินค้า -->
+    @if($product->out_of_stock)
+        <div class="out-of-stock-badge">
+            <img src="{{ asset('images/icons/system/warning.png') }}" 
+                 alt="หมดสต็อก" width="16" height="16">
+            หมดสต็อก
+        </div>
+    @endif
+</div>
+```
+
+รายการภาพที่ต้องมี:
+
+· heart-filled.png (20x20px) - ไอคอนหัวใจเต็ม (สำหรับลบออก)
+· product-medium.jpg (120x120px) - ภาพสินค้า placeholder
+
+add-to-wishlist.blade.php
+
+```blade
+{{-- ต้องการไอคอนหัวใจสองสถานะ --}}
+<button class="wishlist-toggle" 
+        wire:click="toggleWishlist({{ $product->id }})"
+        title="{{ $inWishlist ? 'ลบออกจากรายการโปรด' : 'เพิ่มในรายการโปรด' }}">
+    
+    @if($inWishlist)
+        <img src="{{ asset('images/shopping/icons/wishlist/heart-filled.png') }}" 
+             alt="อยู่ในรายการโปรด"
+             width="24" height="24"
+             class="wishlist-icon filled">
+    @else
+        <img src="{{ asset('images/shopping/icons/wishlist/heart-empty.png') }}" 
+             alt="เพิ่มในรายการโปรด"
+             width="24" height="24"
+             class="wishlist-icon empty">
+    @endif
+    
+    <span class="sr-only">
+        {{ $inWishlist ? 'ลบออกจากรายการโปรด' : 'เพิ่มในรายการโปรด' }}
+    </span>
+</button>
+```
+
+รายการภาพที่ต้องมี:
+
+· heart-empty.png (24x24px) - ไอคอนหัวใจว่าง
+· heart-filled.png (24x24px) - ไอคอนหัวใจเต็ม
+
+---
+
+🛒 CART COMPONENTS
+
+cart-icon.blade.php
+
+```blade
+{{-- ต้องการไอคอนตะกร้าสินค้า --}}
+<div class="cart-icon-container">
+    <button class="cart-toggle" onclick="toggleCartSidebar()">
+        <img src="{{ asset('images/shopping/icons/cart/cart-icon.png') }}" 
+             alt="ตะกร้าสินค้า"
+             width="24" height="24"
+             class="cart-icon">
+        
+        @if($cartCount > 0)
+            <span class="cart-badge">
+                {{ $cartCount }}
+            </span>
+        @endif
+    </button>
+</div>
+```
+
+รายการภาพที่ต้องมี:
+
+· cart-icon.png (24x24px) - ไอคอนตะกร้าสินค้า
+
+cart-sidebar.blade.php
+
+```blade
+{{-- ต้องการภาพสำหรับตะกร้าว่าง --}}
+<div class="cart-sidebar">
+    <div class="cart-header">
+        <h3>
+            <img src="{{ asset('images/shopping/icons/cart/cart-icon.png') }}" 
+                 alt="ตะกร้าสินค้า" width="20" height="20">
+            ตะกร้าสินค้า ({{ $cartCount }})
+        </h3>
+    </div>
+    
+    @if($cartCount === 0)
+        <div class="cart-empty">
+            <img src="{{ asset('images/shopping/icons/cart/cart-empty.png') }}" 
+                 alt="ตะกร้าว่าง"
+                 width="80" height="80">
+            <p>ตะกร้าสินค้าของคุณว่างเปล่า</p>
+            <a href="{{ route('shop.index') }}" class="btn btn-primary">
+                เริ่มช้อปปิ้ง
+            </a>
+        </div>
+    @else
+        <div class="cart-content">
+            <livewire:shopping.cart-items />
+            <livewire:shopping.cart-summary />
+        </div>
+    @endif
+</div>
+```
+
+รายการภาพที่ต้องมี:
+
+· cart-empty.png (80x80px) - ภาพตะกร้าว่าง
+· cart-icon.png (20x20px) - ไอคอนตะกร้าสินค้า
+
+cart-items.blade.php
+
+```blade
+{{-- ต้องการภาพสินค้าและไอคอนควบคุม --}}
+@foreach($cartItems as $item)
+<div class="cart-item">
+    <!-- ภาพสินค้า -->
+    <div class="item-image">
+        <img src="{{ $item->product->thumbnail ?: asset('images/shopping/placeholders/product-small.jpg') }}" 
+             alt="{{ $item->product->name }}"
+             width="80" height="80">
+    </div>
+    
+    <div class="item-details">
+        <h4>{{ $item->product->name }}</h4>
+        <p class="item-price">฿{{ number_format($item->price) }}</p>
+        
+        <!-- ควบคุมจำนวน -->
+        <div class="quantity-controls">
+            <button wire:click="decreaseQuantity({{ $item->id }})"
+                    {{ $item->quantity <= 1 ? 'disabled' : '' }}>
+                <img src="{{ asset('images/shopping/icons/cart/quantity-decrease.png') }}" 
+                     alt="ลดจำนวน" width="16" height="16">
+            </button>
+            
+            <span class="quantity">{{ $item->quantity }}</span>
+            
+            <button wire:click="increaseQuantity({{ $item->id }})">
+                <img src="{{ asset('images/shopping/icons/cart/quantity-increase.png') }}" 
+                     alt="เพิ่มจำนวน" width="16" height="16">
+            </button>
+        </div>
+    </div>
+    
+    <!-- ปุ่มลบ -->
+    <button class="remove-item" wire:click="removeFromCart({{ $item->id }})">
+        <img src="{{ asset('images/shopping/icons/cart/delete-item.png') }}" 
+             alt="ลบสินค้า" width="20" height="20">
+    </button>
+</div>
+@endforeach
+```
+
+รายการภาพที่ต้องมี:
+
+· product-small.jpg (80x80px) - ภาพสินค้าขนาดเล็ก
+· quantity-decrease.png (16x16px) - ไอคอนลดจำนวน
+· quantity-increase.png (16x16px) - ไอคอนเพิ่มจำนวน
+· delete-item.png (20x20px) - ไอคอนลบสินค้า
+
+coupon-form.blade.php
+
+```blade
+{{-- ต้องการไอคอนคูปอง --}}
+<div class="coupon-form">
+    <label class="coupon-label">
+        <img src="{{ asset('images/shopping/icons/cart/coupon-icon.png') }}" 
+             alt="โค้ดส่วนลด" width="20" height="20">
+        มีโค้ดส่วนลด?
+    </label>
+    
+    <div class="coupon-input-group">
+        <input type="text" 
+               wire:model="couponCode" 
+               placeholder="กรอกโค้ดส่วนลด..."
+               class="coupon-input">
+        <button wire:click="applyCoupon" 
+                class="btn btn-secondary"
+                {{ !$couponCode ? 'disabled' : '' }}>
+            ใช้โค้ด
+        </button>
+    </div>
+    
+    @if($discountAmount > 0)
+        <div class="coupon-success">
+            <img src="{{ asset('images/icons/system/success.png') }}" 
+                 alt="สำเร็จ" width="16" height="16">
+            ใช้โค้ดส่วนลดสำเร็จ! ลดราคา ฿{{ number_format($discountAmount) }}
+        </div>
+    @endif
+    
+    @error('couponError')
+        <div class="coupon-error">
+            <img src="{{ asset('images/icons/system/error.png') }}" 
+                 alt="ข้อผิดพลาด" width="16" height="16">
+            {{ $message }}
+        </div>
+    @enderror
+</div>
+```
+
+รายการภาพที่ต้องมี:
+
+· coupon-icon.png (20x20px) - ไอคอนคูปองส่วนลด
+
+---
+
+💳 CHECKOUT COMPONENTS
+
+checkout-steps.blade.php
+
+```blade
+{{-- ต้องการไอคอนสำหรับแต่ละขั้นตอน --}}
+<div class="checkout-steps">
+    <div class="step {{ $currentStep >= 1 ? 'active' : '' }} {{ $currentStep > 1 ? 'completed' : '' }}">
+        <div class="step-icon">
+            @if($currentStep > 1)
+                <img src="{{ asset('images/shopping/icons/checkout/step-completed.png') }}" 
+                     alt="เสร็จสิ้น" width="24" height="24">
+            @else
+                <img src="{{ asset('images/shopping/icons/checkout/step-address.png') }}" 
+                     alt="ที่อยู่" width="24" height="24">
+            @endif
+        </div>
+        <span class="step-label">ที่อยู่</span>
+    </div>
+    
+    <div class="step {{ $currentStep >= 2 ? 'active' : '' }} {{ $currentStep > 2 ? 'completed' : '' }}">
+        <div class="step-icon">
+            @if($currentStep > 2)
+                <img src="{{ asset('images/shopping/icons/checkout/step-completed.png') }}" 
+                     alt="เสร็จสิ้น" width="24" height="24">
+            @else
+                <img src="{{ asset('images/shopping/icons/checkout/step-payment.png') }}" 
+                     alt="ชำระเงิน" width="24" height="24">
+            @endif
+        </div>
+        <span class="step-label">ชำระเงิน</span>
+    </div>
+    
+    <div class="step {{ $currentStep >= 3 ? 'active' : '' }}">
+        <div class="step-icon">
+            <img src="{{ asset('images/shopping/icons/checkout/step-confirm.png') }}" 
+                 alt="ยืนยัน" width="24" height="24">
+        </div>
+        <span class="step-label">ยืนยัน</span>
+    </div>
+</div>
+```
+
+รายการภาพที่ต้องมี:
+
+· step-address.png (24x24px) - ไอคอนขั้นตอนที่อยู่
+· step-payment.png (24x24px) - ไอคอนขั้นตอนชำระเงิน
+· step-confirm.png (24x24px) - ไอคอนขั้นตอนยืนยัน
+· step-completed.png (24x24px) - ไอคอนขั้นตอนเสร็จสิ้น
+
+payment-methods.blade.php
+
+```blade
+{{-- ต้องการไอคอนวิธีการชำระเงินแต่ละแบบ --}}
+<div class="payment-methods">
+    <h4>เลือกวิธีการชำระเงิน</h4>
+    
+    <div class="methods-grid">
+        <!-- บัตรเครดิต -->
+        <label class="payment-method">
+            <input type="radio" name="payment_method" value="credit_card" 
+                   wire:model="selectedMethod">
+            <div class="method-content">
+                <img src="{{ asset('images/shopping/icons/payment/credit-card.png') }}" 
+                     alt="บัตรเครดิต" width="32" height="32">
+                <span>บัตรเครดิต/เดบิต</span>
+            </div>
+        </label>
+        
+        <!-- โอนเงิน -->
+        <label class="payment-method">
+            <input type="radio" name="payment_method" value="bank_transfer" 
+                   wire:model="selectedMethod">
+            <div class="method-content">
+                <img src="{{ asset('images/shopping/icons/payment/bank-transfer.png') }}" 
+                     alt="โอนเงิน" width="32" height="32">
+                <span>โอนเงิน</span>
+            </div>
+        </label>
+        
+        <!-- พร้อมเพย์ -->
+        <label class="payment-method">
+            <input type="radio" name="payment_method" value="promptpay" 
+                   wire:model="selectedMethod">
+            <div class="method-content">
+                <img src="{{ asset('images/shopping/icons/payment/promptpay.png') }}" 
+                     alt="พร้อมเพย์" width="32" height="32">
+                <span>พร้อมเพย์</span>
+            </div>
+        </label>
+        
+        <!-- เก็บเงินปลายทาง -->
+        <label class="payment-method">
+            <input type="radio" name="payment_method" value="cod" 
+                   wire:model="selectedMethod">
+            <div class="method-content">
+                <img src="{{ asset('images/shopping/icons/payment/cod.png') }}" 
+                     alt="เก็บเงินปลายทาง" width="32" height="32">
+                <span>เก็บเงินปลายทาง</span>
+            </div>
+        </label>
+    </div>
+    
+    <!-- ข้อความความปลอดภัย -->
+    <div class="payment-security">
+        <img src="{{ asset('images/shopping/icons/checkout/secure-payment.png') }}" 
+             alt="ปลอดภัย" width="20" height="20">
+        <span>การชำระเงินของคุณปลอดภัย 100%</span>
+    </div>
+</div>
+```
+
+รายการภาพที่ต้องมี:
+
+· credit-card.png (32x32px) - ไอคอนบัตรเครดิต
+· bank-transfer.png (32x32px) - ไอคอนโอนเงิน
+· promptpay.png (32x32px) - ไอคอนพร้อมเพย์
+· cod.png (32x32px) - ไอคอนเก็บเงินปลายทาง
+· secure-payment.png (20x20px) - ไอคอนความปลอดภัย
+
+---
+
+⭐ REVIEWS COMPONENTS
+
+review-list.blade.php
+
+```blade
+{{-- ต้องการภาพสถานะว่างเปล่า --}}
+@if($reviews->count() === 0)
+    <div class="reviews-empty">
+        <img src="{{ asset('images/shopping/icons/reviews/review-empty.png') }}" 
+             alt="ยังไม่มีรีวิว"
+             width="64" height="64">
+        <h4>ยังไม่มีรีวิว</h4>
+        <p>เป็นคนแรกที่รีวิวสินค้านี้สิ!</p>
+    </div>
+@else
+    <div class="reviews-list">
+        @foreach($reviews as $review)
+            <x-shopping.reviews.review-card :review="$review" />
+        @endforeach
+    </div>
+@endif
+```
+
+รายการภาพที่ต้องมี:
+
+· review-empty.png (64x64px) - ภาพแสดงยังไม่มีรีวิว
+
+review-form.blade.php
+
+```blade
+{{-- ต้องการไอคอนดาวและอัพโหลดรูป --}}
+<div class="review-form">
+    <h4>เขียนรีวิว</h4>
+    
+    <!-- การให้คะแนน -->
+    <div class="rating-section">
+        <label>ให้คะแนน</label>
+        <div class="star-rating-input">
+            <livewire:shopping.reviews.star-rating 
+                :editable="true" 
+                :rating="$rating" />
+        </div>
+    </div>
+    
+    <!-- อัพโหลดรูปภาพ -->
+    <div class="review-images">
+        <label>เพิ่มรูปภาพ (ไม่เกิน 3 รูป)</label>
+        <div class="image-upload-area">
+            <img src="{{ asset('images/shopping/icons/reviews/camera-upload.png') }}" 
+                 alt="อัพโหลดรูป" width="24" height="24">
+            <span>คลิกเพื่ออัพโหลดรูปภาพ</span>
+            <input type="file" 
+                   wire:model="reviewImages" 
+                   multiple 
+                   accept="image/*"
+                   class="hidden">
+        </div>
+        
+        <!-- ตัวอย่างภาพที่อัพโหลด -->
+        @if($reviewImages)
+            <div class="uploaded-preview">
+                @foreach($reviewImages as $image)
+                    <div class="image-preview">
+                        <img src="{{ $image->temporaryUrl() }}" 
+                             alt="ภาพรีวิว" width="80" height="80">
+                        <button wire:click="removeImage({{ $loop->index }})">
+                            <img src="{{ asset('images/shopping/icons/cart/delete-item.png') }}" 
+                                 alt="ลบ" width="16" height="16">
+                        </button>
+                    </div>
+                @endforeach
+            </div>
+        @endif
+    </div>
+</div>
+```
+
+รายการภาพที่ต้องมี:
+
+· camera-upload.png (24x24px) - ไอคอนอัพโหลดรูป
+
+review-card.blade.php
+
+```blade
+{{-- ต้องการภาพโปรไฟล์ผู้รีวิว --}}
+<div class="review-card">
+    <!-- ส่วนหัวรีวิว -->
+    <div class="review-header">
+        <div class="reviewer-info">
+            <img src="{{ $review->user->avatar ?: asset('images/shopping/placeholders/avatar-small.png') }}" 
+                 alt="{{ $review->user->name }}"
+                 width="40" height="40"
+                 class="reviewer-avatar">
+            
+            <div class="reviewer-details">
+                <h5>{{ $review->user->name }}</h5>
+                <div class="review-meta">
+                    <livewire:shopping.reviews.star-rating 
+                        :rating="$review->rating" 
+                        :editable="false" />
+                    <span class="review-date">
+                        {{ $review->created_at->format('d/m/Y') }}
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- เนื้อหารีวิว -->
+    <div class="review-content">
+        <p>{{ $review->comment }}</p>
+        
+        <!-- ภาพรีวิว -->
+        @if($review->images->count() > 0)
+            <div class="review-images">
+                @foreach($review->images as $image)
+                    <img src="{{ $image->url }}" 
+                         alt="ภาพรีวิว" 
+                         width="80" height="80"
+                         class="review-image">
+                @endforeach
+            </div>
+        @endif
+    </div>
+</div>
+```
+
+รายการภาพที่ต้องมี:
+
+· avatar-small.png (40x40px) - ภาพโปรไฟล์ placeholder
+
+star-rating.blade.php
+
+```blade
+{{-- ต้องการไอคอนดาวสามสถานะ --}}
+<div class="star-rating {{ $editable ? 'editable' : 'readonly' }}">
+    @for($i = 1; $i <= 5; $i++)
+        @if($editable)
+            <button type="button" 
+                    wire:click="setRating({{ $i }})"
+                    class="star-button"
+                    onmouseover="hoverRating({{ $i }})"
+                    onmouseout="resetHover()">
+                @if($i <= $hoverRating)
+                    <img src="{{ asset('images/shopping/icons/reviews/star-full.png') }}" 
+                         alt="ดาวเต็ม" width="20" height="20">
+                @elseif($i <= $currentRating)
+                    <img src="{{ asset('images/shopping/icons/reviews/star-full.png') }}" 
+                         alt="ดาวเต็ม" width="20" height="20">
+                @else
+                    <img src="{{ asset('images/shopping/icons/reviews/star-empty.png') }}" 
+                         alt="ดาวว่าง" width="20" height="20">
+                @endif
+            </button>
+        @else
+            <span class="star-static">
+                @if($i <= $rating)
+                    <img src="{{ asset('images/shopping/icons/reviews/star-full.png') }}" 
+                         alt="ดาวเต็ม" width="20" height="20">
+                @else
+                    <img src="{{ asset('images/shopping/icons/reviews/star-empty.png') }}" 
+                         alt="ดาวว่าง" width="20" height="20">
+                @endif
+            </span>
+        @endif
+    @endfor
+</div>
+```
+
+รายการภาพที่ต้องมี:
+
+· star-empty.png (20x20px) - ไอคอนดาวว่าง
+· star-full.png (20x20px) - ไอคอนดาวเต็ม
+
+---
+
+🎨 IMAGE SPECIFICATIONS DETAILS
+
+ไอคอนทั่วไป
+
+· รูปแบบ: PNG with transparent background
+· สไตล์: Flat design, consistent color scheme
+· ขนาด: ตามที่ระบุในแต่ละ component
+· สีธีม:
+  · หัวใจ: สีแดง (#FF4757)
+  · ตะกร้า: สีส้ม (#FF9F43)
+  · ดาว: สีทอง (#FFD700)
+
+ภาพ Placeholder
+
+· รูปแบบ: JPG/PNG
+· สไตล์: Neutral background, professional
+· สีพื้นหลัง: #F8F9FA (สีเทาอ่อน)
+· ข้อความ: ไม่มีข้อความบนภาพ
+
+ภาพประกอบ (Illustrations)
+
+· รูปแบบ: SVG (สำหรับ scalability)
+· สไตล์: Simple, modern line art
+· สี: 2-3 สีตามธีมของแบรนด์
+
+ตัวอย่างสีที่แนะนำ
+
+```css
+/* Shopping Theme Colors */
+--wishlist-heart: #FF4757;
+--cart-orange: #FF9F43;
+--star-gold: #FFD700;
+--success-green: #2ED573;
+--error-red: #FF6B81;
+--payment-blue: #3742FA;
+```
+
+---
+
+📱 RESPONSIVE IMAGE HANDLING
+
+Picture Element สำหรับ Responsive Images
+
+```blade
+<picture>
+    <!-- WebP format สำหรับ browser ที่ support -->
+    <source type="image/webp" 
+            srcset="
+                {{ asset('images/shopping/placeholders/product-small.webp') }} 80w,
+                {{ asset('images/shopping/placeholders/product-medium.webp') }} 120w
+            "
+            sizes="(max-width: 768px) 80px, 120px">
+    
+    <!-- Fallback PNG -->
+    <source type="image/png" 
+            srcset="
+                {{ asset('images/shopping/placeholders/product-small.png') }} 80w,
+                {{ asset('images/shopping/placeholders/product-medium.png') }} 120w
+            "
+            sizes="(max-width: 768px) 80px, 120px">
+    
+    <!-- Fallback หลัก -->
+    <img src="{{ asset('images/shopping/placeholders/product-medium.png') }}" 
+         alt="{{ $product->name }}"
+         loading="lazy">
+</picture>
+```
+
+Lazy Loading Implementation
+
+```blade
+<img src="{{ $imageUrl }}" 
+     alt="{{ $altText }}"
+     loading="lazy"
+     width="{{ $width }}"
+     height="{{ $height }}"
+     class="product-image">
+```
+
+---
+
+🚀 DEPLOYMENT CHECKLIST
+
+ภาพที่ต้องเตรียมเรียงตามโฟลเดอร์:
+
+```
+✅ wishlist/
+  - heart-empty.png (24x24px)
+  - heart-filled.png (24x24px)
+  - heart-added.png (24x24px)
+  - wishlist-empty.png (64x64px)
+
+✅ cart/
+  - cart-icon.png (24x24px)
+  - cart-empty.png (80x80px)
+  - delete-item.png (20x20px)
+  - quantity-decrease.png (16x16px)
+  - quantity-increase.png (16x16px)
+  - coupon-icon.png (20x20px)
+
+✅ checkout/
+  - step-address.png (24x24px)
+  - step-payment.png (24x24px)
+  - step-confirm.png (24x24px)
+  - step-completed.png (24x24px)
+  - secure-payment.png (20x20px)
+
+✅ payment/
+  - credit-card.png (32x32px)
+  - bank-transfer.png (32x32px)
+  - promptpay.png (32x32px)
+  - cod.png (32x32px)
+  - wallet.png (32x32px)
+
+✅ reviews/
+  - star-empty.png (20x20px)
+  - star-full.png (20x20px)
+  - star-half.png (20x20px)
+  - review-empty.png (64x64px)
+  - camera-upload.png (24x24px)
+
+✅ placeholders/
+  - product-small.jpg (80x80px)
+  - product-medium.jpg (120x120px)
+  - avatar-small.png (40x40px)
+
+✅ illustrations/
+  - shopping-cart.svg
+  - secure-checkout.svg
+  - order-confirmed.svg
+```
+
+ระบบภาพสำหรับ Customer Shopping Components นี้ถูกออกแบบมาเพื่อให้ประสบการณ์การช้อปปิ้งที่สมบูรณ์แบบ พร้อมการแสดงผลที่คมชัดและโหลดเร็วบนทุกอุปกรณ์
