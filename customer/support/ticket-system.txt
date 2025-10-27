@@ -1,0 +1,1029 @@
+🎫 Customer Support Components - Complete Implementation
+
+📁 Support Media & Assets Requirements
+
+```
+public/images/support/
+├── icons/
+│   ├── ticket-open.png          # ไอคอน Ticket เปิด 24x24px
+│   ├── ticket-pending.png       # ไอคอน Ticket รอดำเนินการ 24x24px
+│   ├── ticket-resolved.png      # ไอคอน Ticket แก้ไขแล้ว 24x24px
+│   ├── ticket-closed.png        # ไอคอน Ticket ปิดแล้ว 24x24px
+│   ├── priority-low.png         # ความสำคัญต่ำ 16x16px
+│   ├── priority-medium.png      # ความสำคัญปานกลาง 16x16px
+│   ├── priority-high.png        # ความสำคัญสูง 16x16px
+│   └── priority-urgent.png      # ความสำคัญเร่งด่วน 16x16px
+├── chat/
+│   ├── chat-avatar-user.png     # รูปผู้ใช้แชท 32x32px
+│   ├── chat-avatar-support.png  # รูปทีมซัพพอร์ต 32x32px
+│   ├── online-indicator.png     # ออนไลน์ 8x8px
+│   ├── offline-indicator.png    # ออฟไลน์ 8x8px
+│   └── typing-indicator.gif     # กำลังพิมพ์ 20x20px
+└── attachments/
+    ├── file-pdf.png             # ไอคอนไฟล์ PDF 32x32px
+    ├── file-image.png           # ไอคอนไฟล์ภาพ 32x32px
+    ├── file-document.png        # ไอคอนไฟล์เอกสาร 32x32px
+    └── file-other.png           # ไอคอนไฟล์อื่นๆ 32x32px
+```
+
+---
+
+🎫 TICKET SYSTEM COMPONENTS
+
+1. Ticket List Component
+
+```blade
+{{-- components/customer/support/tickets/ticket-list.blade.php --}}
+@props(['tickets' => [], 'filters' => []])
+
+<div class="ticket-list-container">
+    <!-- Header with Stats -->
+    <div class="ticket-header mb-6">
+        <div class="flex justify-between items-center">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-900">ตั๋วช่วยเหลือของฉัน</h1>
+                <p class="text-gray-600">จัดการคำร้องขอการสนับสนุนทั้งหมดของคุณ</p>
+            </div>
+            <a href="{{ route('customer.support.tickets.create') }}" 
+               class="btn btn-primary">
+               <img src="{{ asset('images/support/icons/ticket-open.png') }}" 
+                    alt="สร้างตั๋วใหม่" 
+                    width="20" height="20" class="mr-2">
+               สร้างตั๋วใหม่
+            </a>
+        </div>
+
+        <!-- Quick Stats -->
+        <div class="grid grid-cols-4 gap-4 mt-6">
+            <div class="stat-card bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div class="flex items-center">
+                    <img src="{{ asset('images/support/icons/ticket-open.png') }}" 
+                         alt="เปิด" width="24" height="24">
+                    <div class="ml-3">
+                        <div class="text-2xl font-bold text-blue-700">{{ $stats['open'] }}</div>
+                        <div class="text-sm text-blue-600">เปิดอยู่</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="stat-card bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                <div class="flex items-center">
+                    <img src="{{ asset('images/support/icons/ticket-pending.png') }}" 
+                         alt="รอดำเนินการ" width="24" height="24">
+                    <div class="ml-3">
+                        <div class="text-2xl font-bold text-yellow-700">{{ $stats['pending'] }}</div>
+                        <div class="text-sm text-yellow-600">รอดำเนินการ</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="stat-card bg-green-50 border border-green-200 rounded-lg p-4">
+                <div class="flex items-center">
+                    <img src="{{ asset('images/support/icons/ticket-resolved.png') }}" 
+                         alt="แก้ไขแล้ว" width="24" height="24">
+                    <div class="ml-3">
+                        <div class="text-2xl font-bold text-green-700">{{ $stats['resolved'] }}</div>
+                        <div class="text-sm text-green-600">แก้ไขแล้ว</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="stat-card bg-gray-50 border border-gray-200 rounded-lg p-4">
+                <div class="flex items-center">
+                    <img src="{{ asset('images/support/icons/ticket-closed.png') }}" 
+                         alt="ปิดแล้ว" width="24" height="24">
+                    <div class="ml-3">
+                        <div class="text-2xl font-bold text-gray-700">{{ $stats['closed'] }}</div>
+                        <div class="text-sm text-gray-600">ปิดแล้ว</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="ticket-filters mb-4 bg-white border border-gray-200 rounded-lg p-4">
+        <div class="flex flex-wrap gap-4 items-center">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">สถานะ</label>
+                <select wire:model="filters.status" class="form-select">
+                    <option value="">ทั้งหมด</option>
+                    <option value="open">เปิด</option>
+                    <option value="pending">รอดำเนินการ</option>
+                    <option value="resolved">แก้ไขแล้ว</option>
+                    <option value="closed">ปิดแล้ว</option>
+                </select>
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">ความสำคัญ</label>
+                <select wire:model="filters.priority" class="form-select">
+                    <option value="">ทั้งหมด</option>
+                    <option value="low">ต่ำ</option>
+                    <option value="medium">ปานกลาง</option>
+                    <option value="high">สูง</option>
+                    <option value="urgent">เร่งด่วน</option>
+                </select>
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">ประเภท</label>
+                <select wire:model="filters.type" class="form-select">
+                    <option value="">ทั้งหมด</option>
+                    <option value="technical">เทคนิค</option>
+                    <option value="billing">การชำระเงิน</option>
+                    <option value="product">สินค้า</option>
+                    <option value="shipping">การจัดส่ง</option>
+                    <option value="general">ทั่วไป</option>
+                </select>
+            </div>
+            
+            <div class="flex-1 min-w-[200px]">
+                <label class="block text-sm font-medium text-gray-700 mb-1">ค้นหา</label>
+                <input type="text" wire:model="filters.search" 
+                       placeholder="ค้นหาตามหัวข้อหรือเนื้อหา..."
+                       class="form-input w-full">
+            </div>
+        </div>
+    </div>
+
+    <!-- Tickets Table -->
+    <div class="tickets-table bg-white border border-gray-200 rounded-lg overflow-hidden">
+        @if($tickets->count() > 0)
+            <div class="divide-y divide-gray-200">
+                @foreach($tickets as $ticket)
+                    <div class="ticket-item hover:bg-gray-50 transition-colors">
+                        <a href="{{ route('customer.support.tickets.show', $ticket) }}" 
+                           class="block p-6">
+                            <div class="flex items-start justify-between">
+                                <div class="flex-1">
+                                    <div class="flex items-center mb-2">
+                                        <span class="ticket-status-badge status-{{ $ticket->status }}">
+                                            @php
+                                                $statusIcons = [
+                                                    'open' => 'ticket-open.png',
+                                                    'pending' => 'ticket-pending.png', 
+                                                    'resolved' => 'ticket-resolved.png',
+                                                    'closed' => 'ticket-closed.png'
+                                                ];
+                                            @endphp
+                                            <img src="{{ asset('images/support/icons/' . $statusIcons[$ticket->status]) }}" 
+                                                 alt="{{ $ticket->status }}" 
+                                                 width="16" height="16" class="mr-1">
+                                            {{ $ticket->status_label }}
+                                        </span>
+                                        
+                                        <span class="priority-badge priority-{{ $ticket->priority }} ml-3">
+                                            <img src="{{ asset('images/support/icons/priority-' . $ticket->priority . '.png') }}" 
+                                                 alt="{{ $ticket->priority }}" 
+                                                 width="12" height="12" class="mr-1">
+                                            {{ $ticket->priority_label }}
+                                        </span>
+                                        
+                                        <span class="type-badge ml-3 bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">
+                                            {{ $ticket->type_label }}
+                                        </span>
+                                    </div>
+                                    
+                                    <h3 class="text-lg font-semibold text-gray-900 mb-1">
+                                        {{ $ticket->subject }}
+                                    </h3>
+                                    
+                                    <p class="text-gray-600 text-sm mb-2 line-clamp-2">
+                                        {{ Str::limit($ticket->latest_message, 120) }}
+                                    </p>
+                                    
+                                    <div class="flex items-center text-sm text-gray-500">
+                                        <span>เลขที่: {{ $ticket->ticket_number }}</span>
+                                        <span class="mx-2">•</span>
+                                        <span>สร้างเมื่อ: {{ $ticket->created_at->format('d/m/Y H:i') }}</span>
+                                        <span class="mx-2">•</span>
+                                        <span>อัพเดท: {{ $ticket->updated_at->diffForHumans() }}</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="text-right ml-4">
+                                    <div class="text-sm text-gray-500 mb-2">
+                                        {{ $ticket->replies_count }} การตอบกลับ
+                                    </div>
+                                    <div class="text-xs text-gray-400">
+                                        #{{ $ticket->id }}
+                                    </div>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                @endforeach
+            </div>
+            
+            <!-- Pagination -->
+            <div class="bg-gray-50 px-6 py-4 border-t border-gray-200">
+                {{ $tickets->links() }}
+            </div>
+        @else
+            <div class="text-center py-12">
+                <img src="{{ asset('images/placeholders/empty-state.png') }}" 
+                     alt="ไม่มีตั๋ว" 
+                     width="100" height="100" class="mx-auto mb-4 opacity-50">
+                <h3 class="text-lg font-medium text-gray-900 mb-2">ไม่พบตั๋วช่วยเหลือ</h3>
+                <p class="text-gray-600 mb-4">คุณยังไม่มีตั๋วช่วยเหลือใดๆ</p>
+                <a href="{{ route('customer.support.tickets.create') }}" 
+                   class="btn btn-primary">
+                   สร้างตั๋วแรกของคุณ
+                </a>
+            </div>
+        @endif
+    </div>
+</div>
+
+<style>
+.ticket-status-badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+}
+
+.status-open { @apply bg-green-100 text-green-800; }
+.status-pending { @apply bg-yellow-100 text-yellow-800; }
+.status-resolved { @apply bg-blue-100 text-blue-800; }
+.status-closed { @apply bg-gray-100 text-gray-800; }
+
+.priority-badge {
+    @apply inline-flex items-center px-2 py-0.5 rounded text-xs font-medium;
+}
+
+.priority-low { @apply bg-gray-100 text-gray-800; }
+.priority-medium { @apply bg-blue-100 text-blue-800; }
+.priority-high { @apply bg-orange-100 text-orange-800; }
+.priority-urgent { @apply bg-red-100 text-red-800; }
+</style>
+```
+
+2. Ticket Form Component
+
+```blade
+{{-- components/customer/support/tickets/ticket-form.blade.php --}}
+@props(['ticket' => null, 'mode' => 'create'])
+
+<div class="ticket-form-container max-w-4xl mx-auto">
+    <div class="bg-white border border-gray-200 rounded-lg shadow-sm">
+        <!-- Header -->
+        <div class="px-6 py-4 border-b border-gray-200">
+            <h1 class="text-2xl font-bold text-gray-900">
+                @if($mode === 'create')
+                    <img src="{{ asset('images/support/icons/ticket-open.png') }}" 
+                         alt="สร้างตั๋วใหม่" 
+                         width="32" height="32" class="inline-block mr-2 align-middle">
+                    สร้างตั๋วช่วยเหลือใหม่
+                @else
+                    แก้ไขตั๋วช่วยเหลือ
+                @endif
+            </h1>
+            <p class="text-gray-600 mt-1">
+                กรุณากรอกข้อมูลด้านล่างเพื่อแจ้งปัญหาหรือคำถามของคุณ
+            </p>
+        </div>
+
+        <form wire:submit="{{ $mode === 'create' ? 'createTicket' : 'updateTicket' }}" 
+              class="p-6 space-y-6">
+            <!-- Ticket Type -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                    ประเภทปัญหา <span class="text-red-500">*</span>
+                </label>
+                <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    @foreach([
+                        'technical' => ['label' => 'ปัญหาเทคนิค', 'icon' => '🔧', 'color' => 'blue'],
+                        'billing' => ['label' => 'การชำระเงิน', 'icon' => '💳', 'color' => 'green'],
+                        'product' => ['label' => 'สินค้า', 'icon' => '📦', 'color' => 'purple'],
+                        'shipping' => ['label' => 'การจัดส่ง', 'icon' => '🚚', 'color' => 'orange'],
+                        'general' => ['label' => 'ทั่วไป', 'icon' => '❓', 'color' => 'gray'],
+                        'other' => ['label' => 'อื่นๆ', 'icon' => '📝', 'color' => 'yellow']
+                    ] as $value => $config)
+                        <label class="ticket-type-option">
+                            <input type="radio" name="type" value="{{ $value }}" 
+                                   wire:model="type" class="sr-only">
+                            <div class="type-card border-2 rounded-lg p-4 text-center cursor-pointer transition-all
+                                        {{ $type === $value ? 'border-' . $config['color'] . '-500 bg-' . $config['color'] . '-50' : 'border-gray-200 hover:border-gray-300' }}">
+                                <div class="text-2xl mb-2">{{ $config['icon'] }}</div>
+                                <div class="font-medium text-gray-900">{{ $config['label'] }}</div>
+                            </div>
+                        </label>
+                    @endforeach
+                </div>
+                @error('type') <div class="text-red-600 text-sm mt-1">{{ $message }}</div> @enderror
+            </div>
+
+            <!-- Subject -->
+            <div>
+                <label for="subject" class="block text-sm font-medium text-gray-700 mb-2">
+                    หัวข้อปัญหา <span class="text-red-500">*</span>
+                </label>
+                <input type="text" id="subject" wire:model="subject" 
+                       placeholder="ระบุหัวข้อปัญหาหรือคำถามโดยย่อ..."
+                       class="form-input w-full {{ $errors->has('subject') ? 'border-red-300' : '' }}">
+                @error('subject') <div class="text-red-600 text-sm mt-1">{{ $message }}</div> @enderror
+            </div>
+
+            <!-- Priority -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                    ระดับความสำคัญ <span class="text-red-500">*</span>
+                </label>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    @foreach([
+                        'low' => ['label' => 'ต่ำ', 'color' => 'gray'],
+                        'medium' => ['label' => 'ปานกลาง', 'color' => 'blue'], 
+                        'high' => ['label' => 'สูง', 'color' => 'orange'],
+                        'urgent' => ['label' => 'เร่งด่วน', 'color' => 'red']
+                    ] as $value => $config)
+                        <label class="priority-option">
+                            <input type="radio" name="priority" value="{{ $value }}" 
+                                   wire:model="priority" class="sr-only">
+                            <div class="priority-card border-2 rounded-lg p-3 text-center cursor-pointer transition-all
+                                        {{ $priority === $value ? 'border-' . $config['color'] . '-500 bg-' . $config['color'] . '-50' : 'border-gray-200 hover:border-gray-300' }}">
+                                <img src="{{ asset('images/support/icons/priority-' . $value . '.png') }}" 
+                                     alt="{{ $config['label'] }}" 
+                                     width="20" height="20" class="mx-auto mb-1">
+                                <div class="text-sm font-medium">{{ $config['label'] }}</div>
+                            </div>
+                        </label>
+                    @endforeach
+                </div>
+                @error('priority') <div class="text-red-600 text-sm mt-1">{{ $message }}</div> @enderror
+            </div>
+
+            <!-- Description -->
+            <div>
+                <label for="description" class="block text-sm font-medium text-gray-700 mb-2">
+                    รายละเอียดปัญหา <span class="text-red-500">*</span>
+                </label>
+                <textarea id="description" wire:model="description" rows="8"
+                          placeholder="อธิบายปัญหาหรือคำถามของคุณอย่างละเอียด...
+- อะไรคือปัญหาที่เกิดขึ้น?
+- เกิดขึ้นเมื่อไหร่?
+- ขั้นตอนการเกิดปัญหาเป็นอย่างไร?
+- มีข้อความผิดพลาดใดๆ หรือไม่?"
+                          class="form-textarea w-full {{ $errors->has('description') ? 'border-red-300' : '' }}"></textarea>
+                @error('description') <div class="text-red-600 text-sm mt-1">{{ $message }}</div> @enderror
+                <div class="text-sm text-gray-500 mt-1">
+                    {{ strlen($description) }}/5000 ตัวอักษร
+                </div>
+            </div>
+
+            <!-- Related Order (Optional) -->
+            <div>
+                <label for="order_id" class="block text-sm font-medium text-gray-700 mb-2">
+                    เกี่ยวข้องกับคำสั่งซื้อ (ถ้ามี)
+                </label>
+                <select id="order_id" wire:model="order_id" class="form-select w-full">
+                    <option value="">-- เลือกคำสั่งซื้อ --</option>
+                    @foreach($userOrders as $order)
+                        <option value="{{ $order->id }}">
+                            #{{ $order->order_number }} - {{ $order->created_at->format('d/m/Y') }} - ฿{{ number_format($order->total) }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+
+            <!-- Attachments -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                    ไฟล์แนบ (ไม่บังคับ)
+                </label>
+                <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                    <img src="{{ asset('images/icons/system/upload.png') }}" 
+                         alt="อัพโหลดไฟล์" 
+                         width="48" height="48" class="mx-auto mb-3 opacity-50">
+                    <p class="text-gray-600 mb-3">ลากไฟล์มาวางที่นี่หรือคลิกเพื่อเลือกไฟล์</p>
+                    <input type="file" wire:model="attachments" 
+                           multiple 
+                           accept=".jpg,.jpeg,.png,.pdf,.doc,.docx"
+                           class="hidden" id="attachments">
+                    <label for="attachments" class="btn btn-outline cursor-pointer">
+                        เลือกไฟล์
+                    </label>
+                    <p class="text-xs text-gray-500 mt-2">
+                        รองรับ: JPG, PNG, PDF, DOC (สูงสุด 5MB ต่อไฟล์)
+                    </p>
+                </div>
+
+                <!-- Attachment Preview -->
+                @if($attachments)
+                    <div class="mt-4 space-y-2">
+                        @foreach($attachments as $index => $attachment)
+                            <div class="flex items-center justify-between bg-gray-50 rounded-lg p-3">
+                                <div class="flex items-center">
+                                    <img src="{{ asset('images/support/attachments/file-' . $this->getFileType($attachment) . '.png') }}" 
+                                         alt="ไฟล์แนบ" 
+                                         width="24" height="24" class="mr-3">
+                                    <div>
+                                        <div class="font-medium text-sm">{{ $attachment->getClientOriginalName() }}</div>
+                                        <div class="text-xs text-gray-500">{{ $this->formatFileSize($attachment->getSize()) }}</div>
+                                    </div>
+                                </div>
+                                <button type="button" wire:click="removeAttachment({{ $index }})" 
+                                        class="text-red-500 hover:text-red-700">
+                                    &times;
+                                </button>
+                            </div>
+                        @endforeach
+                    </div>
+                @endif
+            </div>
+
+            <!-- Form Actions -->
+            <div class="flex justify-between pt-6 border-t border-gray-200">
+                <a href="{{ route('customer.support.tickets.index') }}" 
+                   class="btn btn-outline">
+                    ← ยกเลิก
+                </a>
+                
+                <button type="submit" 
+                        class="btn btn-primary"
+                        wire:loading.attr="disabled">
+                    <span wire:loading.remove>
+                        @if($mode === 'create')
+                            สร้างตั๋วช่วยเหลือ
+                        @else
+                            อัพเดทตั๋ว
+                        @endif
+                    </span>
+                    <span wire:loading>
+                        <img src="{{ asset('images/loading/spinner.gif') }}" 
+                             alt="กำลังโหลด" 
+                             width="16" height="16" class="inline-block mr-2">
+                        กำลังดำเนินการ...
+                    </span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+```
+
+3. Ticket Detail Component
+
+```blade
+{{-- components/customer/support/tickets/ticket-detail.blade.php --}}
+@props(['ticket'])
+
+<div class="ticket-detail-container max-w-6xl mx-auto">
+    <!-- Ticket Header -->
+    <div class="bg-white border border-gray-200 rounded-lg shadow-sm mb-6">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <div class="flex justify-between items-start">
+                <div>
+                    <div class="flex items-center mb-2">
+                        <h1 class="text-2xl font-bold text-gray-900 mr-3">{{ $ticket->subject }}</h1>
+                        <span class="ticket-status-badge status-{{ $ticket->status }}">
+                            <img src="{{ asset('images/support/icons/ticket-' . $ticket->status . '.png') }}" 
+                                 alt="{{ $ticket->status }}" 
+                                 width="16" height="16" class="mr-1">
+                            {{ $ticket->status_label }}
+                        </span>
+                    </div>
+                    
+                    <div class="flex items-center text-sm text-gray-600 space-x-4">
+                        <span>เลขที่: <strong>{{ $ticket->ticket_number }}</strong></span>
+                        <span>ประเภท: <strong>{{ $ticket->type_label }}</strong></span>
+                        <span class="priority-badge priority-{{ $ticket->priority }}">
+                            <img src="{{ asset('images/support/icons/priority-' . $ticket->priority . '.png') }}" 
+                                 alt="{{ $ticket->priority }}" 
+                                 width="12" height="12" class="mr-1">
+                            {{ $ticket->priority_label }}
+                        </span>
+                        <span>สร้างเมื่อ: {{ $ticket->created_at->format('d/m/Y H:i') }}</span>
+                    </div>
+                </div>
+                
+                <div class="flex space-x-2">
+                    @if($ticket->status !== 'closed')
+                        <button wire:click="closeTicket" 
+                                class="btn btn-outline btn-sm text-red-600 border-red-200 hover:bg-red-50">
+                            ปิดตั๋ว
+                        </button>
+                    @endif
+                    <a href="{{ route('customer.support.tickets.index') }}" 
+                       class="btn btn-outline btn-sm">
+                        ← กลับ
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Ticket Messages -->
+        <div class="divide-y divide-gray-200">
+            <!-- Original Message -->
+            <div class="p-6 bg-blue-50">
+                <div class="flex items-start space-x-4">
+                    <img src="{{ asset('images/support/chat/chat-avatar-user.png') }}" 
+                         alt="คุณ" 
+                         width="40" height="40" class="rounded-full">
+                    <div class="flex-1">
+                        <div class="flex items-center mb-2">
+                            <span class="font-semibold text-gray-900">คุณ</span>
+                            <span class="mx-2 text-gray-400">•</span>
+                            <span class="text-sm text-gray-500">{{ $ticket->created_at->format('d/m/Y H:i') }}</span>
+                        </div>
+                        <div class="prose prose-sm max-w-none">
+                            {!! nl2br(e($ticket->description)) !!}
+                        </div>
+                        
+                        <!-- Attachments -->
+                        @if($ticket->attachments->count() > 0)
+                            <div class="mt-4">
+                                <h4 class="text-sm font-medium text-gray-700 mb-2">ไฟล์แนบ:</h4>
+                                <div class="flex flex-wrap gap-2">
+                                    @foreach($ticket->attachments as $attachment)
+                                        <a href="{{ $attachment->url }}" 
+                                           target="_blank"
+                                           class="flex items-center px-3 py-2 bg-white border border-gray-200 rounded-lg hover:border-blue-300 transition-colors">
+                                            <img src="{{ asset('images/support/attachments/file-' . $attachment->type . '.png') }}" 
+                                                 alt="{{ $attachment->type }}" 
+                                                 width="20" height="20" class="mr-2">
+                                            <span class="text-sm">{{ $attachment->original_name }}</span>
+                                        </a>
+                                    @endforeach
+                                </div>
+                            </div>
+                        @endif
+                    </div>
+                </div>
+            </div>
+
+            <!-- Replies -->
+            @foreach($ticket->replies as $reply)
+                <div class="p-6 {{ $reply->is_support ? 'bg-gray-50' : '' }}">
+                    <div class="flex items-start space-x-4">
+                        <img src="{{ asset($reply->is_support ? 'images/support/chat/chat-avatar-support.png' : 'images/support/chat/chat-avatar-user.png') }}" 
+                             alt="{{ $reply->is_support ? 'ทีมซัพพอร์ต' : 'คุณ' }}" 
+                             width="40" height="40" class="rounded-full">
+                        <div class="flex-1">
+                            <div class="flex items-center mb-2">
+                                <span class="font-semibold text-gray-900">
+                                    {{ $reply->is_support ? 'ทีมซัพพอร์ต Blife' : 'คุณ' }}
+                                </span>
+                                <span class="mx-2 text-gray-400">•</span>
+                                <span class="text-sm text-gray-500">{{ $reply->created_at->format('d/m/Y H:i') }}</span>
+                                
+                                @if($reply->is_support)
+                                    <span class="ml-2 inline-flex items-center px-2 py-1 rounded-full text-xs bg-green-100 text-green-800">
+                                        <img src="{{ asset('images/support/chat/online-indicator.png') }}" 
+                                             alt="ออนไลน์" 
+                                             width="8" height="8" class="mr-1">
+                                        ทีมซัพพอร์ต
+                                    </span>
+                                @endif
+                            </div>
+                            <div class="prose prose-sm max-w-none">
+                                {!! nl2br(e($reply->message)) !!}
+                            </div>
+                            
+                            <!-- Reply Attachments -->
+                            @if($reply->attachments->count() > 0)
+                                <div class="mt-4">
+                                    <div class="flex flex-wrap gap-2">
+                                        @foreach($reply->attachments as $attachment)
+                                            <a href="{{ $attachment->url }}" 
+                                               target="_blank"
+                                               class="flex items-center px-3 py-2 bg-white border border-gray-200 rounded-lg hover:border-blue-300 transition-colors">
+                                                <img src="{{ asset('images/support/attachments/file-' . $attachment->type . '.png') }}" 
+                                                     alt="{{ $attachment->type }}" 
+                                                     width="16" height="16" class="mr-2">
+                                                <span class="text-sm">{{ $attachment->original_name }}</span>
+                                            </a>
+                                        @endforeach
+                                    </div>
+                                </div>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+            @endforeach
+        </div>
+    </div>
+
+    <!-- Reply Form (Only if ticket is open) -->
+    @if($ticket->status !== 'closed')
+        <livewire:customer.support.ticket-reply :ticket="$ticket" />
+    @else
+        <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-6 text-center">
+            <img src="{{ asset('images/support/icons/ticket-closed.png') }}" 
+                 alt="ตั๋วปิดแล้ว" 
+                 width="48" height="48" class="mx-auto mb-3 opacity-50">
+            <h3 class="text-lg font-medium text-yellow-800 mb-2">ตั๋วนี้ถูกปิดแล้ว</h3>
+            <p class="text-yellow-700">คุณไม่สามารถตอบกลับตั๋วที่ปิดแล้วได้</p>
+            <button wire:click="reopenTicket" 
+                    class="btn btn-outline mt-3 border-yellow-300 text-yellow-700 hover:bg-yellow-100">
+                เปิดตั๋วใหม่
+            </button>
+        </div>
+    @endif
+</div>
+```
+
+4. Ticket Reply Component
+
+```blade
+{{-- components/customer/support/tickets/ticket-reply.blade.php --}}
+@props(['ticket'])
+
+<div class="ticket-reply-container bg-white border border-gray-200 rounded-lg shadow-sm">
+    <div class="p-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">ตอบกลับตั๋วนี้</h3>
+        
+        <form wire:submit="sendReply">
+            <!-- Message -->
+            <div class="mb-4">
+                <label for="reply_message" class="block text-sm font-medium text-gray-700 mb-2">
+                    ข้อความตอบกลับ
+                </label>
+                <textarea id="reply_message" wire:model="message" rows="6"
+                          placeholder="พิมพ์ข้อความตอบกลับของคุณที่นี่..."
+                          class="form-textarea w-full {{ $errors->has('message') ? 'border-red-300' : '' }}"></textarea>
+                @error('message') <div class="text-red-600 text-sm mt-1">{{ $message }}</div> @enderror
+                <div class="text-sm text-gray-500 mt-1">
+                    {{ strlen($message) }}/2000 ตัวอักษร
+                </div>
+            </div>
+
+            <!-- Attachments -->
+            <div class="mb-6">
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                    ไฟล์แนบเพิ่มเติม
+                </label>
+                <div class="border-2 border-dashed border-gray-300 rounded-lg p-4">
+                    <input type="file" wire:model="attachments" 
+                           multiple 
+                           accept=".jpg,.jpeg,.png,.pdf,.doc,.docx"
+                           class="hidden" id="reply_attachments">
+                    <label for="reply_attachments" class="flex items-center cursor-pointer">
+                        <img src="{{ asset('images/icons/system/upload.png') }}" 
+                             alt="อัพโหลด" 
+                             width="24" height="24" class="mr-3 opacity-50">
+                        <span class="text-gray-600">คลิกเพื่อเลือกไฟล์หรือลากไฟล์มาวางที่นี่</span>
+                    </label>
+                    
+                    <!-- Attachment Preview -->
+                    @if($attachments)
+                        <div class="mt-3 space-y-2">
+                            @foreach($attachments as $index => $attachment)
+                                <div class="flex items-center justify-between bg-gray-50 rounded-lg p-2">
+                                    <div class="flex items-center">
+                                        <img src="{{ asset('images/support/attachments/file-' . $this->getFileType($attachment) . '.png') }}" 
+                                             alt="ไฟล์แนบ" 
+                                             width="20" height="20" class="mr-2">
+                                        <div class="text-sm">{{ $attachment->getClientOriginalName() }}</div>
+                                    </div>
+                                    <button type="button" wire:click="removeAttachment({{ $index }})" 
+                                            class="text-red-500 hover:text-red-700 text-lg">
+                                        &times;
+                                    </button>
+                                </div>
+                            @endforeach
+                        </div>
+                    @endif
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="flex justify-between items-center">
+                <div class="text-sm text-gray-500">
+                    การตอบกลับจะส่งไปยังทีมซัพพอร์ตและอัพเดทสถานะตั๋ว
+                </div>
+                
+                <button type="submit" 
+                        class="btn btn-primary"
+                        wire:loading.attr="disabled"
+                        {{ !$message ? 'disabled' : '' }}>
+                    <span wire:loading.remove>
+                        ส่งคำตอบ
+                    </span>
+                    <span wire:loading>
+                        <img src="{{ asset('images/loading/spinner.gif') }}" 
+                             alt="กำลังส่ง" 
+                             width="16" height="16" class="inline-block mr-2">
+                        กำลังส่ง...
+                    </span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+```
+
+---
+
+💬 LIVE CHAT COMPONENTS
+
+5. Chat Widget Component
+
+```blade
+{{-- components/customer/support/live-chat/chat-widget.blade.php --}}
+@props(['isOpen' => false, 'unreadCount' => 0])
+
+<div class="live-chat-widget" x-data="liveChat()">
+    <!-- Chat Toggle Button -->
+    <button @click="toggleChat()" 
+            class="fixed bottom-6 right-6 w-14 h-14 bg-blue-600 rounded-full shadow-lg hover:bg-blue-700 transition-all z-50 flex items-center justify-center group">
+        @if($unreadCount > 0)
+            <span class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center animate-pulse">
+                {{ $unreadCount }}
+            </span>
+        @endif
+        <img src="{{ asset('images/support/chat/chat-avatar-support.png') }}" 
+             alt="แชทสด" 
+             width="24" height="24" class="filter brightness-0 invert">
+    </button>
+
+    <!-- Chat Window -->
+    <div x-show="isOpen" 
+         x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="opacity-0 transform scale-95"
+         x-transition:enter-end="opacity-100 transform scale-100"
+         class="fixed bottom-20 right-6 w-80 h-96 bg-white rounded-lg shadow-xl border border-gray-200 z-50 flex flex-col"
+         style="display: none;">
+        
+        <!-- Chat Header -->
+        <div class="bg-blue-600 text-white px-4 py-3 rounded-t-lg flex items-center justify-between">
+            <div class="flex items-center">
+                <img src="{{ asset('images/support/chat/chat-avatar-support.png') }}" 
+                     alt="ซัพพอร์ต" 
+                     width="32" height="32" class="rounded-full mr-3">
+                <div>
+                    <div class="font-semibold">แชทสด Blife Support</div>
+                    <div class="text-xs opacity-90 flex items-center">
+                        <img src="{{ asset('images/support/chat/online-indicator.png') }}" 
+                             alt="ออนไลน์" 
+                             width="8" height="8" class="mr-1">
+                        พร้อมให้บริการ
+                    </div>
+                </div>
+            </div>
+            <button @click="toggleChat()" class="text-white hover:text-gray-200">
+                &times;
+            </button>
+        </div>
+
+        <!-- Chat Messages -->
+        <livewire:customer.support.chat-messages />
+
+        <!-- Chat Input -->
+        <livewire:customer.support.chat-input />
+    </div>
+</div>
+
+<script>
+function liveChat() {
+    return {
+        isOpen: @json($isOpen),
+        toggleChat() {
+            this.isOpen = !this.isOpen;
+        },
+        init() {
+            // ตรวจสอบสถานะแชทจาก localStorage
+            const chatState = localStorage.getItem('blife_chat_open');
+            if (chatState === 'true') {
+                this.isOpen = true;
+            }
+            
+            // บันทึกสถานะเมื่อเปลี่ยนแปลง
+            this.$watch('isOpen', (value) => {
+                localStorage.setItem('blife_chat_open', value);
+            });
+        }
+    }
+}
+</script>
+```
+
+6. Chat Messages Component
+
+```blade
+{{-- components/customer/support/live-chat/chat-messages.blade.php --}}
+@props(['messages' => [], 'isTyping' => false])
+
+<div class="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50" 
+     x-data="chatMessages()" 
+     x-init="scrollToBottom()"
+     x-effect="scrollToBottom()">
+    
+    <!-- Welcome Message -->
+    <div class="text-center mb-4">
+        <div class="inline-block bg-white border border-gray-200 rounded-lg px-4 py-2 text-sm text-gray-600">
+            <img src="{{ asset('images/support/chat/chat-avatar-support.png') }}" 
+                 alt="ซัพพอร์ต" 
+                 width="20" height="20" class="inline-block mr-1 align-middle">
+            สวัสดีค่ะ! มีอะไรให้เราช่วยเหลือไหมคะ?
+        </div>
+        <div class="text-xs text-gray-500 mt-1">
+            ทีมซัพพอร์ตพร้อมให้บริการทุกวัน 09:00 - 18:00 น.
+        </div>
+    </div>
+
+    <!-- Messages -->
+    @foreach($messages as $message)
+        <div class="flex {{ $message->is_customer ? 'justify-end' : 'justify-start' }}">
+            <div class="max-w-[80%]">
+                <div class="flex items-end space-x-2 {{ $message->is_customer ? 'flex-row-reverse space-x-reverse' : '' }}">
+                    <img src="{{ asset($message->is_customer ? 'images/support/chat/chat-avatar-user.png' : 'images/support/chat/chat-avatar-support.png') }}" 
+                         alt="{{ $message->is_customer ? 'คุณ' : 'ซัพพอร์ต' }}" 
+                         width="24" height="24" class="rounded-full flex-shrink-0">
+                    
+                    <div class="{{ $message->is_customer ? 'bg-blue-600 text-white' : 'bg-white border border-gray-200' }} rounded-2xl px-4 py-2">
+                        <div class="text-sm">{{ $message->content }}</div>
+                        <div class="text-xs mt-1 {{ $message->is_customer ? 'text-blue-200' : 'text-gray-500' }}">
+                            {{ $message->created_at->format('H:i') }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endforeach
+
+    <!-- Typing Indicator -->
+    @if($isTyping)
+        <div class="flex justify-start">
+            <div class="flex items-end space-x-2">
+                <img src="{{ asset('images/support/chat/chat-avatar-support.png') }}" 
+                     alt="ซัพพอร์ต" 
+                     width="24" height="24" class="rounded-full">
+                <div class="bg-white border border-gray-200 rounded-2xl px-4 py-3">
+                    <img src="{{ asset('images/support/chat/typing-indicator.gif') }}" 
+                         alt="กำลังพิมพ์..." 
+                         width="20" height="20">
+                </div>
+            </div>
+        </div>
+    @endif
+
+    <!-- No Messages -->
+    @if($messages->count() === 0 && !$isTyping)
+        <div class="text-center text-gray-500 text-sm py-8">
+            <img src="{{ asset('images/placeholders/empty-state.png') }}" 
+                 alt="เริ่มแชท" 
+                 width="64" height="64" class="mx-auto mb-2 opacity-30">
+            <p>เริ่มการสนทนากับทีมซัพพอร์ต</p>
+        </div>
+    @endif
+</div>
+
+<script>
+function chatMessages() {
+    return {
+        scrollToBottom() {
+            this.$nextTick(() => {
+                const container = this.$el;
+                container.scrollTop = container.scrollHeight;
+            });
+        }
+    }
+}
+</script>
+```
+
+7. Chat Input Component
+
+```blade
+{{-- components/customer/support/live-chat/chat-input.blade.php --}}
+@props(['disabled' => false])
+
+<div class="border-t border-gray-200 p-4 bg-white">
+    <form wire:submit="sendMessage" class="flex space-x-3">
+        <!-- Message Input -->
+        <div class="flex-1 relative">
+            <input type="text" 
+                   wire:model="message"
+                   placeholder="พิมพ์ข้อความ..."
+                   class="form-input w-full pr-10 {{ $disabled ? 'bg-gray-100' : '' }}"
+                   {{ $disabled ? 'disabled' : '' }}>
+            
+            <!-- Quick Actions -->
+            <div class="absolute right-2 top-1/2 transform -translate-y-1/2 flex space-x-1">
+                <button type="button" 
+                        class="text-gray-400 hover:text-gray-600 p-1"
+                        title="เพิ่ม emoji">
+                    😊
+                </button>
+                <label class="text-gray-400 hover:text-gray-600 p-1 cursor-pointer" 
+                       title="แนบไฟล์">
+                    <input type="file" 
+                           wire:model="attachments"
+                           class="hidden" 
+                           accept=".jpg,.jpeg,.png,.pdf"
+                           {{ $disabled ? 'disabled' : '' }}>
+                    📎
+                </label>
+            </div>
+        </div>
+
+        <!-- Send Button -->
+        <button type="submit" 
+                class="btn btn-primary px-4 {{ $disabled ? 'opacity-50 cursor-not-allowed' : '' }}"
+                {{ $disabled ? 'disabled' : '' }}
+                wire:loading.attr="disabled">
+            <span wire:loading.remove>
+                ส่ง
+            </span>
+            <span wire:loading>
+                <img src="{{ asset('images/loading/spinner.gif') }}" 
+                     alt="กำลังส่ง" 
+                     width="16" height="16">
+            </span>
+        </button>
+    </form>
+
+    <!-- Attachment Preview -->
+    @if($attachments)
+        <div class="mt-2 flex items-center space-x-2">
+            <div class="text-xs text-gray-500">ไฟล์แนบ:</div>
+            @foreach($attachments as $index => $attachment)
+                <div class="flex items-center bg-gray-100 rounded px-2 py-1 text-xs">
+                    <img src="{{ asset('images/support/attachments/file-' . $this->getFileType($attachment) . '.png') }}" 
+                         alt="ไฟล์" 
+                         width="12" height="12" class="mr-1">
+                    {{ Str::limit($attachment->getClientOriginalName(), 15) }}
+                    <button type="button" 
+                            wire:click="removeAttachment({{ $index }})"
+                            class="ml-1 text-red-500">
+                        &times;
+                    </button>
+                </div>
+            @endforeach
+        </div>
+    @endif
+
+    <!-- Operating Hours Notice -->
+    @if($this->isOutsideOperatingHours())
+        <div class="mt-2 text-xs text-orange-600 bg-orange-50 rounded px-2 py-1">
+            ⏰ อยู่นอกเวลาทำการ: ทีมซัพพอร์ตจะตอบกลับในวันและเวลาทำการ
+        </div>
+    @endif
+</div>
+```
+
+---
+
+🎨 SUPPORT STYLING
+
+```scss
+// resources/css/components/_support.scss
+
+.ticket-status-badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+    
+    &.status-open { @apply bg-green-100 text-green-800; }
+    &.status-pending { @apply bg-yellow-100 text-yellow-800; }
+    &.status-resolved { @apply bg-blue-100 text-blue-800; }
+    &.status-closed { @apply bg-gray-100 text-gray-800; }
+}
+
+.priority-badge {
+    @apply inline-flex items-center px-2 py-0.5 rounded text-xs font-medium;
+    
+    &.priority-low { @apply bg-gray-100 text-gray-800; }
+    &.priority-medium { @apply bg-blue-100 text-blue-800; }
+    &.priority-high { @apply bg-orange-100 text-orange-800; }
+    &.priority-urgent { @apply bg-red-100 text-red-800; }
+}
+
+// Chat animations
+.chat-message-enter {
+    @apply transform translate-y-2 opacity-0;
+}
+
+.chat-message-enter-active {
+    @apply transition-all duration-300 ease-out;
+}
+
+.chat-message-enter-to {
+    @apply transform translate-y-0 opacity-100;
+}
+
+// Ticket type cards
+.type-card {
+    @apply transition-all duration-200 cursor-pointer;
+    
+    &:hover {
+        @apply transform scale-105 shadow-md;
+    }
+}
+
+// Responsive design
+@media (max-width: 768px) {
+    .ticket-filters {
+        .grid {
+            grid-template-columns: 1fr;
+        }
+    }
+    
+    .ticket-type-options {
+        grid-template-columns: 1fr 1fr;
+    }
+    
+    .priority-options {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+```
+
+ระบบซัพพอร์ตนี้รองรับทั้ง Ticket System และ Live Chat พร้อมการจัดการไฟล์แนบ การแจ้งเตือน และการทำงานแบบเรียลไทม์ โดยใช้ภาพและไอคอนที่ระบุทั้งหมดตามโครงสร้างโฟลเดอร์ที่กำหนด
