@@ -1,0 +1,1793 @@
+👥 Admin User & Vendor Management Components
+
+👤 USER MANAGEMENT COMPONENTS
+
+1. User List Component
+
+```blade
+{{-- components/admin/users/user-list.blade.php --}}
+@props([
+    'users' => [],
+    'filters' => [],
+    'search' => '',
+    'roleFilter' => 'all',
+    'statusFilter' => 'all'
+])
+
+<div class="user-management">
+    <!-- Header with Search and Filters -->
+    <div class="mb-6">
+        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-900">จัดการผู้ใช้งาน</h1>
+                <p class="text-gray-600 mt-1">จัดการข้อมูลผู้ใช้งานทั้งหมดในระบบ</p>
+            </div>
+            <div class="mt-4 lg:mt-0">
+                <a href="{{ route('admin.users.create') }}" 
+                   class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                    </svg>
+                    เพิ่มผู้ใช้งานใหม่
+                </a>
+            </div>
+        </div>
+
+        <!-- Search and Filter Bar -->
+        <div class="mt-6 bg-white rounded-lg shadow-sm p-4">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <!-- Search -->
+                <div class="md:col-span-2">
+                    <label for="search" class="sr-only">ค้นหาผู้ใช้งาน</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                        </div>
+                        <input 
+                            type="text" 
+                            id="search"
+                            wire:model.debounce.300ms="search"
+                            class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                            placeholder="ค้นหาด้วยชื่อ, อีเมล, โทรศัพท์...">
+                    </div>
+                </div>
+
+                <!-- Role Filter -->
+                <div>
+                    <label for="role" class="sr-only">บทบาท</label>
+                    <select 
+                        id="role"
+                        wire:model="roleFilter"
+                        class="block w-full border border-gray-300 rounded-lg py-2 px-3 focus:ring-blue-500 focus:border-blue-500">
+                        <option value="all">ทุกบทบาท</option>
+                        <option value="customer">ลูกค้า</option>
+                        <option value="seller">ผู้ขาย</option>
+                        <option value="admin">ผู้ดูแล</option>
+                    </select>
+                </div>
+
+                <!-- Status Filter -->
+                <div>
+                    <label for="status" class="sr-only">สถานะ</label>
+                    <select 
+                        id="status"
+                        wire:model="statusFilter"
+                        class="block w-full border border-gray-300 rounded-lg py-2 px-3 focus:ring-blue-500 focus:border-blue-500">
+                        <option value="all">ทุกสถานะ</option>
+                        <option value="active">ใช้งาน</option>
+                        <option value="inactive">ไม่ใช้งาน</option>
+                        <option value="banned">ถูกแบน</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- User Table -->
+    <x-admin.users.user-table :users="$users" />
+
+    <!-- Pagination -->
+    @if($users->hasPages())
+    <div class="mt-6">
+        {{ $users->links() }}
+    </div>
+    @endif
+</div>
+```
+
+2. User Table Component
+
+```blade
+{{-- components/admin/users/user-table.blade.php --}}
+@props(['users' => []])
+
+<div class="bg-white rounded-lg shadow-sm overflow-hidden">
+    <table class="min-w-full divide-y divide-gray-200">
+        <thead class="bg-gray-50">
+            <tr>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    ผู้ใช้งาน
+                </th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    บทบาท
+                </th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    สถานะ
+                </th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    วันที่สมัคร
+                </th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    การดำเนินการ
+                </th>
+            </tr>
+        </thead>
+        <tbody class="bg-white divide-y divide-gray-200">
+            @forelse($users as $user)
+            <tr class="hover:bg-gray-50 transition-colors">
+                <!-- User Info -->
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0 h-10 w-10">
+                            <img class="h-10 w-10 rounded-full" 
+                                 src="{{ $user->avatar_url ?? asset('images/placeholders/avatar-placeholder.png') }}" 
+                                 alt="{{ $user->name }}">
+                        </div>
+                        <div class="ml-4">
+                            <div class="text-sm font-medium text-gray-900">
+                                {{ $user->name }}
+                            </div>
+                            <div class="text-sm text-gray-500">
+                                {{ $user->email }}
+                            </div>
+                            @if($user->phone)
+                            <div class="text-xs text-gray-400">
+                                {{ $user->phone }}
+                            </div>
+                            @endif
+                        </div>
+                    </div>
+                </td>
+
+                <!-- Role -->
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <x-admin.users.role-assigner :user="$user" />
+                </td>
+
+                <!-- Status -->
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium 
+                        {{ $user->is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' }}">
+                        {{ $user->is_active ? 'ใช้งาน' : 'ไม่ใช้งาน' }}
+                    </span>
+                    @if($user->is_banned)
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 ml-1">
+                        ถูกแบน
+                    </span>
+                    @endif
+                </td>
+
+                <!-- Registration Date -->
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {{ $user->created_at->format('d/m/Y') }}
+                </td>
+
+                <!-- Actions -->
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    <div class="flex items-center space-x-2">
+                        <!-- View -->
+                        <a href="{{ route('admin.users.show', $user) }}" 
+                           class="text-blue-600 hover:text-blue-900" 
+                           title="ดูรายละเอียด">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                            </svg>
+                        </a>
+
+                        <!-- Edit -->
+                        <a href="{{ route('admin.users.edit', $user) }}" 
+                           class="text-green-600 hover:text-green-900"
+                           title="แก้ไข">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                        </a>
+
+                        <!-- Impersonate -->
+                        @if(auth()->id() !== $user->id && !$user->is_banned)
+                        <x-admin.users.impersonation-tool :user="$user" />
+                        @endif
+
+                        <!-- Ban/Unban -->
+                        @if(auth()->id() !== $user->id)
+                        <button 
+                            wire:click="toggleBan({{ $user->id }})"
+                            class="text-red-600 hover:text-red-900"
+                            title="{{ $user->is_banned ? 'ยกเลิกการแบน' : 'แบนผู้ใช้' }}">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                            </svg>
+                        </button>
+                        @endif
+                    </div>
+                </td>
+            </tr>
+            @empty
+            <tr>
+                <td colspan="5" class="px-6 py-8 text-center text-gray-500">
+                    <div class="flex flex-col items-center">
+                        <svg class="w-12 h-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
+                        </svg>
+                        <p class="text-lg font-medium text-gray-900">ไม่พบผู้ใช้งาน</p>
+                        <p class="text-gray-600">ลองเปลี่ยนเงื่อนไขการค้นหาหรือเพิ่มผู้ใช้งานใหม่</p>
+                    </div>
+                </td>
+            </tr>
+            @endforelse
+        </tbody>
+    </table>
+</div>
+```
+
+3. User Detail Component
+
+```blade
+{{-- components/admin/users/user-detail.blade.php --}}
+@props(['user'])
+
+<div class="user-detail bg-white rounded-lg shadow-sm">
+    <!-- Header -->
+    <div class="px-6 py-4 border-b border-gray-200">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-4">
+                <img class="h-16 w-16 rounded-full" 
+                     src="{{ $user->avatar_url ?? asset('images/placeholders/avatar-placeholder.png') }}" 
+                     alt="{{ $user->name }}">
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-900">{{ $user->name }}</h1>
+                    <p class="text-gray-600">{{ $user->email }}</p>
+                    @if($user->phone)
+                    <p class="text-gray-500">{{ $user->phone }}</p>
+                    @endif
+                </div>
+            </div>
+            <div class="flex items-center space-x-2">
+                <x-admin.users.role-assigner :user="$user" />
+                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium 
+                    {{ $user->is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' }}">
+                    {{ $user->is_active ? 'ใช้งาน' : 'ไม่ใช้งาน' }}
+                </span>
+                @if($user->is_banned)
+                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">
+                    ถูกแบน
+                </span>
+                @endif
+            </div>
+        </div>
+    </div>
+
+    <div class="p-6">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Left Column - User Info -->
+            <div class="lg:col-span-2 space-y-6">
+                <!-- Basic Information -->
+                <div class="bg-gray-50 rounded-lg p-4">
+                    <h3 class="text-lg font-medium text-gray-900 mb-4">ข้อมูลพื้นฐาน</h3>
+                    <dl class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <dt class="text-sm font-medium text-gray-500">ชื่อ-สกุล</dt>
+                            <dd class="text-sm text-gray-900">{{ $user->name }}</dd>
+                        </div>
+                        <div>
+                            <dt class="text-sm font-medium text-gray-500">อีเมล</dt>
+                            <dd class="text-sm text-gray-900">{{ $user->email }}</dd>
+                        </div>
+                        <div>
+                            <dt class="text-sm font-medium text-gray-500">เบอร์โทรศัพท์</dt>
+                            <dd class="text-sm text-gray-900">{{ $user->phone ?? '-' }}</dd>
+                        </div>
+                        <div>
+                            <dt class="text-sm font-medium text-gray-500">วันที่สมัคร</dt>
+                            <dd class="text-sm text-gray-900">{{ $user->created_at->format('d/m/Y H:i') }}</dd>
+                        </div>
+                        <div>
+                            <dt class="text-sm font-medium text-gray-500">อัพเดทล่าสุด</dt>
+                            <dd class="text-sm text-gray-900">{{ $user->updated_at->format('d/m/Y H:i') }}</dd>
+                        </div>
+                        <div>
+                            <dt class="text-sm font-medium text-gray-500">อีเมลยืนยันแล้ว</dt>
+                            <dd class="text-sm">
+                                <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium 
+                                    {{ $user->hasVerifiedEmail() ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800' }}">
+                                    {{ $user->hasVerifiedEmail() ? 'ยืนยันแล้ว' : 'ยังไม่ยืนยัน' }}
+                                </span>
+                            </dd>
+                        </div>
+                    </dl>
+                </div>
+
+                <!-- Activity Stats -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div class="bg-white border border-gray-200 rounded-lg p-4 text-center">
+                        <div class="text-2xl font-bold text-blue-600">{{ $user->orders_count ?? 0 }}</div>
+                        <div class="text-sm text-gray-600">คำสั่งซื้อ</div>
+                    </div>
+                    <div class="bg-white border border-gray-200 rounded-lg p-4 text-center">
+                        <div class="text-2xl font-bold text-green-600">฿{{ number_format($user->total_spent ?? 0) }}</div>
+                        <div class="text-sm text-gray-600">ยอดใช้จ่าย</div>
+                    </div>
+                    <div class="bg-white border border-gray-200 rounded-lg p-4 text-center">
+                        <div class="text-2xl font-bold text-purple-600">{{ $user->reviews_count ?? 0 }}</div>
+                        <div class="text-sm text-gray-600">รีวิว</div>
+                    </div>
+                    <div class="bg-white border border-gray-200 rounded-lg p-4 text-center">
+                        <div class="text-2xl font-bold text-orange-600">{{ $user->wishlist_count ?? 0 }}</div>
+                        <div class="text-sm text-gray-600">รายการโปรด</div>
+                    </div>
+                </div>
+
+                <!-- Recent Orders -->
+                @if($user->orders && $user->orders->count() > 0)
+                <div class="bg-white border border-gray-200 rounded-lg">
+                    <div class="px-4 py-3 border-b border-gray-200">
+                        <h3 class="text-lg font-medium text-gray-900">คำสั่งซื้อล่าสุด</h3>
+                    </div>
+                    <div class="divide-y divide-gray-200">
+                        @foreach($user->orders->take(5) as $order)
+                        <div class="px-4 py-3">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm font-medium text-gray-900">#{{ $order->order_code }}</p>
+                                    <p class="text-sm text-gray-500">{{ $order->created_at->format('d/m/Y H:i') }}</p>
+                                </div>
+                                <div class="text-right">
+                                    <p class="text-sm font-medium text-gray-900">฿{{ number_format($order->total_amount) }}</p>
+                                    <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium 
+                                        {{ $order->status_color }}">
+                                        {{ $order->status_text }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        @endforeach
+                    </div>
+                </div>
+                @endif
+            </div>
+
+            <!-- Right Column - Actions -->
+            <div class="space-y-6">
+                <!-- Quick Actions -->
+                <div class="bg-white border border-gray-200 rounded-lg p-4">
+                    <h3 class="text-lg font-medium text-gray-900 mb-4">การดำเนินการ</h3>
+                    <div class="space-y-2">
+                        <a href="{{ route('admin.users.edit', $user) }}" 
+                           class="w-full flex items-center justify-center px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                            แก้ไขข้อมูล
+                        </a>
+                        
+                        @if(auth()->id() !== $user->id)
+                        <x-admin.users.impersonation-tool :user="$user" class="w-full" />
+                        
+                        <button 
+                            wire:click="toggleBan({{ $user->id }})"
+                            class="w-full flex items-center justify-center px-4 py-2 border border-red-300 rounded-md text-sm font-medium text-red-700 bg-white hover:bg-red-50">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                            </svg>
+                            {{ $user->is_banned ? 'ยกเลิกการแบน' : 'แบนผู้ใช้' }}
+                        </button>
+                        @endif
+                    </div>
+                </div>
+
+                <!-- User Notes -->
+                <div class="bg-white border border-gray-200 rounded-lg p-4">
+                    <h3 class="text-lg font-medium text-gray-900 mb-4">บันทึกเพิ่มเติม</h3>
+                    <form wire:submit="saveNote">
+                        <textarea 
+                            wire:model="note"
+                            rows="4"
+                            class="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500"
+                            placeholder="บันทึกเกี่ยวกับผู้ใช้งานนี้..."></textarea>
+                        <button type="submit" class="mt-2 w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700">
+                            บันทึก
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+```
+
+4. User Form Component
+
+```blade
+{{-- components/admin/users/user-form.blade.php --}}
+@props([
+    'user' => null,
+    'mode' => 'create' // create, edit
+])
+
+<div class="user-form bg-white rounded-lg shadow-sm">
+    <div class="px-6 py-4 border-b border-gray-200">
+        <h1 class="text-2xl font-bold text-gray-900">
+            {{ $mode === 'create' ? 'เพิ่มผู้ใช้งานใหม่' : 'แก้ไขข้อมูลผู้ใช้งาน' }}
+        </h1>
+    </div>
+
+    <form wire:submit.prevent="saveUser" class="p-6">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Left Column - Basic Info -->
+            <div class="space-y-6">
+                <!-- Personal Information -->
+                <div class="bg-gray-50 rounded-lg p-4">
+                    <h3 class="text-lg font-medium text-gray-900 mb-4">ข้อมูลส่วนตัว</h3>
+                    
+                    <div class="space-y-4">
+                        <!-- Name -->
+                        <div>
+                            <label for="name" class="block text-sm font-medium text-gray-700">ชื่อ-สกุล</label>
+                            <input 
+                                type="text" 
+                                id="name"
+                                wire:model="name"
+                                class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500"
+                                required>
+                            @error('name') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
+                        </div>
+
+                        <!-- Email -->
+                        <div>
+                            <label for="email" class="block text-sm font-medium text-gray-700">อีเมล</label>
+                            <input 
+                                type="email" 
+                                id="email"
+                                wire:model="email"
+                                class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500"
+                                required>
+                            @error('email') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
+                        </div>
+
+                        <!-- Phone -->
+                        <div>
+                            <label for="phone" class="block text-sm font-medium text-gray-700">เบอร์โทรศัพท์</label>
+                            <input 
+                                type="tel" 
+                                id="phone"
+                                wire:model="phone"
+                                class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500">
+                            @error('phone') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Password -->
+                <div class="bg-gray-50 rounded-lg p-4">
+                    <h3 class="text-lg font-medium text-gray-900 mb-4">รหัสผ่าน</h3>
+                    
+                    <div class="space-y-4">
+                        @if($mode === 'create')
+                        <div>
+                            <label for="password" class="block text-sm font-medium text-gray-700">รหัสผ่าน</label>
+                            <input 
+                                type="password" 
+                                id="password"
+                                wire:model="password"
+                                class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500"
+                                required>
+                            @error('password') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
+                        </div>
+
+                        <div>
+                            <label for="password_confirmation" class="block text-sm font-medium text-gray-700">ยืนยันรหัสผ่าน</label>
+                            <input 
+                                type="password" 
+                                id="password_confirmation"
+                                wire:model="password_confirmation"
+                                class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500"
+                                required>
+                        </div>
+                        @else
+                        <div class="bg-yellow-50 border border-yellow-200 rounded-md p-4">
+                            <div class="flex">
+                                <div class="flex-shrink-0">
+                                    <svg class="h-5 w-5 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                                    </svg>
+                                </div>
+                                <div class="ml-3">
+                                    <p class="text-sm text-yellow-700">
+                                        ต้องการเปลี่ยนรหัสผ่าน? 
+                                        <button type="button" wire:click="showPasswordReset" class="font-medium underline">
+                                            คลิกที่นี่
+                                        </button>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        @endif
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column - Settings -->
+            <div class="space-y-6">
+                <!-- Role and Status -->
+                <div class="bg-gray-50 rounded-lg p-4">
+                    <h3 class="text-lg font-medium text-gray-900 mb-4">การตั้งค่า</h3>
+                    
+                    <div class="space-y-4">
+                        <!-- Role -->
+                        <x-admin.users.role-assigner :user="$user" :editable="true" />
+
+                        <!-- Status -->
+                        <div>
+                            <label class="flex items-center">
+                                <input 
+                                    type="checkbox" 
+                                    wire:model="is_active"
+                                    class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                                <span class="ml-2 text-sm text-gray-700">เปิดใช้งานบัญชี</span>
+                            </label>
+                        </div>
+
+                        <!-- Email Verification -->
+                        @if($mode === 'edit')
+                        <div>
+                            <label class="flex items-center">
+                                <input 
+                                    type="checkbox" 
+                                    wire:model="email_verified"
+                                    class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                                <span class="ml-2 text-sm text-gray-700">ยืนยันอีเมลแล้ว</span>
+                            </label>
+                        </div>
+                        @endif
+                    </div>
+                </div>
+
+                <!-- Avatar -->
+                <div class="bg-gray-50 rounded-lg p-4">
+                    <h3 class="text-lg font-medium text-gray-900 mb-4">รูปโปรไฟล์</h3>
+                    
+                    <div class="flex items-center space-x-4">
+                        <div class="flex-shrink-0">
+                            <img class="h-20 w-20 rounded-full" 
+                                 src="{{ $avatarPreview ?? ($user->avatar_url ?? asset('images/placeholders/avatar-placeholder.png')) }}" 
+                                 alt="Avatar">
+                        </div>
+                        <div>
+                            <input 
+                                type="file" 
+                                wire:model="avatar"
+                                accept="image/*"
+                                class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                            @error('avatar') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Form Actions -->
+        <div class="mt-8 pt-6 border-t border-gray-200 flex justify-end space-x-3">
+            <a href="{{ route('admin.users.index') }}" 
+               class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+                ยกเลิก
+            </a>
+            <button type="submit" 
+                    class="px-4 py-2 border border-transparent rounded-md text-sm font-medium text-white bg-blue-600 hover:bg-blue-700">
+                {{ $mode === 'create' ? 'สร้างผู้ใช้งาน' : 'บันทึกการเปลี่ยนแปลง' }}
+            </button>
+        </div>
+    </form>
+</div>
+```
+
+5. Role Assigner Component
+
+```blade
+{{-- components/admin/users/role-assigner.blade.php --}}
+@props([
+    'user',
+    'editable' => false
+])
+
+@php
+    $roleColors = [
+        'customer' => 'bg-blue-100 text-blue-800',
+        'seller' => 'bg-green-100 text-green-800', 
+        'admin' => 'bg-purple-100 text-purple-800'
+    ];
+    
+    $roleIcons = [
+        'customer' => '🛒',
+        'seller' => '🏪',
+        'admin' => '👑'
+    ];
+    
+    $roleLabels = [
+        'customer' => 'ลูกค้า',
+        'seller' => 'ผู้ขาย',
+        'admin' => 'ผู้ดูแล'
+    ];
+@endphp
+
+@if($editable)
+<div class="role-assigner">
+    <label class="block text-sm font-medium text-gray-700 mb-2">บทบาท</label>
+    <div class="flex flex-wrap gap-2">
+        @foreach(['customer', 'seller', 'admin'] as $role)
+        <label class="inline-flex items-center">
+            <input 
+                type="radio" 
+                name="role" 
+                value="{{ $role }}"
+                wire:model="role"
+                class="sr-only">
+            <span class="cursor-pointer px-3 py-2 border rounded-lg text-sm font-medium transition-colors
+                {{ $role === $user->role ? 'border-blue-500 bg-blue-50 text-blue-700 ring-2 ring-blue-200' : 'border-gray-300 text-gray-700 hover:bg-gray-50' }}">
+                <span class="mr-2">{{ $roleIcons[$role] }}</span>
+                {{ $roleLabels[$role] }}
+            </span>
+        </label>
+        @endforeach
+    </div>
+    @error('role') <span class="text-red-500 text-sm mt-1">{{ $message }}</span> @enderror
+</div>
+@else
+<span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium {{ $roleColors[$user->role] }}">
+    <span class="mr-1">{{ $roleIcons[$user->role] }}</span>
+    {{ $roleLabels[$user->role] }}
+</span>
+@endif
+```
+
+6. Impersonation Tool Component
+
+```blade
+{{-- components/admin/users/impersonation-tool.blade.php --}}
+@props([
+    'user',
+    'class' => ''
+])
+
+<button 
+    wire:click="impersonate({{ $user->id }})"
+    class="text-orange-600 hover:text-orange-900 {{ $class }}"
+    title="เข้าเป็นผู้ใช้นี้">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+    </svg>
+</button>
+```
+
+---
+
+🏪 VENDOR MANAGEMENT COMPONENTS
+
+1. Vendor List Component
+
+```blade
+{{-- components/admin/vendors/vendor-list.blade.php --}}
+@props([
+    'vendors' => [],
+    'filters' => [],
+    'search' => '',
+    'statusFilter' => 'all',
+    'approvalFilter' => 'all'
+])
+
+<div class="vendor-management">
+    <!-- Header -->
+    <div class="mb-6">
+        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-900">จัดการร้านค้า</h1>
+                <p class="text-gray-600 mt-1">จัดการข้อมูลร้านค้าและผู้ขายทั้งหมด</p>
+            </div>
+            <div class="mt-4 lg:mt-0 flex space-x-3">
+                <a href="{{ route('admin.vendors.pending') }}" 
+                   class="inline-flex items-center px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    คิวรออนุมัติ ({{ $pendingCount ?? 0 }})
+                </a>
+            </div>
+        </div>
+
+        <!-- Search and Filter Bar -->
+        <div class="mt-6 bg-white rounded-lg shadow-sm p-4">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <!-- Search -->
+                <div class="md:col-span-2">
+                    <label for="search" class="sr-only">ค้นหาร้านค้า</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                        </div>
+                        <input 
+                            type="text" 
+                            id="search"
+                            wire:model.debounce.300ms="search"
+                            class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                            placeholder="ค้นหาด้วยชื่อร้าน, เจ้าของร้าน...">
+                    </div>
+                </div>
+
+                <!-- Status Filter -->
+                <div>
+                    <label for="status" class="sr-only">สถานะร้านค้า</label>
+                    <select 
+                        id="status"
+                        wire:model="statusFilter"
+                        class="block w-full border border-gray-300 rounded-lg py-2 px-3 focus:ring-blue-500 focus:border-blue-500">
+                        <option value="all">ทุกสถานะ</option>
+                        <option value="active">เปิดใช้งาน</option>
+                        <option value="inactive">ปิดใช้งาน</option>
+                        <option value="suspended">ถูกระงับ</option>
+                    </select>
+                </div>
+
+                <!-- Approval Filter -->
+                <div>
+                    <label for="approval" class="sr-only">สถานะอนุมัติ</label>
+                    <select 
+                        id="approval"
+                        wire:model="approvalFilter"
+                        class="block w-full border border-gray-300 rounded-lg py-2 px-3 focus:ring-blue-500 focus:border-blue-500">
+                        <option value="all">ทุกการอนุมัติ</option>
+                        <option value="approved">อนุมัติแล้ว</option>
+                        <option value="pending">รออนุมัติ</option>
+                        <option value="rejected">ถูกปฏิเสธ</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Vendor Table -->
+    <x-admin.vendors.vendor-table :vendors="$vendors" />
+
+    <!-- Pagination -->
+    @if($vendors->hasPages())
+    <div class="mt-6">
+        {{ $vendors->links() }}
+    </div>
+    @endif
+</div>
+```
+
+2. Vendor Table Component
+
+```blade
+{{-- components/admin/vendors/vendor-table.blade.php --}}
+@props(['vendors' => []])
+
+<div class="bg-white rounded-lg shadow-sm overflow-hidden">
+    <table class="min-w-full divide-y divide-gray-200">
+        <thead class="bg-gray-50">
+            <tr>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    ร้านค้า
+                </th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    เจ้าของร้าน
+                </th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    สถานะ
+                </th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    ข้อมูลขาย
+                </th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    วันที่สมัคร
+                </th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    การดำเนินการ
+                </th>
+            </tr>
+        </thead>
+        <tbody class="bg-white divide-y divide-gray-200">
+            @forelse($vendors as $vendor)
+            <tr class="hover:bg-gray-50 transition-colors">
+                <!-- Shop Info -->
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0 h-10 w-10">
+                            <img class="h-10 w-10 rounded-full" 
+                                 src="{{ $vendor->logo_url ?? asset('images/placeholders/shop-placeholder.png') }}" 
+                                 alt="{{ $vendor->shop_name }}">
+                        </div>
+                        <div class="ml-4">
+                            <div class="text-sm font-medium text-gray-900">
+                                {{ $vendor->shop_name }}
+                            </div>
+                            <div class="text-sm text-gray-500">
+                                {{ $vendor->category->name ?? '-' }}
+                            </div>
+                        </div>
+                    </div>
+                </td>
+
+                <!-- Owner Info -->
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="text-sm text-gray-900">{{ $vendor->user->name }}</div>
+                    <div class="text-sm text-gray-500">{{ $vendor->user->email }}</div>
+                    @if($vendor->user->phone)
+                    <div class="text-xs text-gray-400">{{ $vendor->user->phone }}</div>
+                    @endif
+                </td>
+
+                <!-- Status -->
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="flex flex-col space-y-1">
+                        <!-- Approval Status -->
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium 
+                            {{ $vendor->approval_status === 'approved' ? 'bg-green-100 text-green-800' : 
+                               ($vendor->approval_status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800') }}">
+                            {{ $vendor->approval_status_text }}
+                        </span>
+
+                        <!-- Shop Status -->
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium 
+                            {{ $vendor->is_active ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800' }}">
+                            {{ $vendor->is_active ? 'เปิดร้าน' : 'ปิดร้าน' }}
+                        </span>
+
+                        @if($vendor->is_suspended)
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                            ถูกระงับ
+                        </span>
+                        @endif
+                    </div>
+                </td>
+
+                <!-- Sales Info -->
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <div class="space-y-1">
+                        <div>สินค้า: <span class="font-medium text-gray-900">{{ $vendor->products_count }}</span></div>
+                        <div>ขายแล้ว: <span class="font-medium text-gray-900">{{ $vendor->sales_count }}</span></div>
+                        <div>รายได้: <span class="font-medium text-green-600">฿{{ number_format($vendor->total_earnings) }}</span></div>
+                    </div>
+                </td>
+
+                <!-- Registration Date -->
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {{ $vendor->created_at->format('d/m/Y') }}
+                </td>
+
+                <!-- Actions -->
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    <div class="flex items-center space-x-2">
+                        <!-- View -->
+                        <a href="{{ route('admin.vendors.show', $vendor) }}" 
+                           class="text-blue-600 hover:text-blue-900" 
+                           title="ดูรายละเอียด">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                            </svg>
+                        </a>
+
+                        <!-- Edit -->
+                        <a href="{{ route('admin.vendors.edit', $vendor) }}" 
+                           class="text-green-600 hover:text-green-900"
+                           title="แก้ไข">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                        </a>
+
+                        <!-- Commission Settings -->
+                        <a href="{{ route('admin.vendors.commissions', $vendor) }}" 
+                           class="text-purple-600 hover:text-purple-900"
+                           title="ตั้งค่าคอมมิชชั่น Snowball">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v1m0 6v1m0-1v1m0-6V7m0 0c-1.11 0-2.08-.402-2.599-1" />
+                            </svg>
+                        </a>
+
+                        <!-- Payout -->
+                        <a href="{{ route('admin.vendors.payouts', $vendor) }}" 
+                           class="text-orange-600 hover:text-orange-900"
+                           title="จัดการการจ่ายเงิน Snowball">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v1m0 6v1m0-1v1m0-6V7m0 0c-1.11 0-2.08-.402-2.599-1" />
+                            </svg>
+                        </a>
+                    </div>
+                </td>
+            </tr>
+            @empty
+            <tr>
+                <td colspan="6" class="px-6 py-8 text-center text-gray-500">
+                    <div class="flex flex-col items-center">
+                        <svg class="w-12 h-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                        </svg>
+                        <p class="text-lg font-medium text-gray-900">ไม่พบร้านค้า</p>
+                        <p class="text-gray-600">ลองเปลี่ยนเงื่อนไขการค้นหาหรือตรวจสอบคิวรออนุมัติ</p>
+                    </div>
+                </td>
+            </tr>
+            @endforelse
+        </tbody>
+    </table>
+</div>
+```
+
+3. Vendor Detail Component
+
+```blade
+{{-- components/admin/vendors/vendor-detail.blade.php --}}
+@props(['vendor'])
+
+<div class="vendor-detail bg-white rounded-lg shadow-sm">
+    <!-- Header -->
+    <div class="px-6 py-4 border-b border-gray-200">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-4">
+                <img class="h-16 w-16 rounded-full" 
+                     src="{{ $vendor->logo_url ?? asset('images/placeholders/shop-placeholder.png') }}" 
+                     alt="{{ $vendor->shop_name }}">
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-900">{{ $vendor->shop_name }}</h1>
+                    <p class="text-gray-600">{{ $vendor->category->name ?? 'ไม่มีหมวดหมู่' }}</p>
+                    <div class="flex items-center space-x-2 mt-1">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium 
+                            {{ $vendor->approval_status === 'approved' ? 'bg-green-100 text-green-800' : 
+                               ($vendor->approval_status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800') }}">
+                            {{ $vendor->approval_status_text }}
+                        </span>
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium 
+                            {{ $vendor->is_active ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800' }}">
+                            {{ $vendor->is_active ? 'เปิดร้าน' : 'ปิดร้าน' }}
+                        </span>
+                        @if($vendor->is_suspended)
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                            ถูกระงับ
+                        </span>
+                        @endif
+                    </div>
+                </div>
+            </div>
+            <div class="flex items-center space-x-2">
+                <x-admin.vendors.commission-settings :vendor="$vendor" />
+                <x-admin.vendors.payout-manager :vendor="$vendor" />
+            </div>
+        </div>
+    </div>
+
+    <div class="p-6">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Left Column - Shop Info -->
+            <div class="lg:col-span-2 space-y-6">
+                <!-- Shop Information -->
+                <div class="bg-gray-50 rounded-lg p-4">
+                    <h3 class="text-lg font-medium text-gray-900 mb-4">ข้อมูลร้านค้า</h3>
+                    <dl class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <dt class="text-sm font-medium text-gray-500">ชื่อร้าน</dt>
+                            <dd class="text-sm text-gray-900">{{ $vendor->shop_name }}</dd>
+                        </div>
+                        <div>
+                            <dt class="text-sm font-medium text-gray-500">หมวดหมู่</dt>
+                            <dd class="text-sm text-gray-900">{{ $vendor->category->name ?? '-' }}</dd>
+                        </div>
+                        <div>
+                            <dt class="text-sm font-medium text-gray-500">คำอธิบายร้าน</dt>
+                            <dd class="text-sm text-gray-900">{{ $vendor->description ?? '-' }}</dd>
+                        </div>
+                        <div>
+                            <dt class="text-sm font-medium text-gray-500">วันที่สมัคร</dt>
+                            <dd class="text-sm text-gray-900">{{ $vendor->created_at->format('d/m/Y H:i') }}</dd>
+                        </div>
+                    </dl>
+                </div>
+
+                <!-- Owner Information -->
+                <div class="bg-gray-50 rounded-lg p-4">
+                    <h3 class="text-lg font-medium text-gray-900 mb-4">ข้อมูลเจ้าของร้าน</h3>
+                    <div class="flex items-center space-x-4">
+                        <img class="h-12 w-12 rounded-full" 
+                             src="{{ $vendor->user->avatar_url ?? asset('images/placeholders/avatar-placeholder.png') }}" 
+                             alt="{{ $vendor->user->name }}">
+                        <div>
+                            <h4 class="text-sm font-medium text-gray-900">{{ $vendor->user->name }}</h4>
+                            <p class="text-sm text-gray-600">{{ $vendor->user->email }}</p>
+                            <p class="text-sm text-gray-500">{{ $vendor->user->phone ?? '-' }}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Business Stats -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div class="bg-white border border-gray-200 rounded-lg p-4 text-center">
+                        <div class="text-2xl font-bold text-blue-600">{{ $vendor->products_count }}</div>
+                        <div class="text-sm text-gray-600">สินค้า</div>
+                    </div>
+                    <div class="bg-white border border-gray-200 rounded-lg p-4 text-center">
+                        <div class="text-2xl font-bold text-green-600">{{ $vendor->orders_count }}</div>
+                        <div class="text-sm text-gray-600">คำสั่งซื้อ</div>
+                    </div>
+                    <div class="bg-white border border-gray-200 rounded-lg p-4 text-center">
+                        <div class="text-2xl font-bold text-purple-600">฿{{ number_format($vendor->total_sales) }}</div>
+                        <div class="text-sm text-gray-600">ยอดขายรวม</div>
+                    </div>
+                    <div class="bg-white border border-gray-200 rounded-lg p-4 text-center">
+                        <div class="text-2xl font-bold text-orange-600">฿{{ number_format($vendor->total_commission) }}</div>
+                        <div class="text-sm text-gray-600">คอมมิชชั่น</div>
+                    </div>
+                </div>
+
+                <!-- Recent Products -->
+                @if($vendor->products && $vendor->products->count() > 0)
+                <div class="bg-white border border-gray-200 rounded-lg">
+                    <div class="px-4 py-3 border-b border-gray-200">
+                        <h3 class="text-lg font-medium text-gray-900">สินค้าล่าสุด</h3>
+                    </div>
+                    <div class="divide-y divide-gray-200">
+                        @foreach($vendor->products->take(5) as $product)
+                        <div class="px-4 py-3">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center space-x-3">
+                                    <img class="h-10 w-10 rounded" 
+                                         src="{{ $product->thumbnail_url ?? asset('images/placeholders/product-placeholder.jpg') }}" 
+                                         alt="{{ $product->name }}">
+                                    <div>
+                                        <p class="text-sm font-medium text-gray-900">{{ $product->name }}</p>
+                                        <p class="text-sm text-gray-500">฿{{ number_format($product->price) }}</p>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium 
+                                        {{ $product->is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800' }}">
+                                        {{ $product->is_active ? 'แสดง' : 'ซ่อน' }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        @endforeach
+                    </div>
+                </div>
+                @endif
+            </div>
+
+            <!-- Right Column - Actions -->
+            <div class="space-y-6">
+                <!-- Quick Actions -->
+                <div class="bg-white border border-gray-200 rounded-lg p-4">
+                    <h3 class="text-lg font-medium text-gray-900 mb-4">การดำเนินการ</h3>
+                    <div class="space-y-2">
+                        @if($vendor->approval_status === 'pending')
+                        <button 
+                            wire:click="approveVendor({{ $vendor->id }})"
+                            class="w-full flex items-center justify-center px-4 py-2 border border-green-300 rounded-md text-sm font-medium text-green-700 bg-white hover:bg-green-50">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                            </svg>
+                            อนุมัติร้านค้า
+                        </button>
+                        
+                        <button 
+                            wire:click="rejectVendor({{ $vendor->id }})"
+                            class="w-full flex items-center justify-center px-4 py-2 border border-red-300 rounded-md text-sm font-medium text-red-700 bg-white hover:bg-red-50">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                            ปฏิเสธ
+                        </button>
+                        @endif
+
+                        <button 
+                            wire:click="toggleShopStatus({{ $vendor->id }})"
+                            class="w-full flex items-center justify-center px-4 py-2 border border-blue-300 rounded-md text-sm font-medium text-blue-700 bg-white hover:bg-blue-50">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            {{ $vendor->is_active ? 'ปิดร้าน' : 'เปิดร้าน' }}
+                        </button>
+
+                        @if(!$vendor->is_suspended)
+                        <button 
+                            wire:click="suspendVendor({{ $vendor->id }})"
+                            class="w-full flex items-center justify-center px-4 py-2 border border-red-300 rounded-md text-sm font-medium text-red-700 bg-white hover:bg-red-50">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                            </svg>
+                            ระงับร้านค้า
+                        </button>
+                        @else
+                        <button 
+                            wire:click="unsuspendVendor({{ $vendor->id }})"
+                            class="w-full flex items-center justify-center px-4 py-2 border border-green-300 rounded-md text-sm font-medium text-green-700 bg-white hover:bg-green-50">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                            </svg>
+                            ยกเลิกการระงับ
+                        </button>
+                        @endif
+                    </div>
+                </div>
+
+                <!-- Snowball MLM Info -->
+                <div class="bg-white border border-gray-200 rounded-lg p-4">
+                    <h3 class="text-lg font-medium text-gray-900 mb-4">❄️ Snowball MLM</h3>
+                    <div class="space-y-3">
+                        <div class="flex justify-between">
+                            <span class="text-sm text-gray-600">แพ็คเกจปัจจุบัน:</span>
+                            <span class="text-sm font-medium text-gray-900">{{ $vendor->snowball_package ?? 'ไม่ได้เลือก' }}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-sm text-gray-600">คอมมิชชั่นสะสม:</span>
+                            <span class="text-sm font-medium text-green-600">฿{{ number_format($vendor->total_commission) }}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-sm text-gray-600">รอการจ่าย:</span>
+                            <span class="text-sm font-medium text-orange-600">฿{{ number_format($vendor->pending_payout) }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+```
+
+4. Approval Queue Component
+
+```blade
+{{-- components/admin/vendors/approval-queue.blade.php --}}
+@props(['pendingVendors' => []])
+
+<div class="approval-queue">
+    <!-- Header -->
+    <div class="mb-6">
+        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-900">คิวรออนุมัติร้านค้า</h1>
+                <p class="text-gray-600 mt-1">ตรวจสอบและอนุมัติคำขอเปิดร้านค้าใหม่</p>
+            </div>
+            <div class="mt-4 lg:mt-0">
+                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-orange-100 text-orange-800">
+                    {{ count($pendingVendors) }} ร้านค้ารออนุมัติ
+                </span>
+            </div>
+        </div>
+    </div>
+
+    @if(count($pendingVendors) > 0)
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        @foreach($pendingVendors as $vendor)
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
+            <!-- Shop Header -->
+            <div class="p-4 border-b border-gray-200">
+                <div class="flex items-center space-x-3">
+                    <img class="h-12 w-12 rounded-full" 
+                         src="{{ $vendor->logo_url ?? asset('images/placeholders/shop-placeholder.png') }}" 
+                         alt="{{ $vendor->shop_name }}">
+                    <div>
+                        <h3 class="text-lg font-medium text-gray-900">{{ $vendor->shop_name }}</h3>
+                        <p class="text-sm text-gray-500">{{ $vendor->category->name ?? 'ไม่มีหมวดหมู่' }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Shop Details -->
+            <div class="p-4 space-y-3">
+                <div class="flex justify-between text-sm">
+                    <span class="text-gray-500">เจ้าของร้าน:</span>
+                    <span class="font-medium text-gray-900">{{ $vendor->user->name }}</span>
+                </div>
+                <div class="flex justify-between text-sm">
+                    <span class="text-gray-500">อีเมล:</span>
+                    <span class="font-medium text-gray-900">{{ $vendor->user->email }}</span>
+                </div>
+                <div class="flex justify-between text-sm">
+                    <span class="text-gray-500">โทรศัพท์:</span>
+                    <span class="font-medium text-gray-900">{{ $vendor->user->phone ?? '-' }}</span>
+                </div>
+                <div class="flex justify-between text-sm">
+                    <span class="text-gray-500">วันที่สมัคร:</span>
+                    <span class="font-medium text-gray-900">{{ $vendor->created_at->format('d/m/Y') }}</span>
+                </div>
+
+                <!-- Shop Description -->
+                @if($vendor->description)
+                <div class="mt-3">
+                    <p class="text-sm text-gray-600 line-clamp-3">{{ $vendor->description }}</p>
+                </div>
+                @endif
+            </div>
+
+            <!-- Actions -->
+            <div class="px-4 py-3 bg-gray-50 rounded-b-lg">
+                <div class="flex space-x-2">
+                    <button 
+                        wire:click="approveVendor({{ $vendor->id }})"
+                        class="flex-1 inline-flex justify-center items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700">
+                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                        อนุมัติ
+                    </button>
+                    
+                    <button 
+                        wire:click="showRejectModal({{ $vendor->id }})"
+                        class="flex-1 inline-flex justify-center items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                        ปฏิเสธ
+                    </button>
+                    
+                    <a href="{{ route('admin.vendors.show', $vendor) }}" 
+                       class="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                    </a>
+                </div>
+            </div>
+        </div>
+        @endforeach
+    </div>
+    @else
+    <div class="bg-white rounded-lg shadow-sm p-12 text-center">
+        <svg class="w-16 h-16 text-green-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <h3 class="text-lg font-medium text-gray-900 mb-2">ไม่มีร้านค้ารออนุมัติ</h3>
+        <p class="text-gray-600">ทุกคำขอเปิดร้านค้าได้รับการอนุมัติเรียบร้อยแล้ว</p>
+    </div>
+    @endif
+
+    <!-- Reject Modal -->
+    <x-admin.vendors.reject-modal />
+</div>
+```
+
+5. Commission Settings Component (Snowball Only)
+
+```blade
+{{-- components/admin/vendors/commission-settings.blade.php --}}
+@props(['vendor'])
+
+<div class="commission-settings bg-white rounded-lg shadow-sm">
+    <div class="px-6 py-4 border-b border-gray-200">
+        <h2 class="text-xl font-bold text-gray-900">❄️ ตั้งค่าคอมมิชชั่น Snowball</h2>
+        <p class="text-gray-600 mt-1">จัดการค่าคอมมิชชั่น MLM สำหรับร้านค้านี้</p>
+    </div>
+
+    <div class="p-6">
+        <form wire:submit.prevent="saveCommissionSettings">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Current Settings -->
+                <div class="space-y-6">
+                    <div class="bg-gray-50 rounded-lg p-4">
+                        <h3 class="text-lg font-medium text-gray-900 mb-4">การตั้งค่าปัจจุบัน</h3>
+                        
+                        <dl class="space-y-3">
+                            <div class="flex justify-between">
+                                <dt class="text-sm text-gray-600">แพ็คเกจปัจจุบัน:</dt>
+                                <dd class="text-sm font-medium text-gray-900">{{ $vendor->snowball_package ?? 'ไม่ได้เลือก' }}</dd>
+                            </div>
+                            <div class="flex justify-between">
+                                <dt class="text-sm text-gray-600">อัตราคอมมิชชั่น:</dt>
+                                <dd class="text-sm font-medium text-green-600">{{ $vendor->commission_rate ?? 0 }}%</dd>
+                            </div>
+                            <div class="flex justify-between">
+                                <dt class="text-sm text-gray-600">คอมมิชชั่นสะสม:</dt>
+                                <dd class="text-sm font-medium text-blue-600">฿{{ number_format($vendor->total_commission) }}</dd>
+                            </div>
+                            <div class="flex justify-between">
+                                <dt class="text-sm text-gray-600">รอการจ่าย:</dt>
+                                <dd class="text-sm font-medium text-orange-600">฿{{ number_format($vendor->pending_payout) }}</dd>
+                            </div>
+                        </dl>
+                    </div>
+
+                    <!-- Package Selection -->
+                    <div>
+                        <label for="package" class="block text-sm font-medium text-gray-700 mb-2">
+                            เลือกแพ็คเกจ Snowball
+                        </label>
+                        <select 
+                            id="package"
+                            wire:model="package_id"
+                            class="block w-full border border-gray-300 rounded-lg py-2 px-3 focus:ring-blue-500 focus:border-blue-500">
+                            <option value="">เลือกแพ็คเกจ</option>
+                            @foreach($packages as $package)
+                            <option value="{{ $package->id }}">
+                                {{ $package->name }} ({{ $package->commission_rate }}% - ฿{{ number_format($package->monthly_fee) }}/เดือน)
+                            </option>
+                            @endforeach
+                        </select>
+                        @error('package_id') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
+                    </div>
+                </div>
+
+                <!-- Commission Configuration -->
+                <div class="space-y-6">
+                    <!-- Custom Commission Rate -->
+                    <div>
+                        <label for="custom_rate" class="block text-sm font-medium text-gray-700 mb-2">
+                            อัตราคอมมิชชั่นแบบกำหนดเอง (%)
+                        </label>
+                        <input 
+                            type="number" 
+                            id="custom_rate"
+                            wire:model="custom_commission_rate"
+                            min="0"
+                            max="50"
+                            step="0.1"
+                            class="block w-full border border-gray-300 rounded-lg py-2 px-3 focus:ring-blue-500 focus:border-blue-500"
+                            placeholder="ป้อนอัตราคอมมิชชั่น">
+                        <p class="text-xs text-gray-500 mt-1">เว้นว่างไว้เพื่อใช้อัตราจากแพ็คเกจ</p>
+                    </div>
+
+                    <!-- Commission Calculation Preview -->
+                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <h4 class="text-sm font-medium text-blue-900 mb-2">ตัวอย่างการคำนวณ</h4>
+                        <div class="space-y-2 text-sm">
+                            <div class="flex justify-between">
+                                <span class="text-blue-700">ยอดขายตัวอย่าง:</span>
+                                <span class="font-medium">฿1,000</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-blue-700">อัตราคอมมิชชั่น:</span>
+                                <span class="font-medium">{{ $effectiveRate }}%</span>
+                            </div>
+                            <div class="flex justify-between border-t border-blue-200 pt-2">
+                                <span class="text-blue-900 font-medium">ได้รับคอมมิชชั่น:</span>
+                                <span class="text-green-600 font-bold">฿{{ number_format(1000 * $effectiveRate / 100) }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Additional Settings -->
+                    <div class="space-y-3">
+                        <label class="flex items-center">
+                            <input 
+                                type="checkbox" 
+                                wire:model="enable_override"
+                                class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                            <span class="ml-2 text-sm text-gray-700">ใช้การตั้งค่าสำหรับร้านค้านี้โดยเฉพาะ</span>
+                        </label>
+
+                        <label class="flex items-center">
+                            <input 
+                                type="checkbox" 
+                                wire:model="auto_payout"
+                                class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                            <span class="ml-2 text-sm text-gray-700">จ่ายเงินอัตโนมัติเมื่อถึงยอดขั้นต่ำ</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Form Actions -->
+            <div class="mt-8 pt-6 border-t border-gray-200 flex justify-end space-x-3">
+                <button type="button" 
+                        class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+                    ยกเลิก
+                </button>
+                <button type="submit" 
+                        class="px-4 py-2 border border-transparent rounded-md text-sm font-medium text-white bg-blue-600 hover:bg-blue-700">
+                    บันทึกการตั้งค่า
+                </button>
+            </div>
+        </form>
+
+        <!-- Commission History -->
+        <div class="mt-8">
+            <h3 class="text-lg font-medium text-gray-900 mb-4">ประวัติคอมมิชชั่น</h3>
+            <div class="bg-white border border-gray-200 rounded-lg overflow-hidden">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">วันที่</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">คำสั่งซื้อ</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ยอดขาย</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">คอมมิชชั่น</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">สถานะ</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200">
+                        @foreach($commissionHistory as $commission)
+                        <tr>
+                            <td class="px-6 py-4 text-sm text-gray-900">{{ $commission->created_at->format('d/m/Y') }}</td>
+                            <td class="px-6 py-4 text-sm text-gray-900">#{{ $commission->order->order_code }}</td>
+                            <td class="px-6 py-4 text-sm text-gray-900">฿{{ number_format($commission->sale_amount) }}</td>
+                            <td class="px-6 py-4 text-sm text-green-600 font-medium">฿{{ number_format($commission->commission_amount) }}</td>
+                            <td class="px-6 py-4">
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium 
+                                    {{ $commission->status === 'paid' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800' }}">
+                                    {{ $commission->status_text }}
+                                </span>
+                            </td>
+                        </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+```
+
+6. Payout Manager Component (Snowball Only)
+
+```blade
+{{-- components/admin/vendors/payout-manager.blade.php --}}
+@props(['vendor'])
+
+<div class="payout-manager bg-white rounded-lg shadow-sm">
+    <div class="px-6 py-4 border-b border-gray-200">
+        <h2 class="text-xl font-bold text-gray-900">💰 จัดการการจ่ายเงิน Snowball</h2>
+        <p class="text-gray-600 mt-1">จัดการการจ่ายค่าคอมมิชชั่น MLM ให้ร้านค้านี้</p>
+    </div>
+
+    <div class="p-6">
+        <!-- Payout Summary -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <div class="bg-blue-50 rounded-lg p-4 text-center">
+                <div class="text-2xl font-bold text-blue-600">฿{{ number_format($vendor->total_commission) }}</div>
+                <div class="text-sm text-blue-700">คอมมิชชั่นสะสม</div>
+            </div>
+            <div class="bg-orange-50 rounded-lg p-4 text-center">
+                <div class="text-2xl font-bold text-orange-600">฿{{ number_format($vendor->pending_payout) }}</div>
+                <div class="text-sm text-orange-700">รอการจ่าย</div>
+            </div>
+            <div class="bg-green-50 rounded-lg p-4 text-center">
+                <div class="text-2xl font-bold text-green-600">฿{{ number_format($vendor->paid_payout) }}</div>
+                <div class="text-sm text-green-700">จ่ายแล้ว</div>
+            </div>
+            <div class="bg-purple-50 rounded-lg p-4 text-center">
+                <div class="text-2xl font-bold text-purple-600">{{ $vendor->payout_count }}</div>
+                <div class="text-sm text-purple-700">ครั้งที่จ่าย</div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Pending Payouts -->
+            <div class="space-y-4">
+                <h3 class="text-lg font-medium text-gray-900">คอมมิชชั่นรอการจ่าย</h3>
+                
+                @if($pendingCommissions->count() > 0)
+                <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                    <div class="space-y-3">
+                        @foreach($pendingCommissions as $commission)
+                        <div class="flex items-center justify-between text-sm">
+                            <div>
+                                <span class="font-medium text-gray-900">#{{ $commission->order->order_code }}</span>
+                                <span class="text-gray-500 ml-2">{{ $commission->created_at->format('d/m/Y') }}</span>
+                            </div>
+                            <span class="font-medium text-green-600">฿{{ number_format($commission->commission_amount) }}</span>
+                        </div>
+                        @endforeach
+                        
+                        <div class="flex items-center justify-between border-t border-yellow-200 pt-2">
+                            <span class="font-medium text-gray-900">รวมทั้งหมด</span>
+                            <span class="font-bold text-orange-600">฿{{ number_format($pendingCommissions->sum('commission_amount')) }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Payout Action -->
+                <div class="bg-white border border-gray-200 rounded-lg p-4">
+                    <form wire:submit.prevent="processPayout">
+                        <div class="space-y-4">
+                            <div>
+                                <label for="payout_amount" class="block text-sm font-medium text-gray-700 mb-2">
+                                    จำนวนเงินที่ต้องการจ่าย
+                                </label>
+                                <input 
+                                    type="number" 
+                                    id="payout_amount"
+                                    wire:model="payout_amount"
+                                    min="0"
+                                    max="{{ $pendingCommissions->sum('commission_amount') }}"
+                                    class="block w-full border border-gray-300 rounded-lg py-2 px-3 focus:ring-blue-500 focus:border-blue-500"
+                                    placeholder="ป้อนจำนวนเงิน">
+                                @error('payout_amount') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
+                            </div>
+
+                            <div>
+                                <label for="payout_method" class="block text-sm font-medium text-gray-700 mb-2">
+                                    วิธีการจ่าย
+                                </label>
+                                <select 
+                                    id="payout_method"
+                                    wire:model="payout_method"
+                                    class="block w-full border border-gray-300 rounded-lg py-2 px-3 focus:ring-blue-500 focus:border-blue-500">
+                                    <option value="">เลือกวิธีการจ่าย</option>
+                                    <option value="bank_transfer">โอนธนาคาร</option>
+                                    <option value="promptpay">พร้อมเพย์</option>
+                                    <option value="wallet">เงินในระบบ</option>
+                                </select>
+                            </div>
+
+                            @if($payout_method === 'bank_transfer')
+                            <div class="bg-blue-50 rounded-lg p-3">
+                                <h4 class="text-sm font-medium text-blue-900 mb-2">ข้อมูลบัญชีธนาคาร</h4>
+                                <dl class="text-sm space-y-1">
+                                    <div class="flex justify-between">
+                                        <dt class="text-blue-700">ธนาคาร:</dt>
+                                        <dd>{{ $vendor->bank_name }}</dd>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <dt class="text-blue-700">เลขที่บัญชี:</dt>
+                                        <dd>{{ $vendor->account_number }}</dd>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <dt class="text-blue-700">ชื่อบัญชี:</dt>
+                                        <dd>{{ $vendor->account_name }}</dd>
+                                    </div>
+                                </dl>
+                            </div>
+                            @endif
+
+                            <div>
+                                <label for="notes" class="block text-sm font-medium text-gray-700 mb-2">
+                                    หมายเหตุ (ถ้ามี)
+                                </label>
+                                <textarea 
+                                    id="notes"
+                                    wire:model="notes"
+                                    rows="2"
+                                    class="block w-full border border-gray-300 rounded-lg py-2 px-3 focus:ring-blue-500 focus:border-blue-500"
+                                    placeholder="บันทึกเพิ่มเติม..."></textarea>
+                            </div>
+
+                            <button type="submit" 
+                                    class="w-full bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 font-medium">
+                                ดำเนินการจ่ายเงิน
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                @else
+                <div class="bg-green-50 border border-green-200 rounded-lg p-6 text-center">
+                    <svg class="w-12 h-12 text-green-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <p class="text-green-800 font-medium">ไม่มีคอมมิชชั่นรอการจ่าย</p>
+                    <p class="text-green-600 text-sm mt-1">ทุกคอมมิชชั่นได้รับการจ่ายเรียบร้อยแล้ว</p>
+                </div>
+                @endif
+            </div>
+
+            <!-- Payout History -->
+            <div class="space-y-4">
+                <h3 class="text-lg font-medium text-gray-900">ประวัติการจ่ายเงิน</h3>
+                
+                @if($payoutHistory->count() > 0)
+                <div class="space-y-3">
+                    @foreach($payoutHistory as $payout)
+                    <div class="bg-white border border-gray-200 rounded-lg p-4">
+                        <div class="flex items-center justify-between mb-2">
+                            <div>
+                                <span class="text-sm font-medium text-gray-900">#{{ $payout->payout_code }}</span>
+                                <span class="text-xs text-gray-500 ml-2">{{ $payout->paid_at->format('d/m/Y H:i') }}</span>
+                            </div>
+                            <span class="text-sm font-medium text-green-600">฿{{ number_format($payout->amount) }}</span>
+                        </div>
+                        
+                        <div class="flex items-center justify-between text-sm text-gray-600">
+                            <span>วิธีจ่าย: {{ $payout->method_text }}</span>
+                            <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium 
+                                {{ $payout->status === 'completed' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800' }}">
+                                {{ $payout->status_text }}
+                            </span>
+                        </div>
+
+                        @if($payout->notes)
+                        <div class="mt-2 text-xs text-gray-500 bg-gray-50 p-2 rounded">
+                            {{ $payout->notes }}
+                        </div>
+                        @endif
+                    </div>
+                    @endforeach
+                </div>
+                @else
+                <div class="bg-gray-50 border border-gray-200 rounded-lg p-6 text-center">
+                    <svg class="w-12 h-12 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v1m0 6v1m0-1v1m0-6V7m0 0c-1.11 0-2.08-.402-2.599-1" />
+                    </svg>
+                    <p class="text-gray-600">ยังไม่มีการจ่ายเงิน</p>
+                </div>
+                @endif
+            </div>
+        </div>
+    </div>
+</div>
+```
+
+---
+
+🔧 LIVEWIRE CONTROLLERS
+
+User Management Livewire
+
+```php
+<?php
+
+namespace App\Livewire\Admin\Users;
+
+use Livewire\Component;
+use Livewire\WithPagination;
+use App\Models\User;
+
+class UserList extends Component
+{
+    use WithPagination;
+
+    public $search = '';
+    public $roleFilter = 'all';
+    public $statusFilter = 'all';
+
+    protected $queryString = [
+        'search' => ['except' => ''],
+        'roleFilter' => ['except' => 'all'],
+        'statusFilter' => ['except' => 'all']
+    ];
+
+    public function updatingSearch()
+    {
+        $this->resetPage();
+    }
+
+    public function toggleBan($userId)
+    {
+        $user = User::findOrFail($userId);
+        $user->update([
+            'is_banned' => !$user->is_banned
+        ]);
+
+        $this->dispatch('notify', [
+            'type' => 'success',
+            'message' => $user->is_banned ? 'แบนผู้ใช้เรียบร้อย' : 'ยกเลิกการแบนเรียบร้อย'
+        ]);
+    }
+
+    public function impersonate($userId)
+    {
+        $user = User::findOrFail($userId);
+        
+        auth()->user()->impersonate($user);
+
+        return redirect()->route('customer.dashboard');
+    }
+
+    public function render()
+    {
+        $users = User::withCount(['orders', 'reviews'])
+            ->when($this->search, function ($query) {
+                $query->where(function ($q) {
+                    $q->where('name', 'like', '%' . $this->search . '%')
+                      ->orWhere('email', 'like', '%' . $this->search . '%')
+                      ->orWhere('phone', 'like', '%' . $this->search . '%');
+                });
+            })
+            ->when($this->roleFilter !== 'all', function ($query) {
+                $query->where('role', $this->roleFilter);
+            })
+            ->when($this->statusFilter !== 'all', function ($query) {
+                if ($this->statusFilter === 'active') {
+                    $query->where('is_active', true);
+                } elseif ($this->statusFilter === 'inactive') {
+                    $query->where('is_active', false);
+                } elseif ($this->statusFilter === 'banned') {
+                    $query->where('is_banned', true);
+                }
+            })
+            ->orderBy('created_at', 'desc')
+            ->paginate(20);
+
+        return view('components.admin.users.user-list', compact('users'));
+    }
+}
+```
+
+Vendor Management Livewire
+
+```php
+<?php
+
+namespace App\Livewire\Admin\Vendors;
+
+use Livewire\Component;
+use Livewire\WithPagination;
+use App\Models\Vendor;
+
+class VendorList extends Component
+{
+    use WithPagination;
+
+    public $search = '';
+    public $statusFilter = 'all';
+    public $approvalFilter = 'all';
+
+    protected $queryString = [
+        'search' => ['except' => ''],
+        'statusFilter' => ['except' => 'all'],
+        'approvalFilter' => ['except' => 'all']
+    ];
+
+    public function approveVendor($vendorId)
+    {
+        $vendor = Vendor::findOrFail($vendorId);
+        $vendor->update(['approval_status' => 'approved']);
+
+        // Send approval notification to vendor
+        $vendor->user->notify(new VendorApproved($vendor));
+
+        $this->dispatch('notify', [
+            'type' => 'success',
+            'message' => 'อนุมัติร้านค้าเรียบร้อย'
+        ]);
+    }
+
+    public function rejectVendor($vendorId)
+    {
+        $vendor = Vendor::findOrFail($vendorId);
+        $vendor->update(['approval_status' => 'rejected']);
+
+        // Send rejection notification to vendor
+        $vendor->user->notify(new VendorRejected($vendor));
+
+        $this->dispatch('notify', [
+            'type' => 'success', 
+            'message' => 'ปฏิเสธร้านค้าเรียบร้อย'
+        ]);
+    }
+
+    public function render()
+    {
+        $vendors = Vendor::with(['user', 'category'])
+            ->withCount(['products', 'orders'])
+            ->when($this->search, function ($query) {
+                $query->where(function ($q) {
+                    $q->where('shop_name', 'like', '%' . $this->search . '%')
+                      ->orWhereHas('user', function ($userQuery) {
+                          $userQuery->where('name', 'like', '%' . $this->search . '%')
+                                   ->orWhere('email', 'like', '%' . $this->search . '%');
+                      });
+                });
+            })
+            ->when($this->statusFilter !== 'all', function ($query) {
+                if ($this->statusFilter === 'active') {
+                    $query->where('is_active', true);
+                } elseif ($this->statusFilter === 'inactive') {
+                    $query->where('is_active', false);
+                } elseif ($this->statusFilter === 'suspended') {
+                    $query->where('is_suspended', true);
+                }
+            })
+            ->when($this->approvalFilter !== 'all', function ($query) {
+                $query->where('approval_status', $this->approvalFilter);
+            })
+            ->orderBy('created_at', 'desc')
+            ->paginate(20);
+
+        return view('components.admin.vendors.vendor-list', compact('vendors'));
+    }
+}
+```
+
+ระบบจัดการผู้ใช้และร้านค้านี้ครบถ้วนพร้อมใช้งานจริง พร้อมรองรับการจัดการ Snowball MLM เฉพาะสำหรับระบบคอมมิชชั่นและการจ่ายเงินตามที่ระบุ
