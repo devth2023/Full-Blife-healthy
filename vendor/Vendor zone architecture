@@ -1,0 +1,52 @@
+vendor/
+├── auth/                          # การรับรองตัวตนผู้ขาย
+│   ├── registration-wizard.blade.php      # ฟอร์มสมัครหลายขั้นตอน
+│   ├── registration-step.blade.php        # ขั้นตอนการสมัคร
+│   ├── personal-info-form.blade.php       # ข้อมูลส่วนตัว
+│   ├── shop-setup-form.blade.php          # ตั้งค่าร้านค้า
+│   ├── business-info-form.blade.php       # ข้อมูลธุรกิจ
+│   └── confirmation-step.blade.php        # ยืนยันการสมัคร
+├── dashboard/                     # แดชบอร์ดผู้ขาย
+│   ├── dashboard.blade.php                # หน้าหลัก
+│   ├── stats-overview.blade.php           # ภาพรวมสถิติ
+│   ├── metric-card.blade.php              # การ์ดเมตริก
+│   ├── recent-orders-table.blade.php      # ตารางคำสั่งซื้อล่าสุด
+│   ├── top-products.blade.php             # สินค้าขายดี
+│   └── sales-chart.blade.php              # กราฟยอดขาย
+├── products/                      # การจัดการสินค้า
+│   ├── product-list.blade.php             # รายการสินค้า
+│   ├── product-table.blade.php            # ตารางสินค้า
+│   ├── product-form.blade.php             # ฟอร์มสินค้า (รองรับ MLM)
+│   ├── variant-manager.blade.php          # จัดการ Variants
+│   ├── variant-matrix.blade.php           # เมทริกซ์ Variants
+│   ├── inventory-manager.blade.php        # จัดการสต็อก
+│   ├── bulk-actions.blade.php             # การดำเนินการแบบกลุ่ม
+│   ├── image-gallery.blade.php            # แกลเลอรี่รูปภาพ
+│   └── category-selector.blade.php        # เลือกหมวดหมู่
+├── snowball/                      # ⭐ ระบบ MLM Snowball
+│   ├── snowball-dashboard.blade.php       # แดชบอร์ด Snowball
+│   ├── package-selector.blade.php         # เลือกแพ็คเกจ
+│   ├── package-card.blade.php             # การ์ดแพ็คเกจ
+│   ├── variable-input.blade.php           # Input ตัวแปร
+│   ├── commission-calculator.blade.php    # เครื่องคิดเลขคอมมิชชั่น
+│   ├── commission-preview.blade.php       # ตัวอย่างคอมมิชชั่น
+│   ├── products-list.blade.php            # สินค้าใช้ Snowball
+│   ├── performance-metrics.blade.php      # เมตริกประสิทธิภาพ
+│   └── commission-reports.blade.php       # รายงานคอมมิชชั่น
+├── orders/                        # การจัดการคำสั่งซื้อ
+│   ├── order-list.blade.php               # รายการคำสั่งซื้อ
+│   ├── order-table.blade.php              # ตารางคำสั่งซื้อ
+│   ├── order-detail.blade.php             # รายละเอียดคำสั่งซื้อ
+│   ├── status-updater.blade.php           # อัพเดทสถานะ
+│   ├── shipping-tracker.blade.php         # ติดตามการจัดส่ง
+│   ├── order-actions.blade.php            # การดำเนินการกับคำสั่งซื้อ
+│   └── status-badge.blade.php             # แบดจ์สถานะ
+├── settings/                      # ตั้งค่า
+│   ├── profile-form.blade.php             # โปรไฟล์ร้านค้า
+│   ├── payout-info-form.blade.php         # ข้อมูลการจ่ายเงิน
+│   ├── bank-account-form.blade.php        # บัญชีธนาคาร
+│   ├── shop-settings-form.blade.php       # ตั้งค่าร้านค้า
+│   └── notification-settings.blade.php    # การแจ้งเตือน
+└── support/                       # การสนับสนุน
+    ├── ticket-system.blade.php            # ระบบ Ticket
+    └── vendor-chat.blade.php              # แชตกับแอดมิน
