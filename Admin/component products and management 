@@ -1,0 +1,2317 @@
+🏪 Admin Products, Snowball & Settings Components
+
+📦 PRODUCT MANAGEMENT COMPONENTS
+
+1. Product List Component
+
+```blade
+{{-- components/admin/products/product-list.blade.php --}}
+@props([
+    'products' => [],
+    'filters' => [],
+    'search' => '',
+    'statusFilter' => 'all',
+    'vendorFilter' => 'all',
+    'categoryFilter' => 'all'
+])
+
+<div class="product-management">
+    <!-- Header -->
+    <div class="mb-6">
+        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-900">จัดการสินค้าทั้งหมด</h1>
+                <p class="text-gray-600 mt-1">จัดการและตรวจสอบสินค้าทั้งหมดในระบบ</p>
+            </div>
+            <div class="mt-4 lg:mt-0 flex space-x-3">
+                <a href="{{ route('admin.products.pending') }}" 
+                   class="inline-flex items-center px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    สินค้ารออนุมัติ ({{ $pendingCount ?? 0 }})
+                </a>
+                <a href="{{ route('admin.categories.index') }}" 
+                   class="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                    </svg>
+                    จัดการหมวดหมู่
+                </a>
+            </div>
+        </div>
+
+        <!-- Search and Filter Bar -->
+        <div class="mt-6 bg-white rounded-lg shadow-sm p-4">
+            <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+                <!-- Search -->
+                <div class="md:col-span-2">
+                    <label for="search" class="sr-only">ค้นหาสินค้า</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                        </div>
+                        <input 
+                            type="text" 
+                            id="search"
+                            wire:model.debounce.300ms="search"
+                            class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                            placeholder="ค้นหาด้วยชื่อสินค้า, รหัส...">
+                    </div>
+                </div>
+
+                <!-- Status Filter -->
+                <div>
+                    <label for="status" class="sr-only">สถานะ</label>
+                    <select 
+                        id="status"
+                        wire:model="statusFilter"
+                        class="block w-full border border-gray-300 rounded-lg py-2 px-3 focus:ring-blue-500 focus:border-blue-500">
+                        <option value="all">ทุกสถานะ</option>
+                        <option value="active">แสดง</option>
+                        <option value="inactive">ซ่อน</option>
+                        <option value="out_of_stock">หมดสต็อก</option>
+                    </select>
+                </div>
+
+                <!-- Vendor Filter -->
+                <div>
+                    <label for="vendor" class="sr-only">ร้านค้า</label>
+                    <select 
+                        id="vendor"
+                        wire:model="vendorFilter"
+                        class="block w-full border border-gray-300 rounded-lg py-2 px-3 focus:ring-blue-500 focus:border-blue-500">
+                        <option value="all">ทุกร้านค้า</option>
+                        @foreach($vendors as $vendor)
+                        <option value="{{ $vendor->id }}">{{ $vendor->shop_name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <!-- Category Filter -->
+                <div>
+                    <label for="category" class="sr-only">หมวดหมู่</label>
+                    <select 
+                        id="category"
+                        wire:model="categoryFilter"
+                        class="block w-full border border-gray-300 rounded-lg py-2 px-3 focus:ring-blue-500 focus:border-blue-500">
+                        <option value="all">ทุกหมวดหมู่</option>
+                        @foreach($categories as $category)
+                        <option value="{{ $category->id }}">{{ $category->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bulk Actions -->
+    <x-admin.products.bulk-product-actions />
+
+    <!-- Product Table -->
+    <x-admin.products.product-table :products="$products" />
+
+    <!-- Pagination -->
+    @if($products->hasPages())
+    <div class="mt-6">
+        {{ $products->links() }}
+    </div>
+    @endif
+</div>
+```
+
+2. Product Table Component
+
+```blade
+{{-- components/admin/products/product-table.blade.php --}}
+@props(['products' => []])
+
+<div class="bg-white rounded-lg shadow-sm overflow-hidden">
+    <table class="min-w-full divide-y divide-gray-200">
+        <thead class="bg-gray-50">
+            <tr>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <input type="checkbox" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                </th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    สินค้า
+                </th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    ร้านค้า
+                </th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    ราคา
+                </th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    สต็อก
+                </th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    ขายแล้ว
+                </th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    สถานะ
+                </th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    การดำเนินการ
+                </th>
+            </tr>
+        </thead>
+        <tbody class="bg-white divide-y divide-gray-200">
+            @forelse($products as $product)
+            <tr class="hover:bg-gray-50 transition-colors">
+                <!-- Checkbox -->
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <input type="checkbox" 
+                           value="{{ $product->id }}"
+                           class="rounded border-gray-300 text-blue-600 focus:ring-blue-500 product-checkbox">
+                </td>
+
+                <!-- Product Info -->
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0 h-10 w-10">
+                            <img class="h-10 w-10 rounded object-cover" 
+                                 src="{{ $product->thumbnail_url ?? asset('images/placeholders/product-placeholder.jpg') }}" 
+                                 alt="{{ $product->name }}">
+                        </div>
+                        <div class="ml-4">
+                            <div class="text-sm font-medium text-gray-900 line-clamp-1">
+                                {{ $product->name }}
+                            </div>
+                            <div class="text-sm text-gray-500">
+                                {{ $product->category->name ?? '-' }}
+                            </div>
+                            <div class="text-xs text-gray-400">
+                                SKU: {{ $product->sku ?? 'N/A' }}
+                            </div>
+                        </div>
+                    </div>
+                </td>
+
+                <!-- Vendor -->
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {{ $product->vendor->shop_name ?? 'N/A' }}
+                </td>
+
+                <!-- Price -->
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <div class="space-y-1">
+                        <div class="font-medium text-green-600">฿{{ number_format($product->price) }}</div>
+                        @if($product->compare_price)
+                        <div class="text-xs text-gray-500 line-through">฿{{ number_format($product->compare_price) }}</div>
+                        @endif
+                    </div>
+                </td>
+
+                <!-- Stock -->
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <div class="flex items-center">
+                        <span class="{{ $product->stock_quantity > 10 ? 'text-green-600' : ($product->stock_quantity > 0 ? 'text-orange-600' : 'text-red-600') }} font-medium">
+                            {{ $product->stock_quantity }}
+                        </span>
+                        @if($product->stock_quantity <= 10 && $product->stock_quantity > 0)
+                        <span class="ml-1 text-xs text-orange-600">(น้อย)</span>
+                        @endif
+                    </div>
+                </td>
+
+                <!-- Sales -->
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {{ $product->sold_count ?? 0 }}
+                </td>
+
+                <!-- Status -->
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="flex flex-col space-y-1">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium 
+                            {{ $product->is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800' }}">
+                            {{ $product->is_active ? 'แสดง' : 'ซ่อน' }}
+                        </span>
+                        
+                        @if($product->is_approved)
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                            อนุมัติแล้ว
+                        </span>
+                        @else
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                            รออนุมัติ
+                        </span>
+                        @endif
+
+                        <!-- Snowball Status -->
+                        @if($product->snowball_settings)
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                            ❄️ Snowball
+                        </span>
+                        @endif
+                    </div>
+                </td>
+
+                <!-- Actions -->
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    <div class="flex items-center space-x-2">
+                        <!-- View -->
+                        <a href="{{ route('product.show', $product->slug) }}" 
+                           target="_blank"
+                           class="text-blue-600 hover:text-blue-900" 
+                           title="ดูหน้ารายละเอียด">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                            </svg>
+                        </a>
+
+                        <!-- Edit -->
+                        <a href="{{ route('admin.products.edit', $product) }}" 
+                           class="text-green-600 hover:text-green-900"
+                           title="แก้ไข">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                        </a>
+
+                        <!-- Toggle Status -->
+                        <button 
+                            wire:click="toggleStatus({{ $product->id }})"
+                            class="text-orange-600 hover:text-orange-900"
+                            title="{{ $product->is_active ? 'ซ่อนสินค้า' : 'แสดงสินค้า' }}">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                @if($product->is_active)
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                                @else
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                @endif
+                            </svg>
+                        </button>
+
+                        <!-- Delete -->
+                        <button 
+                            wire:click="confirmDelete({{ $product->id }})"
+                            class="text-red-600 hover:text-red-900"
+                            title="ลบสินค้า">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+            @empty
+            <tr>
+                <td colspan="8" class="px-6 py-8 text-center text-gray-500">
+                    <div class="flex flex-col items-center">
+                        <svg class="w-12 h-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2M4 13h2m10 0v4a1 1 0 01-1 1H9a1 1 0 01-1-1v-4m6 0V9" />
+                        </svg>
+                        <p class="text-lg font-medium text-gray-900">ไม่พบสินค้า</p>
+                        <p class="text-gray-600">ลองเปลี่ยนเงื่อนไขการค้นหาหรือตรวจสอบสินค้ารออนุมัติ</p>
+                    </div>
+                </td>
+            </tr>
+            @endforelse
+        </tbody>
+    </table>
+</div>
+
+<script>
+// Bulk selection
+document.addEventListener('DOMContentLoaded', function() {
+    const selectAll = document.querySelector('thead input[type="checkbox"]');
+    const productCheckboxes = document.querySelectorAll('.product-checkbox');
+    
+    selectAll?.addEventListener('change', function() {
+        productCheckboxes.forEach(checkbox => {
+            checkbox.checked = this.checked;
+        });
+    });
+});
+</script>
+```
+
+3. Product Approval Component
+
+```blade
+{{-- components/admin/products/product-approval.blade.php --}}
+@props(['pendingProducts' => []])
+
+<div class="product-approval">
+    <!-- Header -->
+    <div class="mb-6">
+        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-900">สินค้ารออนุมัติ</h1>
+                <p class="text-gray-600 mt-1">ตรวจสอบและอนุมัติสินค้าที่ส่งเข้ามาใหม่</p>
+            </div>
+            <div class="mt-4 lg:mt-0">
+                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-orange-100 text-orange-800">
+                    {{ count($pendingProducts) }} สินค้ารออนุมัติ
+                </span>
+            </div>
+        </div>
+    </div>
+
+    @if(count($pendingProducts) > 0)
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        @foreach($pendingProducts as $product)
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
+            <!-- Product Image -->
+            <div class="h-48 bg-gray-200 rounded-t-lg overflow-hidden">
+                <img src="{{ $product->thumbnail_url ?? asset('images/placeholders/product-placeholder.jpg') }}" 
+                     alt="{{ $product->name }}"
+                     class="w-full h-full object-cover">
+            </div>
+
+            <!-- Product Info -->
+            <div class="p-4">
+                <div class="flex items-start justify-between mb-2">
+                    <h3 class="text-lg font-medium text-gray-900 line-clamp-2">{{ $product->name }}</h3>
+                    <span class="text-lg font-bold text-green-600">฿{{ number_format($product->price) }}</span>
+                </div>
+
+                <div class="space-y-2 text-sm text-gray-600">
+                    <div class="flex justify-between">
+                        <span>ร้านค้า:</span>
+                        <span class="font-medium">{{ $product->vendor->shop_name }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span>หมวดหมู่:</span>
+                        <span class="font-medium">{{ $product->category->name ?? '-' }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span>สต็อก:</span>
+                        <span class="font-medium {{ $product->stock_quantity > 0 ? 'text-green-600' : 'text-red-600' }}">
+                            {{ $product->stock_quantity }}
+                        </span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span>วันที่ส่ง:</span>
+                        <span class="font-medium">{{ $product->created_at->format('d/m/Y H:i') }}</span>
+                    </div>
+                </div>
+
+                <!-- Snowball Info -->
+                @if($product->snowball_settings)
+                <div class="mt-3 p-2 bg-purple-50 rounded border border-purple-200">
+                    <div class="flex items-center text-sm text-purple-800">
+                        <span class="mr-1">❄️</span>
+                        <span>เปิดใช้งาน Snowball - {{ $product->snowball_settings->package->name }}</span>
+                    </div>
+                </div>
+                @endif
+
+                <!-- Product Description -->
+                @if($product->description)
+                <div class="mt-3">
+                    <p class="text-sm text-gray-600 line-clamp-2">{{ $product->description }}</p>
+                </div>
+                @endif
+            </div>
+
+            <!-- Actions -->
+            <div class="px-4 py-3 bg-gray-50 rounded-b-lg">
+                <div class="flex space-x-2">
+                    <button 
+                        wire:click="approveProduct({{ $product->id }})"
+                        class="flex-1 inline-flex justify-center items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700">
+                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                        อนุมัติ
+                    </button>
+                    
+                    <button 
+                        wire:click="showRejectModal({{ $product->id }})"
+                        class="flex-1 inline-flex justify-center items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                        ปฏิเสธ
+                    </button>
+                    
+                    <a href="{{ route('admin.products.show', $product) }}" 
+                       class="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                    </a>
+                </div>
+            </div>
+        </div>
+        @endforeach
+    </div>
+    @else
+    <div class="bg-white rounded-lg shadow-sm p-12 text-center">
+        <svg class="w-16 h-16 text-green-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <h3 class="text-lg font-medium text-gray-900 mb-2">ไม่มีสินค้ารออนุมัติ</h3>
+        <p class="text-gray-600">ทุกสินค้าได้รับการอนุมัติเรียบร้อยแล้ว</p>
+    </div>
+    @endif
+
+    <!-- Reject Modal -->
+    <div x-data="{ showRejectModal: false, rejectProductId: null }" class="reject-modal">
+        <!-- Modal content -->
+    </div>
+</div>
+```
+
+4. Bulk Product Actions Component
+
+```blade
+{{-- components/admin/products/bulk-product-actions.blade.php --}}
+@props(['selectedCount' => 0])
+
+<div x-data="{ showBulkActions: false }" class="bulk-actions mb-4">
+    <!-- Bulk Actions Bar -->
+    <div x-show="showBulkActions || {{ $selectedCount }} > 0" 
+         x-transition
+         class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-4">
+                <span class="text-sm font-medium text-blue-900">
+                    เลือกแล้ว <span class="font-bold">{{ $selectedCount }}</span> รายการ
+                </span>
+                
+                <div class="flex space-x-2">
+                    <!-- Approve Selected -->
+                    <button 
+                        wire:click="bulkApprove"
+                        class="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700">
+                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                        อนุมัติ
+                    </button>
+
+                    <!-- Hide Selected -->
+                    <button 
+                        wire:click="bulkHide"
+                        class="inline-flex items-center px-3 py-1 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                        </svg>
+                        ซ่อน
+                    </button>
+
+                    <!-- Show Selected -->
+                    <button 
+                        wire:click="bulkShow"
+                        class="inline-flex items-center px-3 py-1 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                        แสดง
+                    </button>
+
+                    <!-- Delete Selected -->
+                    <button 
+                        wire:click="confirmBulkDelete"
+                        class="inline-flex items-center px-3 py-1 border border-red-300 text-sm font-medium rounded-md text-red-700 bg-white hover:bg-red-50">
+                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                        ลบ
+                    </button>
+                </div>
+            </div>
+
+            <button 
+                @click="showBulkActions = false; $wire.clearSelection()"
+                class="text-blue-600 hover:text-blue-800">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="flex flex-wrap gap-2">
+        <button 
+            @click="showBulkActions = true"
+            class="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7" />
+            </svg>
+            การดำเนินการกลุ่ม
+        </button>
+
+        <button 
+            wire:click="exportProducts"
+            class="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+            ส่งออก
+        </button>
+    </div>
+</div>
+```
+
+5. Category Manager Component
+
+```blade
+{{-- components/admin/products/category-manager.blade.php --}}
+@props(['categories' => [], 'parentCategories' => []])
+
+<div class="category-manager">
+    <!-- Header -->
+    <div class="mb-6">
+        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-900">จัดการหมวดหมู่</h1>
+                <p class="text-gray-600 mt-1">จัดการหมวดหมู่และจัดเรียงโครงสร้างสินค้า</p>
+            </div>
+            <div class="mt-4 lg:mt-0">
+                <button 
+                    wire:click="$toggle('showCreateForm')"
+                    class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                    </svg>
+                    เพิ่มหมวดหมู่ใหม่
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <!-- Categories Tree -->
+        <div class="lg:col-span-3">
+            <div class="bg-white rounded-lg shadow-sm">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <h3 class="text-lg font-medium text-gray-900">หมวดหมู่ทั้งหมด</h3>
+                </div>
+                <div class="p-6">
+                    @if($categories->count() > 0)
+                    <div class="space-y-2" x-data="categoryTree()">
+                        @foreach($categories->where('parent_id', null) as $category)
+                        <x-admin.products.category-item 
+                            :category="$category" 
+                            :level="0"
+                            wire:key="category-{{ $category->id }}" />
+                        @endforeach
+                    </div>
+                    @else
+                    <div class="text-center py-8 text-gray-500">
+                        <svg class="w-12 h-12 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                        </svg>
+                        <p>ยังไม่มีหมวดหมู่</p>
+                        <p class="text-sm">เริ่มต้นโดยการเพิ่มหมวดหมู่แรก</p>
+                    </div>
+                    @endif
+                </div>
+            </div>
+        </div>
+
+        <!-- Category Form -->
+        <div class="lg:col-span-1">
+            @if($showCreateForm || $editingCategory)
+            <div class="bg-white rounded-lg shadow-sm p-6 sticky top-6">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">
+                    {{ $editingCategory ? 'แก้ไขหมวดหมู่' : 'เพิ่มหมวดหมู่ใหม่' }}
+                </h3>
+
+                <form wire:submit.prevent="{{ $editingCategory ? 'updateCategory' : 'createCategory' }}">
+                    <div class="space-y-4">
+                        <!-- Name -->
+                        <div>
+                            <label for="name" class="block text-sm font-medium text-gray-700">ชื่อหมวดหมู่</label>
+                            <input 
+                                type="text" 
+                                id="name"
+                                wire:model="name"
+                                class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500"
+                                required>
+                            @error('name') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
+                        </div>
+
+                        <!-- Parent Category -->
+                        <div>
+                            <label for="parent_id" class="block text-sm font-medium text-gray-700">หมวดหมู่หลัก</label>
+                            <select 
+                                id="parent_id"
+                                wire:model="parent_id"
+                                class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500">
+                                <option value="">ไม่มี (หมวดหมู่หลัก)</option>
+                                @foreach($parentCategories as $parent)
+                                <option value="{{ $parent->id }}">{{ $parent->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <!-- Description -->
+                        <div>
+                            <label for="description" class="block text-sm font-medium text-gray-700">คำอธิบาย</label>
+                            <textarea 
+                                id="description"
+                                wire:model="description"
+                                rows="3"
+                                class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500"></textarea>
+                        </div>
+
+                        <!-- Image -->
+                        <div>
+                            <label for="image" class="block text-sm font-medium text-gray-700">รูปภาพ</label>
+                            <input 
+                                type="file" 
+                                id="image"
+                                wire:model="image"
+                                accept="image/*"
+                                class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                            @error('image') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
+                        </div>
+
+                        <!-- Status -->
+                        <div>
+                            <label class="flex items-center">
+                                <input 
+                                    type="checkbox" 
+                                    wire:model="is_active"
+                                    class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                                <span class="ml-2 text-sm text-gray-700">เปิดใช้งาน</span>
+                            </label>
+                        </div>
+
+                        <!-- Form Actions -->
+                        <div class="flex space-x-3 pt-4">
+                            <button type="button"
+                                    wire:click="cancelEdit"
+                                    class="flex-1 px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+                                ยกเลิก
+                            </button>
+                            <button type="submit"
+                                    class="flex-1 px-4 py-2 border border-transparent rounded-md text-sm font-medium text-white bg-blue-600 hover:bg-blue-700">
+                                {{ $editingCategory ? 'อัพเดท' : 'สร้าง' }}
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            @endif
+
+            <!-- Category Stats -->
+            <div class="bg-white rounded-lg shadow-sm p-6 mt-6">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">สถิติหมวดหมู่</h3>
+                <div class="space-y-3">
+                    <div class="flex justify-between text-sm">
+                        <span class="text-gray-600">หมวดหมู่ทั้งหมด:</span>
+                        <span class="font-medium text-gray-900">{{ $categories->count() }}</span>
+                    </div>
+                    <div class="flex justify-between text-sm">
+                        <span class="text-gray-600">หมวดหมู่หลัก:</span>
+                        <span class="font-medium text-gray-900">{{ $categories->where('parent_id', null)->count() }}</span>
+                    </div>
+                    <div class="flex justify-between text-sm">
+                        <span class="text-gray-600">หมวดหมู่ย่อย:</span>
+                        <span class="font-medium text-gray-900">{{ $categories->where('parent_id', '!=', null)->count() }}</span>
+                    </div>
+                    <div class="flex justify-between text-sm">
+                        <span class="text-gray-600">สินค้าทั้งหมด:</span>
+                        <span class="font-medium text-gray-900">{{ $totalProducts ?? 0 }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function categoryTree() {
+    return {
+        expandedCategories: [],
+        
+        toggleCategory(categoryId) {
+            if (this.expandedCategories.includes(categoryId)) {
+                this.expandedCategories = this.expandedCategories.filter(id => id !== categoryId);
+            } else {
+                this.expandedCategories.push(categoryId);
+            }
+        },
+        
+        isExpanded(categoryId) {
+            return this.expandedCategories.includes(categoryId);
+        }
+    }
+}
+</script>
+```
+
+---
+
+❄️ SNOWBALL MLM COMPONENTS
+
+1. Package Manager Component
+
+```blade
+{{-- components/admin/snowball/package-manager.blade.php --}}
+@props(['packages' => []])
+
+<div class="package-manager">
+    <!-- Header -->
+    <div class="mb-6">
+        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-900">❄️ จัดการแพ็คเกจ Snowball</h1>
+                <p class="text-gray-600 mt-1">จัดการแพ็คเกจ MLM และสูตรคำนวณคอมมิชชั่น</p>
+            </div>
+            <div class="mt-4 lg:mt-0">
+                <button 
+                    wire:click="createPackage"
+                    class="inline-flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                    </svg>
+                    เพิ่มแพ็คเกจใหม่
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Packages Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        @foreach($packages as $package)
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
+            <!-- Package Header -->
+            <div class="p-4 border-b border-gray-200">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-lg font-bold text-gray-900">{{ $package->name }}</h3>
+                    <span class="text-2xl font-bold text-purple-600">฿{{ number_format($package->monthly_fee) }}</span>
+                </div>
+                <p class="text-sm text-gray-600 mt-1">{{ $package->description }}</p>
+            </div>
+
+            <!-- Package Details -->
+            <div class="p-4 space-y-3">
+                <div class="flex justify-between text-sm">
+                    <span class="text-gray-600">อัตราคอมมิชชั่น:</span>
+                    <span class="font-medium text-green-600">{{ $package->commission_rate }}%</span>
+                </div>
+                <div class="flex justify-between text-sm">
+                    <span class="text-gray-600">จำกัดสินค้า:</span>
+                    <span class="font-medium text-gray-900">{{ $package->product_limit ?: 'ไม่จำกัด' }}</span>
+                </div>
+                <div class="flex justify-between text-sm">
+                    <span class="text-gray-600">ผู้ใช้แล้ว:</span>
+                    <span class="font-medium text-blue-600">{{ $package->active_users_count }} ร้าน</span>
+                </div>
+                <div class="flex justify-between text-sm">
+                    <span class="text-gray-600">สถานะ:</span>
+                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium 
+                        {{ $package->is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800' }}">
+                        {{ $package->is_active ? 'เปิดใช้งาน' : 'ปิดใช้งาน' }}
+                    </span>
+                </div>
+
+                <!-- Formula Preview -->
+                <div class="mt-3 p-2 bg-gray-50 rounded border border-gray-200">
+                    <div class="text-xs text-gray-600 font-mono">
+                        {{ $package->formula }}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="px-4 py-3 bg-gray-50 rounded-b-lg">
+                <div class="flex space-x-2">
+                    <button 
+                        wire:click="editPackage({{ $package->id }})"
+                        class="flex-1 inline-flex justify-center items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                        แก้ไข
+                    </button>
+                    
+                    <button 
+                        wire:click="togglePackageStatus({{ $package->id }})"
+                        class="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            @if($package->is_active)
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                            @else
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                            @endif
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+        @endforeach
+
+        <!-- Add New Package Card -->
+        <div class="bg-white rounded-lg shadow-sm border-2 border-dashed border-gray-300 hover:border-purple-400 transition-colors">
+            <button 
+                wire:click="createPackage"
+                class="w-full h-full p-8 flex flex-col items-center justify-center text-gray-400 hover:text-purple-500">
+                <svg class="w-12 h-12 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+                <span class="text-lg font-medium">เพิ่มแพ็คเกจใหม่</span>
+                <span class="text-sm mt-1">สร้างแพ็คเกจ MLM ใหม่</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Package Form Modal -->
+    @if($showPackageForm)
+    <x-admin.snowball.package-form :package="$editingPackage" />
+    @endif
+</div>
+```
+
+2. Package Form Component
+
+```blade
+{{-- components/admin/snowball/package-form.blade.php --}}
+@props(['package' => null])
+
+<div class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+    <div class="relative top-20 mx-auto p-4 border w-full max-w-4xl shadow-lg rounded-lg bg-white">
+        <!-- Header -->
+        <div class="flex items-center justify-between p-4 border-b">
+            <h3 class="text-xl font-bold text-gray-900">
+                {{ $package ? 'แก้ไขแพ็คเกจ' : 'สร้างแพ็คเกจใหม่' }}
+            </h3>
+            <button wire:click="$set('showPackageForm', false)" class="text-gray-400 hover:text-gray-600">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+
+        <form wire:submit.prevent="{{ $package ? 'updatePackage' : 'createPackage' }}" class="p-6">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Basic Information -->
+                <div class="space-y-6">
+                    <h4 class="text-lg font-medium text-gray-900">ข้อมูลพื้นฐาน</h4>
+                    
+                    <!-- Name -->
+                    <div>
+                        <label for="name" class="block text-sm font-medium text-gray-700">ชื่อแพ็คเกจ</label>
+                        <input 
+                            type="text" 
+                            id="name"
+                            wire:model="name"
+                            class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-purple-500 focus:border-purple-500"
+                            required>
+                        @error('name') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
+                    </div>
+
+                    <!-- Description -->
+                    <div>
+                        <label for="description" class="block text-sm font-medium text-gray-700">คำอธิบาย</label>
+                        <textarea 
+                            id="description"
+                            wire:model="description"
+                            rows="3"
+                            class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-purple-500 focus:border-purple-500"></textarea>
+                    </div>
+
+                    <!-- Monthly Fee -->
+                    <div>
+                        <label for="monthly_fee" class="block text-sm font-medium text-gray-700">ค่าบริการรายเดือน</label>
+                        <input 
+                            type="number" 
+                            id="monthly_fee"
+                            wire:model="monthly_fee"
+                            min="0"
+                            step="0.01"
+                            class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-purple-500 focus:border-purple-500"
+                            required>
+                        @error('monthly_fee') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
+                    </div>
+
+                    <!-- Product Limit -->
+                    <div>
+                        <label for="product_limit" class="block text-sm font-medium text-gray-700">จำกัดจำนวนสินค้า</label>
+                        <input 
+                            type="number" 
+                            id="product_limit"
+                            wire:model="product_limit"
+                            min="0"
+                            class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-purple-500 focus:border-purple-500"
+                            placeholder="0 = ไม่จำกัด">
+                        <p class="text-xs text-gray-500 mt-1">จำนวนสินค้าสูงสุดที่สามารถเปิดใช้งาน Snowball ได้</p>
+                    </div>
+                </div>
+
+                <!-- Commission Settings -->
+                <div class="space-y-6">
+                    <h4 class="text-lg font-medium text-gray-900">การตั้งค่าคอมมิชชั่น</h4>
+
+                    <!-- Commission Rate -->
+                    <div>
+                        <label for="commission_rate" class="block text-sm font-medium text-gray-700">อัตราคอมมิชชั่นพื้นฐาน (%)</label>
+                        <input 
+                            type="number" 
+                            id="commission_rate"
+                            wire:model="commission_rate"
+                            min="0"
+                            max="100"
+                            step="0.1"
+                            class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-purple-500 focus:border-purple-500"
+                            required>
+                        @error('commission_rate') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
+                    </div>
+
+                    <!-- Formula Builder -->
+                    <x-admin.snowball.formula-builder />
+
+                    <!-- Status -->
+                    <div>
+                        <label class="flex items-center">
+                            <input 
+                                type="checkbox" 
+                                wire:model="is_active"
+                                class="rounded border-gray-300 text-purple-600 focus:ring-purple-500">
+                            <span class="ml-2 text-sm text-gray-700">เปิดใช้งานแพ็คเกจ</span>
+                        </label>
+                    </div>
+
+                    <!-- Commission Preview -->
+                    <div class="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                        <h5 class="text-sm font-medium text-purple-900 mb-2">ตัวอย่างการคำนวณ</h5>
+                        <div class="space-y-2 text-sm">
+                            <div class="flex justify-between">
+                                <span class="text-purple-700">ยอดขาย:</span>
+                                <span class="font-medium">฿1,000</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-purple-700">อัตราคอมมิชชั่น:</span>
+                                <span class="font-medium">{{ $commission_rate }}%</span>
+                            </div>
+                            <div class="flex justify-between border-t border-purple-200 pt-2">
+                                <span class="text-purple-900 font-medium">ได้รับคอมมิชชั่น:</span>
+                                <span class="text-green-600 font-bold">฿{{ number_format(1000 * $commission_rate / 100) }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Form Actions -->
+            <div class="mt-8 pt-6 border-t border-gray-200 flex justify-end space-x-3">
+                <button type="button"
+                        wire:click="$set('showPackageForm', false)"
+                        class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+                    ยกเลิก
+                </button>
+                <button type="submit"
+                        class="px-4 py-2 border border-transparent rounded-md text-sm font-medium text-white bg-purple-600 hover:bg-purple-700">
+                    {{ $package ? 'อัพเดทแพ็คเกจ' : 'สร้างแพ็คเกจ' }}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+```
+
+3. Formula Builder Component
+
+```blade
+{{-- components/admin/snowball/formula-builder.blade.php --}}
+@props(['formula' => ''])
+
+<div class="formula-builder" x-data="formulaBuilder()">
+    <label class="block text-sm font-medium text-gray-700 mb-2">สูตรคำนวณคอมมิชชั่น</label>
+    
+    <!-- Formula Display -->
+    <div class="mb-4 p-3 bg-gray-100 rounded border border-gray-300 font-mono text-sm">
+        <span x-text="formulaDisplay" class="text-purple-600"></span>
+        <span x-show="!formulaDisplay" class="text-gray-400">เลือกตัวแปรและตัวดำเนินการเพื่อสร้างสูตร...</span>
+    </div>
+
+    <!-- Variables -->
+    <div class="mb-4">
+        <h5 class="text-sm font-medium text-gray-700 mb-2">ตัวแปร</h5>
+        <div class="flex flex-wrap gap-2">
+            <template x-for="variable in variables" :key="variable.symbol">
+                <button 
+                    type="button"
+                    @click="addToFormula(variable.symbol)"
+                    class="px-3 py-1 bg-blue-100 text-blue-700 rounded text-sm hover:bg-blue-200">
+                    <span x-text="variable.name"></span> (<span x-text="variable.symbol"></span>)
+                </button>
+            </template>
+        </div>
+    </div>
+
+    <!-- Operators -->
+    <div class="mb-4">
+        <h5 class="text-sm font-medium text-gray-700 mb-2">ตัวดำเนินการ</h5>
+        <div class="flex flex-wrap gap-2">
+            <template x-for="operator in operators" :key="operator">
+                <button 
+                    type="button"
+                    @click="addToFormula(operator)"
+                    class="px-3 py-1 bg-green-100 text-green-700 rounded text-sm hover:bg-green-200">
+                    <span x-text="operator"></span>
+                </button>
+            </template>
+        </div>
+    </div>
+
+    <!-- Functions -->
+    <div class="mb-4">
+        <h5 class="text-sm font-medium text-gray-700 mb-2">ฟังก์ชัน</h5>
+        <div class="flex flex-wrap gap-2">
+            <template x-for="func in functions" :key="func.name">
+                <button 
+                    type="button"
+                    @click="addFunction(func)"
+                    class="px-3 py-1 bg-purple-100 text-purple-700 rounded text-sm hover:bg-purple-200">
+                    <span x-text="func.name"></span>
+                </button>
+            </template>
+        </div>
+    </div>
+
+    <!-- Formula Input (Hidden) -->
+    <input type="hidden" wire:model="formula" x-model="formulaValue">
+
+    <!-- Controls -->
+    <div class="flex space-x-2">
+        <button 
+            type="button"
+            @click="clearFormula"
+            class="px-3 py-1 bg-red-100 text-red-700 rounded text-sm hover:bg-red-200">
+            ล้าง
+        </button>
+        <button 
+            type="button"
+            @click="validateFormula"
+            class="px-3 py-1 bg-green-100 text-green-700 rounded text-sm hover:bg-green-200">
+            ตรวจสอบสูตร
+        </button>
+    </div>
+
+    <!-- Validation Result -->
+    <div x-show="validationResult" class="mt-2 p-2 text-sm rounded" 
+         :class="validationResult.isValid ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'">
+        <span x-text="validationResult.message"></span>
+    </div>
+</div>
+
+<script>
+function formulaBuilder() {
+    return {
+        formulaValue: @entangle('formula'),
+        formulaDisplay: '',
+        validationResult: null,
+        
+        variables: [
+            { name: 'Point Value', symbol: 'pv', description: 'มูลค่าจุดจากสินค้า' },
+            { name: 'Commission Rate', symbol: 'rate', description: 'อัตราคอมมิชชั่น' },
+            { name: 'Base Commission', symbol: 'base', description: 'ค่าคอมมิชชั่นพื้นฐาน' },
+            { name: 'Multiplier', symbol: 'multiplier', description: 'ตัวคูณ' },
+            { name: 'Level Bonus', symbol: 'level_bonus', description: 'โบนัสตามระดับ' },
+            { name: 'Team Volume', symbol: 'team_volume', description: 'ปริมาณยอดขายทีม' }
+        ],
+        
+        operators: ['+', '-', '*', '/', '(', ')'],
+        
+        functions: [
+            { name: 'MIN', template: 'MIN(,)' },
+            { name: 'MAX', template: 'MAX(,)' },
+            { name: 'ROUND', template: 'ROUND(,0)' },
+            { name: 'IF', template: 'IF(,,)' }
+        ],
+        
+        init() {
+            this.formulaDisplay = this.formulaValue;
+        },
+        
+        addToFormula(value) {
+            this.formulaValue += this.formulaValue ? ' ' + value : value;
+            this.formulaDisplay = this.formulaValue;
+            this.validationResult = null;
+        },
+        
+        addFunction(func) {
+            this.formulaValue += this.formulaValue ? ' ' + func.template : func.template;
+            this.formulaDisplay = this.formulaValue;
+            this.validationResult = null;
+        },
+        
+        clearFormula() {
+            this.formulaValue = '';
+            this.formulaDisplay = '';
+            this.validationResult = null;
+        },
+        
+        validateFormula() {
+            // Basic validation - in real implementation, this would use a proper formula parser
+            if (!this.formulaValue.trim()) {
+                this.validationResult = { isValid: false, message: 'กรุณากรอกสูตร' };
+                return;
+            }
+            
+            // Check for balanced parentheses
+            const parentheses = this.formulaValue.match(/[()]/g) || [];
+            let balance = 0;
+            for (let p of parentheses) {
+                balance += p === '(' ? 1 : -1;
+                if (balance < 0) break;
+            }
+            
+            if (balance !== 0) {
+                this.validationResult = { isValid: false, message: 'วงเล็บไม่สมดุล' };
+                return;
+            }
+            
+            this.validationResult = { isValid: true, message: 'สูตรถูกต้อง' };
+        }
+    }
+}
+</script>
+```
+
+4. Commission Reports Component (Snowball Only)
+
+```blade
+{{-- components/admin/snowball/commission-reports.blade.php --}}
+@props(['commissions' => [], 'filters' => []])
+
+<div class="commission-reports">
+    <!-- Header -->
+    <div class="mb-6">
+        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-900">💰 รายงานคอมมิชชั่น Snowball</h1>
+                <p class="text-gray-600 mt-1">รายงานค่าคอมมิชชั่น MLM ทั้งหมดในระบบ</p>
+            </div>
+            <div class="mt-4 lg:mt-0 flex space-x-3">
+                <button 
+                    wire:click="exportCommissions"
+                    class="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
+                    ส่งออกรายงาน
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+        <div class="bg-white rounded-lg shadow-sm p-6 text-center">
+            <div class="text-2xl font-bold text-blue-600">฿{{ number_format($totalCommissions) }}</div>
+            <div class="text-sm text-blue-700">คอมมิชชั่นทั้งหมด</div>
+        </div>
+        <div class="bg-white rounded-lg shadow-sm p-6 text-center">
+            <div class="text-2xl font-bold text-green-600">฿{{ number_format($paidCommissions) }}</div>
+            <div class="text-sm text-green-700">จ่ายแล้ว</div>
+        </div>
+        <div class="bg-white rounded-lg shadow-sm p-6 text-center">
+            <div class="text-2xl font-bold text-orange-600">฿{{ number_format($pendingCommissions) }}</div>
+            <div class="text-sm text-orange-700">รอการจ่าย</div>
+        </div>
+        <div class="bg-white rounded-lg shadow-sm p-6 text-center">
+            <div class="text-2xl font-bold text-purple-600">{{ $totalVendors }}</div>
+            <div class="text-sm text-purple-700">ร้านค้าใช้ Snowball</div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="bg-white rounded-lg shadow-sm p-4 mb-6">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <!-- Date Range -->
+            <div>
+                <label for="date_range" class="block text-sm font-medium text-gray-700 mb-1">ช่วงวันที่</label>
+                <select id="date_range" wire:model="dateRange" class="block w-full border border-gray-300 rounded-lg py-2 px-3 focus:ring-blue-500 focus:border-blue-500">
+                    <option value="today">วันนี้</option>
+                    <option value="week">สัปดาห์นี้</option>
+                    <option value="month">เดือนนี้</option>
+                    <option value="last_month">เดือนที่แล้ว</option>
+                    <option value="custom">กำหนดเอง</option>
+                </select>
+            </div>
+
+            <!-- Status Filter -->
+            <div>
+                <label for="status" class="block text-sm font-medium text-gray-700 mb-1">สถานะ</label>
+                <select id="status" wire:model="statusFilter" class="block w-full border border-gray-300 rounded-lg py-2 px-3 focus:ring-blue-500 focus:border-blue-500">
+                    <option value="all">ทั้งหมด</option>
+                    <option value="pending">รอการจ่าย</option>
+                    <option value="paid">จ่ายแล้ว</option>
+                    <option value="cancelled">ยกเลิก</option>
+                </select>
+            </div>
+
+            <!-- Package Filter -->
+            <div>
+                <label for="package" class="block text-sm font-medium text-gray-700 mb-1">แพ็คเกจ</label>
+                <select id="package" wire:model="packageFilter" class="block w-full border border-gray-300 rounded-lg py-2 px-3 focus:ring-blue-500 focus:border-blue-500">
+                    <option value="all">ทุกแพ็คเกจ</option>
+                    @foreach($packages as $package)
+                    <option value="{{ $package->id }}">{{ $package->name }}</option>
+                    @endforeach
+                </select>
+            </div>
+
+            <!-- Vendor Filter -->
+            <div>
+                <label for="vendor" class="block text-sm font-medium text-gray-700 mb-1">ร้านค้า</label>
+                <select id="vendor" wire:model="vendorFilter" class="block w-full border border-gray-300 rounded-lg py-2 px-3 focus:ring-blue-500 focus:border-blue-500">
+                    <option value="all">ทุกร้านค้า</option>
+                    @foreach($vendors as $vendor)
+                    <option value="{{ $vendor->id }}">{{ $vendor->shop_name }}</option>
+                    @endforeach
+                </select>
+            </div>
+        </div>
+
+        <!-- Custom Date Range -->
+        @if($dateRange === 'custom')
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+            <div>
+                <label for="start_date" class="block text-sm font-medium text-gray-700 mb-1">จากวันที่</label>
+                <input type="date" id="start_date" wire:model="startDate" class="block w-full border border-gray-300 rounded-lg py-2 px-3 focus:ring-blue-500 focus:border-blue-500">
+            </div>
+            <div>
+                <label for="end_date" class="block text-sm font-medium text-gray-700 mb-1">ถึงวันที่</label>
+                <input type="date" id="end_date" wire:model="endDate" class="block w-full border border-gray-300 rounded-lg py-2 px-3 focus:ring-blue-500 focus:border-blue-500">
+            </div>
+        </div>
+        @endif
+    </div>
+
+    <!-- Commission Table -->
+    <div class="bg-white rounded-lg shadow-sm overflow-hidden">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">วันที่</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ร้านค้า</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">คำสั่งซื้อ</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">แพ็คเกจ</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ยอดขาย</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">คอมมิชชั่น</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">สถานะ</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">การดำเนินการ</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200">
+                @foreach($commissions as $commission)
+                <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4 text-sm text-gray-900">
+                        {{ $commission->created_at->format('d/m/Y H:i') }}
+                    </td>
+                    <td class="px-6 py-4 text-sm text-gray-900">
+                        {{ $commission->vendor->shop_name }}
+                    </td>
+                    <td class="px-6 py-4 text-sm text-gray-900">
+                        #{{ $commission->order->order_code }}
+                    </td>
+                    <td class="px-6 py-4 text-sm text-gray-900">
+                        {{ $commission->package->name }}
+                    </td>
+                    <td class="px-6 py-4 text-sm text-gray-900">
+                        ฿{{ number_format($commission->sale_amount) }}
+                    </td>
+                    <td class="px-6 py-4 text-sm font-medium text-green-600">
+                        ฿{{ number_format($commission->commission_amount) }}
+                    </td>
+                    <td class="px-6 py-4">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium 
+                            {{ $commission->status === 'paid' ? 'bg-green-100 text-green-800' : 
+                               ($commission->status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800') }}">
+                            {{ $commission->status_text }}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 text-sm font-medium">
+                        @if($commission->status === 'pending')
+                        <button 
+                            wire:click="markAsPaid({{ $commission->id }})"
+                            class="text-green-600 hover:text-green-900">
+                            ทำเครื่องหมายว่าจ่ายแล้ว
+                        </button>
+                        @endif
+                    </td>
+                </tr>
+                @endforeach
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    @if($commissions->hasPages())
+    <div class="mt-6">
+        {{ $commissions->links() }}
+    </div>
+    @endif
+</div>
+```
+
+5. Payout Processor Component (Snowball Only)
+
+```blade
+{{-- components/admin/snowball/payout-processor.blade.php --}}
+@props(['pendingPayouts' => [], 'payoutMethods' => []])
+
+<div class="payout-processor">
+    <!-- Header -->
+    <div class="mb-6">
+        <h1 class="text-2xl font-bold text-gray-900">💸 ประมวลผลการจ่ายเงิน Snowball</h1>
+        <p class="text-gray-600 mt-1">จัดการการจ่ายค่าคอมมิชชั่น MLM ให้ผู้ขาย</p>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Pending Payouts -->
+        <div class="lg:col-span-2">
+            <div class="bg-white rounded-lg shadow-sm">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <h3 class="text-lg font-medium text-gray-900">คอมมิชชั่นรอการจ่าย</h3>
+                </div>
+                <div class="p-6">
+                    @if($pendingPayouts->count() > 0)
+                    <div class="space-y-4">
+                        @foreach($pendingPayouts as $vendorPayouts)
+                        <div class="border border-gray-200 rounded-lg p-4">
+                            <!-- Vendor Header -->
+                            <div class="flex items-center justify-between mb-3">
+                                <div class="flex items-center space-x-3">
+                                    <img class="h-10 w-10 rounded-full" 
+                                         src="{{ $vendorPayouts->first()->vendor->logo_url ?? asset('images/placeholders/shop-placeholder.png') }}" 
+                                         alt="{{ $vendorPayouts->first()->vendor->shop_name }}">
+                                    <div>
+                                        <h4 class="font-medium text-gray-900">{{ $vendorPayouts->first()->vendor->shop_name }}</h4>
+                                        <p class="text-sm text-gray-500">รวมคอมมิชชั่น: ฿{{ number_format($vendorPayouts->sum('commission_amount')) }}</p>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <span class="text-lg font-bold text-orange-600">
+                                        ฿{{ number_format($vendorPayouts->sum('commission_amount')) }}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <!-- Commission Details -->
+                            <div class="space-y-2 text-sm">
+                                @foreach($vendorPayouts as $commission)
+                                <div class="flex items-center justify-between py-1 border-b border-gray-100">
+                                    <div>
+                                        <span class="text-gray-600">#{{ $commission->order->order_code }}</span>
+                                        <span class="text-gray-400 ml-2">{{ $commission->created_at->format('d/m/Y') }}</span>
+                                    </div>
+                                    <span class="font-medium text-green-600">฿{{ number_format($commission->commission_amount) }}</span>
+                                </div>
+                                @endforeach
+                            </div>
+
+                            <!-- Payout Action -->
+                            <div class="mt-3 pt-3 border-t border-gray-200">
+                                <button 
+                                    wire:click="processVendorPayout({{ $vendorPayouts->first()->vendor_id }})"
+                                    class="w-full bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 font-medium">
+                                    จ่ายให้ {{ $vendorPayouts->first()->vendor->shop_name }}
+                                </button>
+                            </div>
+                        </div>
+                        @endforeach
+                    </div>
+                    @else
+                    <div class="text-center py-8 text-gray-500">
+                        <svg class="w-16 h-16 mx-auto mb-4 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <p class="text-lg font-medium text-gray-900">ไม่มีคอมมิชชั่นรอการจ่าย</p>
+                        <p class="text-gray-600">ทุกคอมมิชชั่นได้รับการจ่ายเรียบร้อยแล้ว</p>
+                    </div>
+                    @endif
+                </div>
+            </div>
+        </div>
+
+        <!-- Bulk Payout & Settings -->
+        <div class="space-y-6">
+            <!-- Bulk Payout -->
+            <div class="bg-white rounded-lg shadow-sm p-6">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">จ่ายเงินแบบกลุ่ม</h3>
+                
+                <div class="space-y-4">
+                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <div class="flex justify-between text-sm mb-2">
+                            <span class="text-blue-700">คอมมิชชั่นรอการจ่ายทั้งหมด:</span>
+                            <span class="font-bold text-blue-900">฿{{ number_format($totalPendingCommissions) }}</span>
+                        </div>
+                        <div class="flex justify-between text-sm">
+                            <span class="text-blue-700">จำนวนร้านค้า:</span>
+                            <span class="font-bold text-blue-900">{{ $pendingPayouts->count() }} ร้าน</span>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label for="payout_method" class="block text-sm font-medium text-gray-700 mb-2">
+                            วิธีการจ่าย
+                        </label>
+                        <select 
+                            id="payout_method"
+                            wire:model="bulkPayoutMethod"
+                            class="block w-full border border-gray-300 rounded-lg py-2 px-3 focus:ring-blue-500 focus:border-blue-500">
+                            <option value="">เลือกวิธีการจ่าย</option>
+                            @foreach($payoutMethods as $method)
+                            <option value="{{ $method->id }}">{{ $method->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <button 
+                        wire:click="processBulkPayout"
+                        {{ !$bulkPayoutMethod || $totalPendingCommissions == 0 ? 'disabled' : '' }}
+                        class="w-full bg-purple-600 text-white py-3 px-4 rounded-lg hover:bg-purple-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed">
+                        จ่ายเงินทั้งหมด
+                    </button>
+                </div>
+            </div>
+
+            <!-- Payout Settings -->
+            <div class="bg-white rounded-lg shadow-sm p-6">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">ตั้งค่าการจ่ายเงิน</h3>
+                
+                <div class="space-y-4">
+                    <div>
+                        <label class="flex items-center">
+                            <input 
+                                type="checkbox" 
+                                wire:model="autoPayout"
+                                class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                            <span class="ml-2 text-sm text-gray-700">จ่ายเงินอัตโนมัติ</span>
+                        </label>
+                        <p class="text-xs text-gray-500 mt-1">จ่ายเงินอัตโนมัติเมื่อคอมมิชชั่นถึงยอดขั้นต่ำ</p>
+                    </div>
+
+                    <div>
+                        <label for="min_payout" class="block text-sm font-medium text-gray-700 mb-2">
+                            ยอดจ่ายขั้นต่ำ
+                        </label>
+                        <input 
+                            type="number" 
+                            id="min_payout"
+                            wire:model="minPayoutAmount"
+                            min="0"
+                            class="block w-full border border-gray-300 rounded-lg py-2 px-3 focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+
+                    <div>
+                        <label for="payout_schedule" class="block text-sm font-medium text-gray-700 mb-2">
+                            ตารางการจ่าย
+                        </label>
+                        <select 
+                            id="payout_schedule"
+                            wire:model="payoutSchedule"
+                            class="block w-full border border-gray-300 rounded-lg py-2 px-3 focus:ring-blue-500 focus:border-blue-500">
+                            <option value="daily">รายวัน</option>
+                            <option value="weekly">รายสัปดาห์</option>
+                            <option value="monthly">รายเดือน</option>
+                        </select>
+                    </div>
+
+                    <button 
+                        wire:click="savePayoutSettings"
+                        class="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 font-medium">
+                        บันทึกการตั้งค่า
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+```
+
+6. MLM Analytics Component
+
+```blade
+{{-- components/admin/snowball/mlm-analytics.blade.php --}}
+@props(['analytics' => []])
+```
+
+7. API Integration Component
+
+```blade
+{{-- components/admin/snowball/api-integration.blade.php --}}
+@props(['apiStatus' => [], 'apiConfig' => []])
+```
+
+---
+
+⚙️ SYSTEM SETTINGS COMPONENTS
+
+1. General Settings Component
+
+```blade
+{{-- components/admin/settings/general-settings.blade.php --}}
+@props(['settings' => []])
+
+<div class="general-settings">
+    <!-- Header -->
+    <div class="mb-6">
+        <h1 class="text-2xl font-bold text-gray-900">⚙️ ตั้งค่าระบบทั่วไป</h1>
+        <p class="text-gray-600 mt-1">การตั้งค่าพื้นฐานของระบบ Blife Platform</p>
+    </div>
+
+    <form wire:submit.prevent="saveGeneralSettings" class="space-y-6">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Left Column -->
+            <div class="space-y-6">
+                <!-- Site Information -->
+                <div class="bg-white rounded-lg shadow-sm p-6">
+                    <h3 class="text-lg font-medium text-gray-900 mb-4">ข้อมูลเว็บไซต์</h3>
+                    
+                    <div class="space-y-4">
+                        <!-- Site Name -->
+                        <div>
+                            <label for="site_name" class="block text-sm font-medium text-gray-700">ชื่อเว็บไซต์</label>
+                            <input 
+                                type="text" 
+                                id="site_name"
+                                wire:model="site_name"
+                                class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500"
+                                required>
+                        </div>
+
+                        <!-- Site Description -->
+                        <div>
+                            <label for="site_description" class="block text-sm font-medium text-gray-700">คำอธิบายเว็บไซต์</label>
+                            <textarea 
+                                id="site_description"
+                                wire:model="site_description"
+                                rows="3"
+                                class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500"></textarea>
+                        </div>
+
+                        <!-- Contact Email -->
+                        <div>
+                            <label for="contact_email" class="block text-sm font-medium text-gray-700">อีเมลติดต่อ</label>
+                            <input 
+                                type="email" 
+                                id="contact_email"
+                                wire:model="contact_email"
+                                class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500"
+                                required>
+                        </div>
+
+                        <!-- Contact Phone -->
+                        <div>
+                            <label for="contact_phone" class="block text-sm font-medium text-gray-700">เบอร์โทรศัพท์</label>
+                            <input 
+                                type="tel" 
+                                id="contact_phone"
+                                wire:model="contact_phone"
+                                class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Logo & Favicon -->
+                <div class="bg-white rounded-lg shadow-sm p-6">
+                    <h3 class="text-lg font-medium text-gray-900 mb-4">โลโก้และไอคอน</h3>
+                    
+                    <div class="space-y-4">
+                        <!-- Logo -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">โลโก้หลัก</label>
+                            <div class="flex items-center space-x-4">
+                                <div class="flex-shrink-0">
+                                    <img class="h-16 w-16 object-contain" 
+                                         src="{{ $logoPreview ?? ($settings['logo_url'] ?? asset('images/logo/logo-main.png')) }}" 
+                                         alt="Logo">
+                                </div>
+                                <div class="flex-1">
+                                    <input 
+                                        type="file" 
+                                        wire:model="logo"
+                                        accept="image/*"
+                                        class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                                    <p class="text-xs text-gray-500 mt-1">แนะนำ: PNG ขนาด 120x40px</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Favicon -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Favicon</label>
+                            <div class="flex items-center space-x-4">
+                                <div class="flex-shrink-0">
+                                    <img class="h-8 w-8 object-contain" 
+                                         src="{{ $faviconPreview ?? ($settings['favicon_url'] ?? asset('images/logo/logo-icon.png')) }}" 
+                                         alt="Favicon">
+                                </div>
+                                <div class="flex-1">
+                                    <input 
+                                        type="file" 
+                                        wire:model="favicon"
+                                        accept="image/*"
+                                        class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                                    <p class="text-xs text-gray-500 mt-1">แนะนำ: ICO หรือ PNG ขนาด 32x32px</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column -->
+            <div class="space-y-6">
+                <!-- System Settings -->
+                <div class="bg-white rounded-lg shadow-sm p-6">
+                    <h3 class="text-lg font-medium text-gray-900 mb-4">การตั้งค่าระบบ</h3>
+                    
+                    <div class="space-y-4">
+                        <!-- Currency -->
+                        <div>
+                            <label for="currency" class="block text-sm font-medium text-gray-700">สกุลเงิน</label>
+                            <select 
+                                id="currency"
+                                wire:model="currency"
+                                class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500">
+                                <option value="THB">บาทไทย (THB)</option>
+                                <option value="USD">ดอลลาร์สหรัฐ (USD)</option>
+                            </select>
+                        </div>
+
+                        <!-- Timezone -->
+                        <div>
+                            <label for="timezone" class="block text-sm font-medium text-gray-700">โซนเวลา</label>
+                            <select 
+                                id="timezone"
+                                wire:model="timezone"
+                                class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500">
+                                <option value="Asia/Bangkok">กรุงเทพฯ (UTC+7)</option>
+                                <option value="UTC">UTC</option>
+                            </select>
+                        </div>
+
+                        <!-- Language -->
+                        <div>
+                            <label for="language" class="block text-sm font-medium text-gray-700">ภาษา</label>
+                            <select 
+                                id="language"
+                                wire:model="language"
+                                class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500">
+                                <option value="th">ไทย</option>
+                                <option value="en">English</option>
+                            </select>
+                        </div>
+
+                        <!-- Date Format -->
+                        <div>
+                            <label for="date_format" class="block text-sm font-medium text-gray-700">รูปแบบวันที่</label>
+                            <select 
+                                id="date_format"
+                                wire:model="date_format"
+                                class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500">
+                                <option value="d/m/Y">วัน/เดือน/ปี (25/12/2024)</option>
+                                <option value="Y-m-d">ปี-เดือน-วัน (2024-12-25)</option>
+                                <option value="m/d/Y">เดือน/วัน/ปี (12/25/2024)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Business Settings -->
+                <div class="bg-white rounded-lg shadow-sm p-6">
+                    <h3 class="text-lg font-medium text-gray-900 mb-4">การตั้งค่าธุรกิจ</h3>
+                    
+                    <div class="space-y-4">
+                        <!-- Business Name -->
+                        <div>
+                            <label for="business_name" class="block text-sm font-medium text-gray-700">ชื่อธุรกิจ</label>
+                            <input 
+                                type="text" 
+                                id="business_name"
+                                wire:model="business_name"
+                                class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+
+                        <!-- Tax ID -->
+                        <div>
+                            <label for="tax_id" class="block text-sm font-medium text-gray-700">เลขประจำตัวผู้เสียภาษี</label>
+                            <input 
+                                type="text" 
+                                id="tax_id"
+                                wire:model="tax_id"
+                                class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+
+                        <!-- Business Address -->
+                        <div>
+                            <label for="business_address" class="block text-sm font-medium text-gray-700">ที่อยู่ธุรกิจ</label>
+                            <textarea 
+                                id="business_address"
+                                wire:model="business_address"
+                                rows="3"
+                                class="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500"></textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Save Button -->
+        <div class="flex justify-end">
+            <button type="submit" 
+                    class="px-6 py-3 border border-transparent rounded-md text-sm font-medium text-white bg-blue-600 hover:bg-blue-700">
+                บันทึกการตั้งค่า
+            </button>
+        </div>
+    </form>
+</div>
+```
+
+2. Payment Settings Component
+
+```blade
+{{-- components/admin/settings/payment-settings.blade.php --}}
+@props(['paymentMethods' => [], 'bankAccounts' => []])
+
+<div class="payment-settings">
+    <!-- Header -->
+    <div class="mb-6">
+        <h1 class="text-2xl font-bold text-gray-900">💳 ตั้งค่าการชำระเงิน</h1>
+        <p class="text-gray-600 mt-1">จัดการวิธีการชำระเงินและบัญชีธนาคาร</p>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Payment Methods -->
+        <div class="space-y-6">
+            <div class="bg-white rounded-lg shadow-sm p-6">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">วิธีการชำระเงิน</h3>
+                
+                <div class="space-y-4">
+                    @foreach($paymentMethods as $method)
+                    <div class="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
+                        <div class="flex items-center space-x-3">
+                            <div class="flex-shrink-0 w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                                <span class="text-sm text-blue-600">{{ $method->icon }}</span>
+                            </div>
+                            <div>
+                                <h4 class="text-sm font-medium text-gray-900">{{ $method->name }}</h4>
+                                <p class="text-xs text-gray-500">{{ $method->description }}</p>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input 
+                                    type="checkbox" 
+                                    wire:model="paymentMethodsEnabled.{{ $method->id }}"
+                                    class="sr-only peer">
+                                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                            </label>
+                        </div>
+                    </div>
+                    @endforeach
+                </div>
+            </div>
+
+            <!-- Manual Payment Instructions -->
+            <div class="bg-white rounded-lg shadow-sm p-6">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">คำแนะนำการชำระเงินด้วยตนเอง</h3>
+                
+                <div class="space-y-4">
+                    <div>
+                        <label for="manual_instructions" class="block text-sm font-medium text-gray-700 mb-2">
+                            คำแนะนำการโอนเงิน
+                        </label>
+                        <textarea 
+                            id="manual_instructions"
+                            wire:model="manual_instructions"
+                            rows="4"
+                            class="block w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500"
+                            placeholder="กรุณาโอนเงินเข้าบัญชีด้านล่างและแจ้งการโอนผ่านช่องทาง..."></textarea>
+                    </div>
+
+                    <div>
+                        <label class="flex items-center">
+                            <input 
+                                type="checkbox" 
+                                wire:model="require_payment_proof"
+                                class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                            <span class="ml-2 text-sm text-gray-700">ต้องมีหลักฐานการชำระเงิน</span>
+                        </label>
+                    </div>
+
+                    <div>
+                        <label class="flex items-center">
+                            <input 
+                                type="checkbox" 
+                                wire:model="auto_confirm_payment"
+                                class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                            <span class="ml-2 text-sm text-gray-700">ยืนยันการชำระเงินอัตโนมัติ</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bank Accounts -->
+        <div class="space-y-6">
+            <div class="bg-white rounded-lg shadow-sm p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-medium text-gray-900">บัญชีธนาคาร</h3>
+                    <button 
+                        wire:click="addBankAccount"
+                        class="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
+                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                        </svg>
+                        เพิ่มบัญชี
+                    </button>
+                </div>
+                
+                <div class="space-y-4">
+                    @foreach($bankAccounts as $account)
+                    <div class="border border-gray-200 rounded-lg p-4">
+                        <div class="flex items-center justify-between mb-2">
+                            <h4 class="font-medium text-gray-900">{{ $account->bank_name }}</h4>
+                            <div class="flex space-x-2">
+                                <button 
+                                    wire:click="editBankAccount({{ $account->id }})"
+                                    class="text-blue-600 hover:text-blue-900">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                    </svg>
+                                </button>
+                                <button 
+                                    wire:click="deleteBankAccount({{ $account->id }})"
+                                    class="text-red-600 hover:text-red-900">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="space-y-1 text-sm text-gray-600">
+                            <div>เลขที่บัญชี: <span class="font-medium">{{ $account->account_number }}</span></div>
+                            <div>ชื่อบัญชี: <span class="font-medium">{{ $account->account_name }}</span></div>
+                            <div>สาขา: <span class="font-medium">{{ $account->branch }}</span></div>
+                        </div>
+
+                        <div class="mt-2">
+                            <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium 
+                                {{ $account->is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800' }}">
+                                {{ $account->is_active ? 'ใช้งาน' : 'ไม่ใช้งาน' }}
+                            </span>
+                        </div>
+                    </div>
+                    @endforeach
+
+                    @if($bankAccounts->isEmpty())
+                    <div class="text-center py-8 text-gray-500">
+                        <svg class="w-12 h-12 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                        </svg>
+                        <p>ยังไม่มีบัญชีธนาคาร</p>
+                        <p class="text-sm">เพิ่มบัญชีธนาคารสำหรับการชำระเงิน</p>
+                    </div>
+                    @endif
+                </div>
+            </div>
+
+            <!-- Payment Status Management -->
+            <div class="bg-white rounded-lg shadow-sm p-6">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">จัดการสถานะการชำระเงิน</h3>
+                
+                <div class="space-y-4">
+                    <div>
+                        <label for="default_payment_status" class="block text-sm font-medium text-gray-700 mb-2">
+                            สถานะเริ่มต้น
+                        </label>
+                        <select 
+                            id="default_payment_status"
+                            wire:model="default_payment_status"
+                            class="block w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500">
+                            <option value="pending">รอการชำระเงิน</option>
+                            <option value="paid">ชำระเงินแล้ว</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="flex items-center">
+                            <input 
+                                type="checkbox" 
+                                wire:model="notify_payment_status"
+                                class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                            <span class="ml-2 text-sm text-gray-700">แจ้งเตือนเมื่อมีการอัพเดทสถานะการชำระเงิน</span>
+                        </label>
+                    </div>
+
+                    <div>
+                        <label for="payment_timeout" class="block text-sm font-medium text-gray-700 mb-2">
+                            ระยะเวลารอชำระเงิน (ชั่วโมง)
+                        </label>
+                        <input 
+                            type="number" 
+                            id="payment_timeout"
+                            wire:model="payment_timeout"
+                            min="1"
+                            max="168"
+                            class="block w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500">
+                        <p class="text-xs text-gray-500 mt-1">คำสั่งซื้อจะถูกยกเลิกอัตโนมัติหากไม่ชำระเงินภายในเวลาที่กำหนด</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Save Button -->
+    <div class="mt-6 flex justify-end">
+        <button 
+            wire:click="savePaymentSettings"
+            class="px-6 py-3 border border-transparent rounded-md text-sm font-medium text-white bg-blue-600 hover:bg-blue-700">
+            บันทึกการตั้งค่า
+        </button>
+    </div>
+
+    <!-- Bank Account Form Modal -->
+    @if($showBankAccountForm)
+    <div class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+        <div class="relative top-20 mx-auto p-4 border w-full max-w-md shadow-lg rounded-lg bg-white">
+            <!-- Modal content for bank account form -->
+        </div>
+    </div>
+    @endif
+</div>
+```
+
+3. Shipping Settings Component
+
+```blade
+{{-- components/admin/settings/shipping-settings.blade.php --}}
+@props(['shippingZones' => [], 'shippingMethods' => []])
+```
+
+4. Email Settings Component
+
+```blade
+{{-- components/admin/settings/email-settings.blade.php --}}
+@props(['emailConfig' => [], 'emailTemplates' => []])
+```
+
+5. Tax Settings Component
+
+```blade
+{{-- components/admin/settings/tax-settings.blade.php --}}
+@props(['taxSettings' => [], 'taxRates' => []])
+```
+
+6. Maintenance Mode Component
+
+```blade
+{{-- components/admin/settings/maintenance-mode.blade.php --}}
+@props(['maintenanceSettings' => []])
+
+<div class="maintenance-mode">
+    <!-- Header -->
+    <div class="mb-6">
+        <h1 class="text-2xl font-bold text-gray-900">🔧 โหมดบำรุงรักษา</h1>
+        <p class="text-gray-600 mt-1">จัดการการเข้าถึงระบบในช่วงบำรุงรักษา</p>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Maintenance Status -->
+        <div class="bg-white rounded-lg shadow-sm p-6">
+            <h3 class="text-lg font-medium text-gray-900 mb-4">สถานะระบบ</h3>
+            
+            <div class="space-y-4">
+                <!-- Maintenance Mode Toggle -->
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h4 class="text-sm font-medium text-gray-900">โหมดบำรุงรักษา</h4>
+                        <p class="text-sm text-gray-500">ปิดการเข้าถึงระบบชั่วคราว</p>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input 
+                            type="checkbox" 
+                            wire:model="maintenance_enabled"
+                            class="sr-only peer">
+                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-600"></div>
+                    </label>
+                </div>
+
+                @if($maintenance_enabled)
+                <!-- Maintenance Message -->
+                <div>
+                    <label for="maintenance_message" class="block text-sm font-medium text-gray-700 mb-2">
+                        ข้อความบำรุงรักษา
+                    </label>
+                    <textarea 
+                        id="maintenance_message"
+                        wire:model="maintenance_message"
+                        rows="3"
+                        class="block w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500"
+                        placeholder="ระบบกำลังอยู่ระหว่างการบำรุงรักษา..."></textarea>
+                </div>
+
+                <!-- Allowed IPs -->
+                <div>
+                    <label for="allowed_ips" class="block text-sm font-medium text-gray-700 mb-2">
+                        IP ที่อนุญาต (คั่นด้วย comma)
+                    </label>
+                    <input 
+                        type="text" 
+                        id="allowed_ips"
+                        wire:model="allowed_ips"
+                        class="block w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500"
+                        placeholder="127.0.0.1, 192.168.1.1">
+                    <p class="text-xs text-gray-500 mt-1">IP ที่สามารถเข้าถึงระบบได้ในช่วงบำรุงรักษา</p>
+                </div>
+
+                <!-- Scheduled Maintenance -->
+                <div>
+                    <label class="flex items-center">
+                        <input 
+                            type="checkbox" 
+                            wire:model="scheduled_maintenance"
+                            class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                        <span class="ml-2 text-sm text-gray-700">บำรุงรักษาตามกำหนดการ</span>
+                    </label>
+                </div>
+
+                @if($scheduled_maintenance)
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label for="maintenance_start" class="block text-sm font-medium text-gray-700 mb-2">
+                            เริ่มต้น
+                        </label>
+                        <input 
+                            type="datetime-local" 
+                            id="maintenance_start"
+                            wire:model="maintenance_start"
+                            class="block w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label for="maintenance_end" class="block text-sm font-medium text-gray-700 mb-2">
+                            สิ้นสุด
+                        </label>
+                        <input 
+                            type="datetime-local" 
+                            id="maintenance_end"
+                            wire:model="maintenance_end"
+                            class="block w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                </div>
+                @endif
+                @endif
+            </div>
+        </div>
+
+        <!-- System Information -->
+        <div class="space-y-6">
+            <!-- Current Status -->
+            <div class="bg-white rounded-lg shadow-sm p-6">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">สถานะปัจจุบัน</h3>
+                
+                <div class="space-y-3">
+                    <div class="flex justify-between text-sm">
+                        <span class="text-gray-600">สถานะระบบ:</span>
+                        <span class="font-medium {{ $maintenance_enabled ? 'text-orange-600' : 'text-green-600' }}">
+                            {{ $maintenance_enabled ? 'กำลังบำรุงรักษา' : 'ปกติ' }}
+                        </span>
+                    </div>
+                    <div class="flex justify-between text-sm">
+                        <span class="text-gray-600">เริ่มบำรุงรักษา:</span>
+                        <span class="font-medium text-gray-900">{{ $maintenance_start ?: '-' }}</span>
+                    </div>
+                    <div class="flex justify-between text-sm">
+                        <span class="text-gray-600">สิ้นสุดบำรุงรักษา:</span>
+                        <span class="font-medium text-gray-900">{{ $maintenance_end ?: '-' }}</span>
+                    </div>
+                    <div class="flex justify-between text-sm">
+                        <span class="text-gray-600">IP ที่อนุญาต:</span>
+                        <span class="font-medium text-gray-900">{{ $allowed_ips ? count(explode(',', $allowed_ips)) : 0 }} IP</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="bg-white rounded-lg shadow-sm p-6">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">การดำเนินการด่วน</h3>
+                
+                <div class="space-y-3">
+                    <button 
+                        wire:click="enableMaintenance"
+                        class="w-full bg-orange-600 text-white py-2 px-4 rounded-lg hover:bg-orange-700 font-medium">
+                        เปิดโหมดบำรุงรักษา
+                    </button>
+                    
+                    <button 
+                        wire:click="disableMaintenance"
+                        class="w-full bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 font-medium">
+                        ปิดโหมดบำรุงรักษา
+                    </button>
+                    
+                    <button 
+                        wire:click="clearCache"
+                        class="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 font-medium">
+                        ล้างแคชระบบ
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Save Button -->
+    <div class="mt-6 flex justify-end">
+        <button 
+            wire:click="saveMaintenanceSettings"
+            class="px-6 py-3 border border-transparent rounded-md text-sm font-medium text-white bg-blue-600 hover:bg-blue-700">
+            บันทึกการตั้งค่า
+        </button>
+    </div>
+</div>
+```
+
+---
+
+🔧 LIVEWIRE CONTROLLERS
+
+Product Management Livewire
+
+```php
+<?php
+
+namespace App\Livewire\Admin\Products;
+
+use Livewire\Component;
+use Livewire\WithPagination;
+use App\Models\Product;
+
+class ProductList extends Component
+{
+    use WithPagination;
+
+    public $search = '';
+    public $statusFilter = 'all';
+    public $vendorFilter = 'all';
+    public $categoryFilter = 'all';
+    public $selectedProducts = [];
+
+    protected $queryString = [
+        'search' => ['except' => ''],
+        'statusFilter' => ['except' => 'all'],
+        'vendorFilter' => ['except' => 'all'],
+        'categoryFilter' => ['except' => 'all']
+    ];
+
+    public function approveProduct($productId)
+    {
+        $product = Product::findOrFail($productId);
+        $product->update(['is_approved' => true]);
+
+        $this->dispatch('notify', [
+            'type' => 'success',
+            'message' => 'อนุมัติสินค้าเรียบร้อย'
+        ]);
+    }
+
+    public function bulkApprove()
+    {
+        Product::whereIn('id', $this->selectedProducts)
+               ->update(['is_approved' => true]);
+
+        $this->selectedProducts = [];
+        $this->dispatch('notify', [
+            'type' => 'success', 
+            'message' => 'อนุมัติสินค้าแบบกลุ่มเรียบร้อย'
+        ]);
+    }
+
+    public function render()
+    {
+        $products = Product::with(['vendor', 'category', 'snowballSettings.package'])
+            ->when($this->search, function ($query) {
+                $query->where(function ($q) {
+                    $q->where('name', 'like', '%' . $this->search . '%')
+                      ->orWhere('sku', 'like', '%' . $this->search . '%');
+                });
+            })
+            ->when($this->statusFilter !== 'all', function ($query) {
+                if ($this->statusFilter === 'active') {
+                    $query->where('is_active', true);
+                } elseif ($this->statusFilter === 'inactive') {
+                    $query->where('is_active', false);
+                } elseif ($this->statusFilter === 'out_of_stock') {
+                    $query->where('stock_quantity', 0);
+                }
+            })
+            ->when($this->vendorFilter !== 'all', function ($query) {
+                $query->where('vendor_id', $this->vendorFilter);
+            })
+            ->when($this->categoryFilter !== 'all', function ($query) {
+                $query->where('category_id', $this->categoryFilter);
+            })
+            ->orderBy('created_at', 'desc')
+            ->paginate(25);
+
+        $vendors = \App\Models\Vendor::where('approval_status', 'approved')->get();
+        $categories = \App\Models\Category::where('is_active', true)->get();
+
+        return view('components.admin.products.product-list', compact('products', 'vendors', 'categories'));
+    }
+}
+```
+
+Snowball Package Management Livewire
+
+```php
+<?php
+
+namespace App\Livewire\Admin\Snowball;
+
+use Livewire\Component;
+use App\Models\SnowballPackage;
+
+class PackageManager extends Component
+{
+    public $packages = [];
+    public $showPackageForm = false;
+    public $editingPackage = null;
+
+    public function mount()
+    {
+        $this->packages = SnowballPackage::withCount(['productSettings'])->get();
+    }
+
+    public function createPackage()
+    {
+        $this->editingPackage = null;
+        $this->showPackageForm = true;
+    }
+
+    public function editPackage($packageId)
+    {
+        $this->editingPackage = SnowballPackage::find($packageId);
+        $this->showPackageForm = true;
+    }
+
+    public function togglePackageStatus($packageId)
+    {
+        $package = SnowballPackage::find($packageId);
+        $package->update(['is_active' => !$package->is_active]);
+
+        $this->mount(); // Refresh packages
+        $this->dispatch('notify', [
+            'type' => 'success',
+            'message' => 'อัพเดทสถานะแพ็คเกจเรียบร้อย'
+        ]);
+    }
+
+    public function render()
+    {
+        return view('components.admin.snowball.package-manager');
+    }
+}
+```
+
+ระบบ Components นี้ครบถ้วนตามโครงสร้างที่ระบุ พร้อมรองรับการจัดการสินค้า, Snowball MLM และการตั้งค่าระบบตามข้อกำหนดเฉพาะต่างๆ
