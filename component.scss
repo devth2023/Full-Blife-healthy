@@ -1,0 +1,1055 @@
+🎨 Complete SCSS Architecture - Blife Platform
+
+1. Main App.scss
+
+```scss
+// resources/css/app.scss
+
+// Import utilities first
+@import 'utilities/variables';
+@import 'utilities/mixins';
+@import 'utilities/animations';
+
+// Import base styles
+@import 'base/reset';
+@import 'base/typography';
+@import 'base/forms';
+
+// Import component styles
+@import 'components/global';
+@import 'components/customer';
+@import 'components/vendor';
+@import 'components/admin';
+@import 'components/snowball';
+
+// Import layout styles
+@import 'layouts/auth';
+@import 'layouts/customer';
+@import 'layouts/vendor';
+@import 'layouts/admin';
+
+// Import page-specific styles
+@import 'pages/public';
+@import 'pages/customer-pages';
+@import 'pages/vendor-pages';
+@import 'pages/admin-pages';
+
+// Import responsive styles
+@import 'responsive/mobile';
+@import 'responsive/tablet';
+@import 'responsive/desktop';
+```
+
+---
+
+2. Utilities/
+
+Variables.scss
+
+```scss
+// resources/css/utilities/_variables.scss
+
+// ===== COLOR SYSTEM =====
+$primary-colors: (
+  50: #f0f9ff,
+  100: #e0f2fe,
+  500: #0ea5e9,
+  600: #0284c7,
+  700: #0369a1,
+  900: #0c4a6e
+);
+
+$secondary-colors: (
+  50: #f8fafc,
+  100: #f1f5f9,
+  500: #64748b,
+  600: #475569,
+  700: #334155,
+  900: #0f172a
+);
+
+$success-colors: (
+  50: #f0fdf4,
+  500: #22c55e,
+  600: #16a34a,
+  700: #15803d
+);
+
+$warning-colors: (
+  50: #fffbeb,
+  500: #f59e0b,
+  600: #d97706,
+  700: #b45309
+);
+
+$error-colors: (
+  50: #fef2f2,
+  500: #ef4444,
+  600: #dc2626,
+  700: #b91c1c
+);
+
+// Theme Colors
+$primary: #0ea5e9;
+$primary-dark: #0369a1;
+$secondary: #64748b;
+$success: #22c55e;
+$warning: #f59e0b;
+$error: #ef4444;
+$info: #3b82f6;
+
+// Neutral Colors
+$white: #ffffff;
+$gray-50: #f8fafc;
+$gray-100: #f1f5f9;
+$gray-200: #e2e8f0;
+$gray-300: #cbd5e1;
+$gray-400: #94a3b8;
+$gray-500: #64748b;
+$gray-600: #475569;
+$gray-700: #334155;
+$gray-800: #1e293b;
+$gray-900: #0f172a;
+$black: #000000;
+
+// ===== TYPOGRAPHY =====
+$font-family-thai: 'Sukhumvit Set', 'IBM Plex Sans Thai', 'Noto Sans Thai', sans-serif;
+$font-family-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+$font-family-mono: 'SF Mono', 'Monaco', 'Inconsolata', monospace;
+
+$font-weights: (
+  light: 300,
+  normal: 400,
+  medium: 500,
+  semibold: 600,
+  bold: 700,
+  extrabold: 800
+);
+
+$font-sizes: (
+  xs: 0.75rem,    // 12px
+  sm: 0.875rem,   // 14px
+  base: 1rem,     // 16px
+  lg: 1.125rem,   // 18px
+  xl: 1.25rem,    // 20px
+  '2xl': 1.5rem,  // 24px
+  '3xl': 1.875rem, // 30px
+  '4xl': 2.25rem,  // 36px
+  '5xl': 3rem      // 48px
+);
+
+$line-heights: (
+  tight: 1.25,
+  normal: 1.5,
+  relaxed: 1.75
+);
+
+// ===== SPACING =====
+$spacing: (
+  0: 0,
+  1: 0.25rem,    // 4px
+  2: 0.5rem,     // 8px
+  3: 0.75rem,    // 12px
+  4: 1rem,       // 16px
+  5: 1.25rem,    // 20px
+  6: 1.5rem,     // 24px
+  8: 2rem,       // 32px
+  10: 2.5rem,    // 40px
+  12: 3rem,      // 48px
+  16: 4rem,      // 64px
+  20: 5rem,      // 80px
+  24: 6rem       // 96px
+);
+
+// ===== BREAKPOINTS =====
+$breakpoints: (
+  xs: 480px,
+  sm: 640px,
+  md: 768px,
+  lg: 1024px,
+  xl: 1280px,
+  '2xl': 1536px
+);
+
+// ===== BORDER RADIUS =====
+$border-radius: (
+  none: 0,
+  sm: 0.125rem,   // 2px
+  base: 0.25rem,  // 4px
+  md: 0.375rem,   // 6px
+  lg: 0.5rem,     // 8px
+  xl: 0.75rem,    // 12px
+  '2xl': 1rem,    // 16px
+  full: 9999px
+);
+
+// ===== SHADOWS =====
+$shadows: (
+  sm: 0 1px 2px 0 rgb(0 0 0 / 0.05),
+  base: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1),
+  md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1),
+  lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1),
+  xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)
+);
+
+// ===== Z-INDEX =====
+$z-index: (
+  dropdown: 1000,
+  sticky: 1020,
+  fixed: 1030,
+  modal-backdrop: 1040,
+  modal: 1050,
+  popover: 1060,
+  tooltip: 1070,
+  toast: 1080
+);
+
+// ===== SNOWBALL MLM THEME =====
+$snowball-colors: (
+  basic: #6b7280,
+  pro: #0ea5e9,
+  enterprise: #8b5cf6,
+  commission: #f59e0b
+);
+
+// ===== ANIMATION TIMING =====
+$transition-timing: (
+  fast: 150ms,
+  normal: 300ms,
+  slow: 500ms
+);
+```
+
+Mixins.scss
+
+```scss
+// resources/css/utilities/_mixins.scss
+
+// ===== RESPONSIVE MIXINS =====
+@mixin respond-to($breakpoint) {
+  @if map-has-key($breakpoints, $breakpoint) {
+    @media (min-width: map-get($breakpoints, $breakpoint)) {
+      @content;
+    }
+  } @else {
+    @warn "Breakpoint `#{$breakpoint}` not found in $breakpoints";
+  }
+}
+
+@mixin mobile-only {
+  @media (max-width: map-get($breakpoints, md) - 1px) {
+    @content;
+  }
+}
+
+@mixin tablet-only {
+  @media (min-width: map-get($breakpoints, md)) and (max-width: map-get($breakpoints, lg) - 1px) {
+    @content;
+  }
+}
+
+// ===== FLEXBOX MIXINS =====
+@mixin flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@mixin flex-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+@mixin flex-column {
+  display: flex;
+  flex-direction: column;
+}
+
+// =Typography Mixins
+@mixin thai-font {
+  font-family: $font-family-thai;
+  line-height: map-get($line-heights, relaxed);
+}
+
+@mixin heading($size: 'xl') {
+  @include thai-font;
+  font-weight: map-get($font-weights, bold);
+  font-size: map-get($font-sizes, $size);
+  color: $gray-900;
+}
+
+@mixin text-ellipsis($lines: 1) {
+  @if $lines == 1 {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  } @else {
+    display: -webkit-box;
+    -webkit-line-clamp: $lines;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+}
+
+// ===== BUTTON MIXINS =====
+@mixin button-base {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: map-get($spacing, 2);
+  border: none;
+  border-radius: map-get($border-radius, lg);
+  font-weight: map-get($font-weights, medium);
+  text-decoration: none;
+  cursor: pointer;
+  transition: all map-get($transition-timing, normal);
+  outline: none;
+  
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+@mixin button-variant($background, $color: $white, $hover-background: null) {
+  background-color: $background;
+  color: $color;
+  
+  @if $hover-background == null {
+    $hover-background: darken($background, 10%);
+  }
+  
+  &:hover:not(:disabled) {
+    background-color: $hover-background;
+  }
+  
+  &:focus {
+    box-shadow: 0 0 0 3px rgba($background, 0.3);
+  }
+}
+
+@mixin button-size($padding-y, $padding-x, $font-size) {
+  padding: $padding-y $padding-x;
+  font-size: $font-size;
+}
+
+// ===== CARD MIXINS =====
+@mixin card-base {
+  background: $white;
+  border-radius: map-get($border-radius, xl);
+  box-shadow: map-get($shadows, base);
+  border: 1px solid $gray-200;
+}
+
+@mixin card-hover {
+  transition: all map-get($transition-timing, normal);
+  
+  &:hover {
+    box-shadow: map-get($shadows, lg);
+    transform: translateY(-2px);
+  }
+}
+
+// ===== FORM MIXINS =====
+@mixin form-input-base {
+  width: 100%;
+  padding: map-get($spacing, 3) map-get($spacing, 4);
+  border: 1px solid $gray-300;
+  border-radius: map-get($border-radius, lg);
+  font-size: map-get($font-sizes, base);
+  transition: all map-get($transition-timing, normal);
+  background-color: $white;
+  
+  &:focus {
+    outline: none;
+    border-color: $primary;
+    box-shadow: 0 0 0 3px rgba($primary, 0.1);
+  }
+  
+  &:disabled {
+    background-color: $gray-100;
+    color: $gray-500;
+    cursor: not-allowed;
+  }
+}
+
+@mixin form-label {
+  display: block;
+  font-weight: map-get($font-weights, medium);
+  color: $gray-700;
+  margin-bottom: map-get($spacing, 2);
+  @include thai-font;
+}
+
+// ===== SNOWBALL MLM MIXINS =====
+@mixin snowball-package-card($type) {
+  $color: map-get($snowball-colors, $type);
+  
+  border: 2px solid $color;
+  background: linear-gradient(135deg, rgba($color, 0.05) 0%, rgba($color, 0.02) 100%);
+  
+  &.selected {
+    background: linear-gradient(135deg, rgba($color, 0.1) 0%, rgba($color, 0.05) 100%);
+    box-shadow: 0 4px 12px rgba($color, 0.2);
+  }
+}
+
+@mixin commission-badge {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: $white;
+  font-weight: map-get($font-weights, bold);
+  padding: map-get($spacing, 1) map-get($spacing, 3);
+  border-radius: map-get($border-radius, full);
+  font-size: map-get($font-sizes, sm);
+}
+
+// ===== UTILITY MIXINS =====
+@mixin sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@mixin loading-skeleton {
+  background: linear-gradient(90deg, $gray-200 25%, $gray-300 50%, $gray-200 75%);
+  background-size: 200% 100%;
+  animation: loading 1.5s infinite;
+}
+```
+
+Animations.scss
+
+```scss
+// resources/css/utilities/_animations.scss
+
+// ===== LOADING ANIMATIONS =====
+@keyframes loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+// ===== FADE ANIMATIONS =====
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideOut {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-100%);
+  }
+}
+
+// ===== BOUNCE ANIMATIONS =====
+@keyframes bounce {
+  0%, 20%, 53%, 80%, 100% {
+    transform: translate3d(0, 0, 0);
+  }
+  40%, 43% {
+    transform: translate3d(0, -8px, 0);
+  }
+  70% {
+    transform: translate3d(0, -4px, 0);
+  }
+  90% {
+    transform: translate3d(0, -2px, 0);
+  }
+}
+
+@keyframes shake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  10%, 30%, 50%, 70%, 90% {
+    transform: translateX(-4px);
+  }
+  20%, 40%, 60%, 80% {
+    transform: translateX(4px);
+  }
+}
+
+// ===== SUCCESS ANIMATIONS =====
+@keyframes checkmark {
+  0% {
+    stroke-dashoffset: 100;
+  }
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes confetti {
+  0% {
+    transform: translateY(0) rotate(0);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(100vh) rotate(720deg);
+    opacity: 0;
+  }
+}
+
+// ===== NOTIFICATION ANIMATIONS =====
+@keyframes toastIn {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes toastOut {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+}
+
+// ===== SNOWBALL MLM ANIMATIONS =====
+@keyframes commissionPulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+@keyframes levelUp {
+  0% {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+// ===== ANIMATION CLASSES =====
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.animate-bounce {
+  animation: bounce 1s infinite;
+}
+
+.animate-shake {
+  animation: shake 0.5s ease-in-out;
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.animate-fade-out {
+  animation: fadeOut 0.3s ease-in;
+}
+
+.animate-slide-in {
+  animation: slideIn 0.3s ease-out;
+}
+
+.animate-slide-out {
+  animation: slideOut 0.3s ease-in;
+}
+
+.animate-toast-in {
+  animation: toastIn 0.3s ease-out;
+}
+
+.animate-toast-out {
+  animation: toastOut 0.3s ease-in;
+}
+
+// ===== TRANSITION CLASSES =====
+.transition-fast {
+  transition: all map-get($transition-timing, fast);
+}
+
+.transition-normal {
+  transition: all map-get($transition-timing, normal);
+}
+
+.transition-slow {
+  transition: all map-get($transition-timing, slow);
+}
+```
+
+---
+
+3. Components/
+
+Global.scss
+
+```scss
+// resources/css/components/_global.scss
+
+// ===== GLOBAL COMPONENTS =====
+
+// Headline Component
+.headline {
+  @include thai-font;
+  margin: 0;
+  
+  // Variants
+  &.headline-primary {
+    color: $primary;
+  }
+  
+  &.headline-secondary {
+    color: $secondary;
+  }
+  
+  &.headline-success {
+    color: $success;
+  }
+  
+  &.headline-warning {
+    color: $warning;
+  }
+  
+  &.headline-error {
+    color: $error;
+  }
+  
+  // Sizes
+  &.headline-sm {
+    font-size: map-get($font-sizes, lg);
+  }
+  
+  &.headline-md {
+    font-size: map-get($font-sizes, xl);
+  }
+  
+  &.headline-lg {
+    font-size: map-get($font-sizes, '2xl');
+  }
+  
+  &.headline-xl {
+    font-size: map-get($font-sizes, '3xl');
+  }
+}
+
+// Error Message Component
+.error-message {
+  @include card-base;
+  border-color: $error;
+  background: map-get($error-colors, 50);
+  padding: map-get($spacing, 4);
+  
+  &.dismissible {
+    position: relative;
+    padding-right: map-get($spacing, 8);
+  }
+  
+  .error-icon {
+    color: $error;
+    margin-right: map-get($spacing, 3);
+  }
+  
+  .error-title {
+    @include thai-font;
+    font-weight: map-get($font-weights, semibold);
+    color: map-get($error-colors, 700);
+    margin-bottom: map-get($spacing, 2);
+  }
+  
+  .error-content {
+    color: map-get($error-colors, 600);
+    font-size: map-get($font-sizes, sm);
+  }
+  
+  // Types
+  &.validation-error {
+    border-color: $error;
+    background: map-get($error-colors, 50);
+  }
+  
+  &.auth-error {
+    border-color: $warning;
+    background: map-get($warning-colors, 50);
+  }
+  
+  &.payment-error {
+    border-color: map-get($warning-colors, 500);
+    background: map-get($warning-colors, 50);
+  }
+}
+
+// Form Components
+.form-group {
+  margin-bottom: map-get($spacing, 4);
+  
+  .form-label {
+    @include form-label;
+  }
+  
+  .form-input {
+    @include form-input-base;
+    
+    &.has-error {
+      border-color: $error;
+      box-shadow: 0 0 0 3px rgba($error, 0.1);
+    }
+    
+    &.has-success {
+      border-color: $success;
+      box-shadow: 0 0 0 3px rgba($success, 0.1);
+    }
+  }
+  
+  .form-help {
+    font-size: map-get($font-sizes, sm);
+    color: $gray-500;
+    margin-top: map-get($spacing, 1);
+  }
+  
+  .form-error {
+    font-size: map-get($font-sizes, sm);
+    color: $error;
+    margin-top: map-get($spacing, 1);
+  }
+}
+
+// File Upload Components
+.file-upload {
+  border: 2px dashed $gray-300;
+  border-radius: map-get($border-radius, xl);
+  padding: map-get($spacing, 8);
+  text-align: center;
+  transition: all map-get($transition-timing, normal);
+  background: $gray-50;
+  
+  &:hover {
+    border-color: $primary;
+    background: rgba($primary, 0.05);
+  }
+  
+  &.dragover {
+    border-color: $primary;
+    background: rgba($primary, 0.1);
+    box-shadow: 0 0 0 3px rgba($primary, 0.1);
+  }
+  
+  .upload-icon {
+    color: $gray-400;
+    margin-bottom: map-get($spacing, 3);
+  }
+  
+  .upload-text {
+    @include thai-font;
+    color: $gray-600;
+    margin-bottom: map-get($spacing, 2);
+  }
+}
+
+// Thai Address Form
+.thai-address-form {
+  .address-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: map-get($spacing, 4);
+    
+    @include respond-to(md) {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+  
+  .zipcode-display {
+    background: $gray-100;
+    color: $gray-600;
+    font-weight: map-get($font-weights, medium);
+  }
+}
+
+// Loading Spinner
+.loading-spinner {
+  @include flex-center;
+  
+  &.spinner-sm {
+    width: 20px;
+    height: 20px;
+  }
+  
+  &.spinner-md {
+    width: 40px;
+    height: 40px;
+  }
+  
+  &.spinner-lg {
+    width: 60px;
+    height: 60px;
+  }
+  
+  .spinner-circle {
+    border: 2px solid $gray-300;
+    border-top: 2px solid $primary;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    width: 100%;
+    height: 100%;
+  }
+}
+
+// Empty State
+.empty-state {
+  @include flex-column;
+  @include flex-center;
+  text-align: center;
+  padding: map-get($spacing, 12) map-get($spacing, 6);
+  
+  .empty-icon {
+    margin-bottom: map-get($spacing, 4);
+    color: $gray-400;
+  }
+  
+  .empty-title {
+    @include thai-font;
+    font-size: map-get($font-sizes, xl);
+    color: $gray-700;
+    margin-bottom: map-get($spacing, 2);
+  }
+  
+  .empty-description {
+    color: $gray-500;
+    margin-bottom: map-get($spacing, 6);
+    max-width: 400px;
+  }
+}
+
+// Confirmation Modal
+.confirmation-modal {
+  @include card-base;
+  max-width: 400px;
+  width: 90vw;
+  padding: map-get($spacing, 6);
+  
+  .modal-header {
+    @include flex-between;
+    margin-bottom: map-get($spacing, 4);
+    
+    .modal-title {
+      @include thai-font;
+      font-size: map-get($font-sizes, lg);
+      font-weight: map-get($font-weights, semibold);
+    }
+  }
+  
+  .modal-body {
+    margin-bottom: map-get($spacing, 6);
+    
+    .modal-message {
+      color: $gray-600;
+      line-height: map-get($line-heights, relaxed);
+    }
+  }
+  
+  .modal-actions {
+    @include flex-between;
+    gap: map-get($spacing, 3);
+    
+    .btn-cancel {
+      @include button-variant($gray-300, $gray-700);
+    }
+    
+    .btn-confirm {
+      @include button-variant($error, $white);
+    }
+  }
+}
+
+// Notification Toast
+.notification-toast {
+  @include card-base;
+  padding: map-get($spacing, 4);
+  margin-bottom: map-get($spacing, 3);
+  min-width: 300px;
+  max-width: 400px;
+  animation: toastIn 0.3s ease-out;
+  
+  &.toast-exiting {
+    animation: toastOut 0.3s ease-in;
+  }
+  
+  .toast-header {
+    @include flex-between;
+    margin-bottom: map-get($spacing, 2);
+    
+    .toast-title {
+      @include thai-font;
+      font-weight: map-get($font-weights, medium);
+      display: flex;
+      align-items: center;
+      gap: map-get($spacing, 2);
+    }
+  }
+  
+  .toast-body {
+    color: $gray-600;
+    font-size: map-get($font-sizes, sm);
+  }
+  
+  // Toast Types
+  &.toast-success {
+    border-left: 4px solid $success;
+  }
+  
+  &.toast-error {
+    border-left: 4px solid $error;
+  }
+  
+  &.toast-warning {
+    border-left: 4px solid $warning;
+  }
+  
+  &.toast-info {
+    border-left: 4px solid $info;
+  }
+}
+
+// Thai Currency Display
+.thai-currency {
+  font-family: $font-family-sans;
+  font-weight: map-get($font-weights, semibold);
+  
+  &.currency-default {
+    color: $gray-900;
+  }
+  
+  &.currency-discount {
+    color: $error;
+  }
+  
+  &.currency-original {
+    color: $gray-400;
+    text-decoration: line-through;
+  }
+  
+  &.currency-free {
+    color: $success;
+  }
+}
+
+// Responsive Grid
+.responsive-grid {
+  display: grid;
+  gap: map-get($spacing, 4);
+  
+  &.grid-cols-1 {
+    grid-template-columns: 1fr;
+  }
+  
+  &.grid-cols-2 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  &.grid-cols-3 {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  
+  &.grid-cols-4 {
+    grid-template-columns: repeat(4, 1fr);
+  }
+  
+  // Responsive behavior
+  @include mobile-only {
+    &.grid-cols-2,
+    &.grid-cols-3,
+    &.grid-cols-4 {
+      grid-template-columns: 1fr;
+    }
+  }
+  
+  @include tablet-only {
+    &.grid-cols-3,
+    &.grid-cols-4 {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+}
+```
+
+(Due to character limits, I'll provide the remaining SCSS files in subsequent responses. Let me know if you'd like me to continue with the customer, vendor, admin, snowball, layouts, and pages SCSS files.)
+
+This SCSS architecture provides a comprehensive styling system for the Blife platform with:
+
+· Consistent design tokens through variables
+· Reusable mixins for common patterns
+· Smooth animations for better UX
+· Role-based styling separation
+· Thai language optimization
+· Responsive design principles
+· MLM Snowball theming
+
+Would you like me to continue with the remaining SCSS files?
