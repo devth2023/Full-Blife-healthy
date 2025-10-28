@@ -1,0 +1,1201 @@
+🗃️ Complete Database Architecture - Blife Platform
+
+🏗️ Database Schema Design with Micro-Process Architecture
+
+1. Core User Management
+
+```sql
+-- ===== USERS & AUTHENTICATION =====
+CREATE TABLE users (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    uuid CHAR(36) NOT NULL UNIQUE,
+    email VARCHAR(255) NOT NULL UNIQUE,
+    email_verified_at TIMESTAMP NULL,
+    phone VARCHAR(20) NULL,
+    phone_verified_at TIMESTAMP NULL,
+    password VARCHAR(255) NOT NULL,
+    role ENUM('customer', 'seller', 'admin') NOT NULL DEFAULT 'customer',
+    first_name VARCHAR(100) NOT NULL,
+    last_name VARCHAR(100) NOT NULL,
+    avatar_url VARCHAR(500) NULL,
+    date_of_birth DATE NULL,
+    gender ENUM('male', 'female', 'other') NULL,
+    
+    -- Security
+    two_factor_secret TEXT NULL,
+    two_factor_recovery_codes TEXT NULL,
+    remember_token VARCHAR(100) NULL,
+    
+    -- Status
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    is_banned BOOLEAN NOT NULL DEFAULT FALSE,
+    banned_reason TEXT NULL,
+    banned_until TIMESTAMP NULL,
+    
+    -- Timestamps
+    last_login_at TIMESTAMP NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    
+    -- Indexes
+    INDEX idx_users_email (email),
+    INDEX idx_users_phone (phone),
+    INDEX idx_users_role (role),
+    INDEX idx_users_status (is_active, is_banned),
+    INDEX idx_users_created (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Trigger for UUID generation
+DELIMITER $$
+CREATE TRIGGER before_users_insert
+BEFORE INSERT ON users
+FOR EACH ROW
+BEGIN
+    IF NEW.uuid IS NULL THEN
+        SET NEW.uuid = UUID();
+    END IF;
+END$$
+DELIMITER ;
+```
+
+2. Vendor & Shop Management
+
+```sql
+-- ===== VENDORS/SHOPS =====
+CREATE TABLE vendors (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    user_id BIGINT UNSIGNED NOT NULL,
+    shop_name VARCHAR(255) NOT NULL UNIQUE,
+    shop_slug VARCHAR(255) NOT NULL UNIQUE,
+    shop_description TEXT NULL,
+    shop_category_id BIGINT UNSIGNED NULL,
+    
+    -- Shop Media
+    logo_url VARCHAR(500) NULL,
+    banner_url VARCHAR(500) NULL,
+    cover_image_url VARCHAR(500) NULL,
+    
+    -- Business Info
+    business_name VARCHAR(255) NULL,
+    tax_id VARCHAR(20) NULL,
+    business_registration_number VARCHAR(50) NULL,
+    
+    -- Contact Info
+    business_phone VARCHAR(20) NULL,
+    business_email VARCHAR(255) NULL,
+    website_url VARCHAR(500) NULL,
+    
+    -- Address (JSON for flexibility)
+    business_address JSON NULL,
+    
+    -- Bank Information
+    bank_name VARCHAR(100) NULL,
+    bank_account_number VARCHAR(50) NULL,
+    bank_account_name VARCHAR(255) NULL,
+    
+    -- Settings
+    commission_rate DECIMAL(5,2) NOT NULL DEFAULT 10.00,
+    payout_schedule ENUM('weekly', 'bi_weekly', 'monthly') NOT NULL DEFAULT 'monthly',
+    
+    -- Status & Approval
+    status ENUM('pending', 'approved', 'rejected', 'suspended') NOT NULL DEFAULT 'pending',
+    approval_status ENUM('pending', 'approved', 'rejected') NOT NULL DEFAULT 'pending',
+    approval_notes TEXT NULL,
+    approved_by BIGINT UNSIGNED NULL,
+    approved_at TIMESTAMP NULL,
+    
+    -- Statistics (Denormalized for performance)
+    total_products INT NOT NULL DEFAULT 0,
+    total_orders INT NOT NULL DEFAULT 0,
+    total_sales DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+    average_rating DECIMAL(3,2) NOT NULL DEFAULT 0.00,
+    
+    -- Timestamps
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    
+    -- Constraints
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (shop_category_id) REFERENCES categories(id) ON DELETE SET NULL,
+    FOREIGN KEY (approved_by) REFERENCES users(id) ON DELETE SET NULL,
+    
+    -- Indexes
+    INDEX idx_vendors_user (user_id),
+    INDEX idx_vendors_status (status),
+    INDEX idx_vendors_approval (approval_status),
+    INDEX idx_vendors_slug (shop_slug),
+    INDEX idx_vendors_created (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Trigger to update user role when vendor is approved
+DELIMITER $$
+CREATE TRIGGER after_vendors_approval
+AFTER UPDATE ON vendors
+FOR EACH ROW
+BEGIN
+    IF NEW.approval_status = 'approved' AND OLD.approval_status != 'approved' THEN
+        UPDATE users 
+        SET role = 'seller', 
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = NEW.user_id;
+    END IF;
+END$$
+DELIMITER ;
+```
+
+3. Product Catalog with Variants
+
+```sql
+-- ===== PRODUCT CATEGORIES =====
+CREATE TABLE categories (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    parent_id BIGINT UNSIGNED NULL,
+    name VARCHAR(255) NOT NULL,
+    name_th VARCHAR(255) NULL,
+    slug VARCHAR(255) NOT NULL UNIQUE,
+    description TEXT NULL,
+    image_url VARCHAR(500) NULL,
+    banner_url VARCHAR(500) NULL,
+    
+    -- SEO
+    meta_title VARCHAR(255) NULL,
+    meta_description TEXT NULL,
+    meta_keywords TEXT NULL,
+    
+    -- Settings
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    is_featured BOOLEAN NOT NULL DEFAULT FALSE,
+    sort_order INT NOT NULL DEFAULT 0,
+    
+    -- Statistics
+    products_count INT NOT NULL DEFAULT 0,
+    
+    -- Timestamps
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    
+    -- Constraints
+    FOREIGN KEY (parent_id) REFERENCES categories(id) ON DELETE CASCADE,
+    
+    -- Indexes
+    INDEX idx_categories_parent (parent_id),
+    INDEX idx_categories_slug (slug),
+    INDEX idx_categories_active (is_active),
+    INDEX idx_categories_sort (sort_order)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ===== PRODUCTS =====
+CREATE TABLE products (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    seller_id BIGINT UNSIGNED NOT NULL,
+    category_id BIGINT UNSIGNED NOT NULL,
+    
+    -- Basic Info
+    name VARCHAR(255) NOT NULL,
+    name_th VARCHAR(255) NULL,
+    slug VARCHAR(255) NOT NULL,
+    description TEXT NOT NULL,
+    description_th TEXT NULL,
+    short_description TEXT NULL,
+    
+    -- Media
+    thumbnail_url VARCHAR(500) NULL,
+    image_urls JSON NULL, -- Array of image URLs
+    
+    -- Pricing
+    base_price DECIMAL(10,2) NOT NULL,
+    compare_price DECIMAL(10,2) NULL,
+    cost_price DECIMAL(10,2) NULL,
+    
+    -- Inventory
+    sku VARCHAR(100) NULL UNIQUE,
+    barcode VARCHAR(100) NULL,
+    track_quantity BOOLEAN NOT NULL DEFAULT TRUE,
+    quantity INT NOT NULL DEFAULT 0,
+    low_stock_threshold INT NOT NULL DEFAULT 5,
+    
+    -- Shipping
+    weight DECIMAL(8,2) NULL, -- in kg
+    length DECIMAL(8,2) NULL, -- in cm
+    width DECIMAL(8,2) NULL,  -- in cm
+    height DECIMAL(8,2) NULL, -- in cm
+    
+    -- Variants
+    has_variants BOOLEAN NOT NULL DEFAULT FALSE,
+    variant_options JSON NULL, -- Available options (color, size, etc.)
+    
+    -- SEO
+    meta_title VARCHAR(255) NULL,
+    meta_description TEXT NULL,
+    meta_keywords TEXT NULL,
+    
+    -- Status
+    status ENUM('draft', 'pending', 'approved', 'rejected', 'active', 'inactive') NOT NULL DEFAULT 'draft',
+    approval_status ENUM('pending', 'approved', 'rejected') NOT NULL DEFAULT 'pending',
+    approval_notes TEXT NULL,
+    approved_by BIGINT UNSIGNED NULL,
+    approved_at TIMESTAMP NULL,
+    
+    -- Sales Data (Denormalized for performance)
+    total_sold INT NOT NULL DEFAULT 0,
+    total_revenue DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+    average_rating DECIMAL(3,2) NOT NULL DEFAULT 0.00,
+    review_count INT NOT NULL DEFAULT 0,
+    view_count INT NOT NULL DEFAULT 0,
+    
+    -- Timestamps
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    published_at TIMESTAMP NULL,
+    
+    -- Constraints
+    FOREIGN KEY (seller_id) REFERENCES vendors(id) ON DELETE CASCADE,
+    FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE RESTRICT,
+    FOREIGN KEY (approved_by) REFERENCES users(id) ON DELETE SET NULL,
+    
+    -- Indexes
+    UNIQUE INDEX idx_products_slug (slug),
+    INDEX idx_products_seller (seller_id),
+    INDEX idx_products_category (category_id),
+    INDEX idx_products_status (status),
+    INDEX idx_products_price (base_price),
+    INDEX idx_products_created (created_at),
+    INDEX idx_products_published (published_at),
+    FULLTEXT INDEX idx_products_search (name, description, short_description)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ===== PRODUCT VARIANTS =====
+CREATE TABLE product_variants (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    product_id BIGINT UNSIGNED NOT NULL,
+    sku VARCHAR(100) NULL UNIQUE,
+    
+    -- Variant Identification
+    variant_name VARCHAR(255) NOT NULL, -- "Red, Large"
+    option_values JSON NOT NULL, -- {"color": "red", "size": "large"}
+    
+    -- Pricing & Inventory
+    price DECIMAL(10,2) NOT NULL,
+    compare_price DECIMAL(10,2) NULL,
+    cost_price DECIMAL(10,2) NULL,
+    quantity INT NOT NULL DEFAULT 0,
+    
+    -- Media
+    image_url VARCHAR(500) NULL,
+    
+    -- Status
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    
+    -- Timestamps
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    
+    -- Constraints
+    FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
+    
+    -- Indexes
+    INDEX idx_variants_product (product_id),
+    INDEX idx_variants_sku (sku),
+    INDEX idx_variants_active (is_active)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Trigger to update product quantity from variants
+DELIMITER $$
+CREATE TRIGGER after_variants_update
+AFTER UPDATE ON product_variants
+FOR EACH ROW
+BEGIN
+    IF OLD.quantity != NEW.quantity OR OLD.is_active != NEW.is_active THEN
+        UPDATE products 
+        SET quantity = (
+            SELECT COALESCE(SUM(quantity), 0) 
+            FROM product_variants 
+            WHERE product_id = NEW.product_id AND is_active = TRUE
+        )
+        WHERE id = NEW.product_id;
+    END IF;
+END$$
+DELIMITER ;
+```
+
+4. MLM Snowball System ⭐
+
+```sql
+-- ===== SNOWBALL PACKAGES =====
+CREATE TABLE snowball_packages (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    name_th VARCHAR(100) NULL,
+    description TEXT NULL,
+    
+    -- Package Configuration
+    monthly_fee DECIMAL(8,2) NOT NULL DEFAULT 0.00,
+    product_limit INT NOT NULL DEFAULT 0, -- 0 = unlimited
+    commission_formula TEXT NOT NULL, -- JSON or custom formula
+    variables JSON NOT NULL, -- Configurable variables for formula
+    
+    -- Commission Structure
+    base_commission_rate DECIMAL(5,2) NOT NULL DEFAULT 0.00,
+    level_multipliers JSON NULL, -- [1.0, 1.2, 1.5, 1.8, 2.0]
+    bonus_conditions JSON NULL, -- Volume, time-based bonuses
+    
+    -- Status
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    sort_order INT NOT NULL DEFAULT 0,
+    
+    -- Timestamps
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    
+    -- Indexes
+    INDEX idx_packages_active (is_active),
+    INDEX idx_packages_order (sort_order)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ===== PRODUCT SNOWBALL SETTINGS =====
+CREATE TABLE product_snowball_settings (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    product_id BIGINT UNSIGNED NOT NULL UNIQUE,
+    package_id BIGINT UNSIGNED NOT NULL,
+    
+    -- Configuration
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    pv DECIMAL(10,2) NOT NULL DEFAULT 0.00, -- Point Value
+    input_values JSON NOT NULL, -- Vendor-provided values for formula
+    
+    -- Auto-calculated fields
+    calculated_commission_rate DECIMAL(5,2) NOT NULL DEFAULT 0.00,
+    
+    -- Timestamps
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    
+    -- Constraints
+    FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
+    FOREIGN KEY (package_id) REFERENCES snowball_packages(id) ON DELETE RESTRICT,
+    
+    -- Indexes
+    INDEX idx_snowball_product (product_id),
+    INDEX idx_snowball_package (package_id),
+    INDEX idx_snowball_active (is_active)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ===== SNOWBALL COMMISSION LOGS =====
+CREATE TABLE snowball_commission_logs (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    seller_id BIGINT UNSIGNED NOT NULL,
+    product_id BIGINT UNSIGNED NOT NULL,
+    package_id BIGINT UNSIGNED NOT NULL,
+    order_id BIGINT UNSIGNED NOT NULL,
+    order_item_id BIGINT UNSIGNED NOT NULL,
+    
+    -- Commission Calculation
+    sale_amount DECIMAL(10,2) NOT NULL,
+    pv_value DECIMAL(10,2) NOT NULL,
+    commission_rate DECIMAL(5,2) NOT NULL,
+    commission_amount DECIMAL(10,2) NOT NULL,
+    
+    -- Calculation Details
+    formula_used TEXT NOT NULL,
+    variables_used JSON NOT NULL,
+    calculation_breakdown JSON NOT NULL,
+    
+    -- Status
+    status ENUM('pending', 'approved', 'paid', 'cancelled') NOT NULL DEFAULT 'pending',
+    paid_at TIMESTAMP NULL,
+    
+    -- MLM Tracking
+    mlm_reference_id VARCHAR(100) NULL,
+    mlm_api_response JSON NULL,
+    
+    -- Timestamps
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    
+    -- Constraints
+    FOREIGN KEY (seller_id) REFERENCES vendors(id) ON DELETE CASCADE,
+    FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
+    FOREIGN KEY (package_id) REFERENCES snowball_packages(id) ON DELETE RESTRICT,
+    FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
+    FOREIGN KEY (order_item_id) REFERENCES order_items(id) ON DELETE CASCADE,
+    
+    -- Indexes
+    INDEX idx_commissions_seller (seller_id),
+    INDEX idx_commissions_order (order_id),
+    INDEX idx_commissions_status (status),
+    INDEX idx_commissions_created (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Trigger to calculate commission on order completion
+DELIMITER $$
+CREATE TRIGGER after_order_completion_commission
+AFTER UPDATE ON orders
+FOR EACH ROW
+BEGIN
+    IF NEW.status = 'completed' AND OLD.status != 'completed' THEN
+        -- Call stored procedure to calculate commissions
+        CALL CalculateOrderCommissions(NEW.id);
+    END IF;
+END$$
+DELIMITER ;
+```
+
+5. Order Management with Multi-Vendor Support
+
+```sql
+-- ===== ORDERS =====
+CREATE TABLE orders (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    user_id BIGINT UNSIGNED NOT NULL,
+    order_code VARCHAR(50) NOT NULL UNIQUE,
+    
+    -- Pricing
+    subtotal_amount DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+    shipping_amount DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+    tax_amount DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+    discount_amount DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+    total_amount DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+    
+    -- Shipping Address
+    shipping_address JSON NOT NULL,
+    billing_address JSON NULL,
+    
+    -- Shipping Info
+    shipping_method VARCHAR(100) NULL,
+    tracking_number VARCHAR(100) NULL,
+    estimated_delivery DATE NULL,
+    
+    -- Payment Info
+    payment_method VARCHAR(50) NOT NULL,
+    payment_status ENUM('pending', 'paid', 'failed', 'refunded') NOT NULL DEFAULT 'pending',
+    payment_reference VARCHAR(100) NULL,
+    paid_at TIMESTAMP NULL,
+    
+    -- Status
+    status ENUM('pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled', 'refunded') 
+        NOT NULL DEFAULT 'pending',
+    status_notes TEXT NULL,
+    
+    -- Customer Notes
+    customer_notes TEXT NULL,
+    
+    -- Timestamps
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    cancelled_at TIMESTAMP NULL,
+    delivered_at TIMESTAMP NULL,
+    
+    -- Constraints
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    
+    -- Indexes
+    INDEX idx_orders_user (user_id),
+    INDEX idx_orders_code (order_code),
+    INDEX idx_orders_status (status),
+    INDEX idx_orders_payment_status (payment_status),
+    INDEX idx_orders_created (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ===== VENDOR ORDERS (Order Splitting) =====
+CREATE TABLE vendor_orders (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    order_id BIGINT UNSIGNED NOT NULL,
+    seller_id BIGINT UNSIGNED NOT NULL,
+    vendor_order_code VARCHAR(50) NOT NULL UNIQUE,
+    
+    -- Vendor-specific pricing
+    subtotal_amount DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+    shipping_amount DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+    commission_amount DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+    total_amount DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+    
+    -- Vendor Status
+    status ENUM('pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled') 
+        NOT NULL DEFAULT 'pending',
+    status_updated_by BIGINT UNSIGNED NULL, -- vendor user who updated status
+    
+    -- Shipping
+    tracking_number VARCHAR(100) NULL,
+    shipping_carrier VARCHAR(50) NULL,
+    shipped_at TIMESTAMP NULL,
+    
+    -- Timestamps
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    
+    -- Constraints
+    FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
+    FOREIGN KEY (seller_id) REFERENCES vendors(id) ON DELETE CASCADE,
+    FOREIGN KEY (status_updated_by) REFERENCES users(id) ON DELETE SET NULL,
+    
+    -- Indexes
+    INDEX idx_vendor_orders_order (order_id),
+    INDEX idx_vendor_orders_seller (seller_id),
+    INDEX idx_vendor_orders_status (status),
+    UNIQUE INDEX idx_vendor_orders_unique (order_id, seller_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ===== ORDER ITEMS =====
+CREATE TABLE order_items (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    order_id BIGINT UNSIGNED NOT NULL,
+    vendor_order_id BIGINT UNSIGNED NOT NULL,
+    product_id BIGINT UNSIGNED NOT NULL,
+    product_variant_id BIGINT UNSIGNED NULL,
+    
+    -- Product Info at time of purchase (denormalized)
+    product_name VARCHAR(255) NOT NULL,
+    product_sku VARCHAR(100) NULL,
+    variant_name VARCHAR(255) NULL,
+    
+    -- Pricing
+    unit_price DECIMAL(10,2) NOT NULL,
+    quantity INT NOT NULL,
+    total_price DECIMAL(10,2) NOT NULL,
+    
+    -- Commission
+    commission_rate DECIMAL(5,2) NOT NULL DEFAULT 0.00,
+    commission_amount DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+    
+    -- Timestamps
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    
+    -- Constraints
+    FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
+    FOREIGN KEY (vendor_order_id) REFERENCES vendor_orders(id) ON DELETE CASCADE,
+    FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE RESTRICT,
+    FOREIGN KEY (product_variant_id) REFERENCES product_variants(id) ON DELETE SET NULL,
+    
+    -- Indexes
+    INDEX idx_order_items_order (order_id),
+    INDEX idx_order_items_vendor_order (vendor_order_id),
+    INDEX idx_order_items_product (product_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Trigger to split orders by vendor
+DELIMITER $$
+CREATE TRIGGER after_order_items_insert
+AFTER INSERT ON order_items
+FOR EACH ROW
+BEGIN
+    DECLARE vendor_id BIGINT UNSIGNED;
+    
+    -- Get product vendor
+    SELECT seller_id INTO vendor_id 
+    FROM products 
+    WHERE id = NEW.product_id;
+    
+    -- Find or create vendor order
+    INSERT INTO vendor_orders (order_id, seller_id, vendor_order_code, subtotal_amount)
+    VALUES (NEW.order_id, vendor_id, CONCAT('VO-', NEW.order_id, '-', vendor_id), NEW.total_price)
+    ON DUPLICATE KEY UPDATE 
+        subtotal_amount = subtotal_amount + NEW.total_price,
+        total_amount = total_amount + NEW.total_price,
+        updated_at = CURRENT_TIMESTAMP;
+    
+    -- Update vendor_order_id in order_items
+    UPDATE order_items 
+    SET vendor_order_id = (
+        SELECT id FROM vendor_orders 
+        WHERE order_id = NEW.order_id AND seller_id = vendor_id
+    )
+    WHERE id = NEW.id;
+END$$
+DELIMITER ;
+```
+
+6. Inventory & Audit System
+
+```sql
+-- ===== INVENTORY LOGS =====
+CREATE TABLE inventory_logs (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    product_id BIGINT UNSIGNED NOT NULL,
+    product_variant_id BIGINT UNSIGNED NULL,
+    user_id BIGINT UNSIGNED NULL, -- Who made the change
+    
+    -- Change Details
+    change_type ENUM('purchase', 'sale', 'return', 'adjustment', 'damage', 'transfer') NOT NULL,
+    previous_quantity INT NOT NULL,
+    new_quantity INT NOT NULL,
+    quantity_change INT NOT NULL,
+    
+    -- Reference
+    reference_type ENUM('order', 'manual', 'system') NULL,
+    reference_id BIGINT UNSIGNED NULL, -- order_id or other reference
+    
+    -- Notes
+    notes TEXT NULL,
+    
+    -- Timestamps
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    
+    -- Constraints
+    FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
+    FOREIGN KEY (product_variant_id) REFERENCES product_variants(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
+    
+    -- Indexes
+    INDEX idx_inventory_product (product_id),
+    INDEX idx_inventory_variant (product_variant_id),
+    INDEX idx_inventory_type (change_type),
+    INDEX idx_inventory_created (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Trigger for inventory tracking
+DELIMITER $$
+CREATE TRIGGER after_inventory_update
+AFTER UPDATE ON product_variants
+FOR EACH ROW
+BEGIN
+    IF OLD.quantity != NEW.quantity THEN
+        INSERT INTO inventory_logs (
+            product_id, product_variant_id, user_id, change_type,
+            previous_quantity, new_quantity, quantity_change,
+            reference_type, notes
+        )
+        VALUES (
+            NEW.product_id, NEW.id, NULL, 'adjustment',
+            OLD.quantity, NEW.quantity, NEW.quantity - OLD.quantity,
+            'system', 'Automatic inventory adjustment'
+        );
+    END IF;
+END$$
+DELIMITER ;
+```
+
+7. Service Integration & System Management
+
+```sql
+-- ===== SERVICE INTEGRATIONS =====
+CREATE TABLE service_integrations (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL UNIQUE,
+    service_key VARCHAR(100) NOT NULL UNIQUE,
+    description TEXT NULL,
+    
+    -- Configuration
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    credentials JSON NOT NULL, -- Encrypted credentials
+    settings JSON NOT NULL,
+    
+    -- Status Monitoring
+    last_check_at TIMESTAMP NULL,
+    last_success_at TIMESTAMP NULL,
+    status ENUM('connected', 'disconnected', 'error') NOT NULL DEFAULT 'disconnected',
+    error_message TEXT NULL,
+    
+    -- Statistics
+    total_requests INT NOT NULL DEFAULT 0,
+    successful_requests INT NOT NULL DEFAULT 0,
+    failed_requests INT NOT NULL DEFAULT 0,
+    
+    -- Timestamps
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    
+    -- Indexes
+    INDEX idx_services_active (is_active),
+    INDEX idx_services_status (status),
+    INDEX idx_services_key (service_key)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ===== SYSTEM SETTINGS =====
+CREATE TABLE system_settings (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    setting_group VARCHAR(50) NOT NULL, -- general, payment, shipping, email
+    setting_key VARCHAR(100) NOT NULL,
+    setting_value JSON NOT NULL,
+    data_type ENUM('string', 'number', 'boolean', 'array', 'object') NOT NULL DEFAULT 'string',
+    description TEXT NULL,
+    is_public BOOLEAN NOT NULL DEFAULT FALSE,
+    
+    -- Timestamps
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    
+    -- Constraints
+    UNIQUE INDEX idx_settings_unique (setting_group, setting_key),
+    
+    -- Indexes
+    INDEX idx_settings_group (setting_group),
+    INDEX idx_settings_key (setting_key)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+```
+
+---
+
+🌱 Database Seeders & Factories
+
+1. Database Seeder
+
+```php
+<?php
+// database/seeders/DatabaseSeeder.php
+
+namespace Database\Seeders;
+
+use Illuminate\Database\Seeder;
+
+class DatabaseSeeder extends Seeder
+{
+    public function run(): void
+    {
+        $this->call([
+            // Core System
+            RoleSeeder::class,
+            UserSeeder::class,
+            SystemSettingSeeder::class,
+            ServiceIntegrationSeeder::class,
+            
+            // Catalog
+            CategorySeeder::class,
+            SnowballPackageSeeder::class,
+            
+            // Vendors & Products
+            VendorSeeder::class,
+            ProductSeeder::class,
+            ProductVariantSeeder::class,
+            
+            // Content
+            PageSeeder::class,
+            BlogSeeder::class,
+            
+            // Sample Data
+            OrderSeeder::class,
+            ReviewSeeder::class,
+        ]);
+    }
+}
+```
+
+2. Snowball Package Seeder ⭐
+
+```php
+<?php
+// database/seeders/SnowballPackageSeeder.php
+
+namespace Database\Seeders;
+
+use Illuminate\Database\Seeder;
+use App\Models\SnowballPackage;
+
+class SnowballPackageSeeder extends Seeder
+{
+    public function run(): void
+    {
+        $packages = [
+            [
+                'name' => 'Basic Snowball',
+                'name_th' => 'เบสิก สโนว์บอล',
+                'description' => 'Perfect for beginners with basic commission structure',
+                'monthly_fee' => 0.00,
+                'product_limit' => 10,
+                'commission_formula' => 'pv * commission_rate / 100',
+                'variables' => json_encode([
+                    'commission_rate' => [
+                        'type' => 'percentage',
+                        'default' => 10,
+                        'min' => 5,
+                        'max' => 20,
+                        'step' => 1
+                    ]
+                ]),
+                'base_commission_rate' => 10.00,
+                'is_active' => true,
+                'sort_order' => 1,
+            ],
+            [
+                'name' => 'Pro Snowball',
+                'name_th' => 'โปร สโนว์บอล',
+                'description' => 'Advanced commission with multi-level bonuses',
+                'monthly_fee' => 299.00,
+                'product_limit' => 50,
+                'commission_formula' => '((pv * bv_multiplier) + base_commission) * level_multiplier',
+                'variables' => json_encode([
+                    'pv' => [
+                        'type' => 'number',
+                        'default' => 1000,
+                        'min' => 100,
+                        'max' => 10000,
+                        'step' => 100
+                    ],
+                    'bv_multiplier' => [
+                        'type' => 'number',
+                        'default' => 1.5,
+                        'min' => 1.0,
+                        'max' => 3.0,
+                        'step' => 0.1
+                    ],
+                    'base_commission' => [
+                        'type' => 'number',
+                        'default' => 50,
+                        'min' => 0,
+                        'max' => 500,
+                        'step' => 10
+                    ],
+                    'level_multiplier' => [
+                        'type' => 'select',
+                        'options' => [
+                            '1x' => 1.0,
+                            '1.2x' => 1.2,
+                            '1.5x' => 1.5,
+                            '1.8x' => 1.8,
+                            '2x' => 2.0
+                        ],
+                        'default' => '1x'
+                    ]
+                ]),
+                'base_commission_rate' => 15.00,
+                'level_multipliers' => json_encode([1.0, 1.2, 1.5, 1.8, 2.0]),
+                'bonus_conditions' => json_encode([
+                    'time_bonus' => [
+                        'enabled' => true,
+                        'rate' => 1, // 1% per month
+                        'max_months' => 12
+                    ],
+                    'volume_bonus' => [
+                        'enabled' => true,
+                        'tiers' => [
+                            ['min' => 100000, 'multiplier' => 1.1],
+                            ['min' => 500000, 'multiplier' => 1.15],
+                            ['min' => 1000000, 'multiplier' => 1.2]
+                        ]
+                    ]
+                ]),
+                'is_active' => true,
+                'sort_order' => 2,
+            ],
+            [
+                'name' => 'Enterprise Snowball',
+                'name_th' => 'เอ็นเตอร์ไพรส์ สโนว์บอล',
+                'description' => 'Maximum earning potential with team commissions',
+                'monthly_fee' => 999.00,
+                'product_limit' => 0, // Unlimited
+                'commission_formula' => '(pv * stype_multiplier * rank_bonus) + (team_volume * team_commission_rate / 100)',
+                'variables' => json_encode([
+                    'pv' => [
+                        'type' => 'number',
+                        'default' => 5000,
+                        'min' => 1000,
+                        'max' => 50000,
+                        'step' => 500
+                    ],
+                    'sales_type' => [
+                        'type' => 'select',
+                        'options' => [
+                            'Type A (1.0x)' => 1.0,
+                            'Type B (1.3x)' => 1.3,
+                            'Type C (1.6x)' => 1.6,
+                            'Type D (2.0x)' => 2.0
+                        ],
+                        'default' => 'Type A (1.0x)'
+                    ],
+                    'rank' => [
+                        'type' => 'select',
+                        'options' => [
+                            'Member (1.0x)' => 1.0,
+                            'Silver (1.2x)' => 1.2,
+                            'Gold (1.5x)' => 1.5,
+                            'Platinum (1.8x)' => 1.8,
+                            'Crown (2.5x)' => 2.5
+                        ],
+                        'default' => 'Member (1.0x)'
+                    ],
+                    'team_volume' => [
+                        'type' => 'number',
+                        'default' => 0,
+                        'min' => 0,
+                        'max' => 10000000,
+                        'step' => 1000
+                    ]
+                ]),
+                'base_commission_rate' => 20.00,
+                'is_active' => true,
+                'sort_order' => 3,
+            ]
+        ];
+
+        foreach ($packages as $package) {
+            SnowballPackage::create($package);
+        }
+    }
+}
+```
+
+3. Model Factories
+
+```php
+<?php
+// database/factories/UserFactory.php
+
+namespace Database\Factories;
+
+use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Support\Str;
+
+class UserFactory extends Factory
+{
+    public function definition(): array
+    {
+        return [
+            'first_name' => $this->faker->firstName(),
+            'last_name' => $this->faker->lastName(),
+            'email' => $this->faker->unique()->safeEmail(),
+            'email_verified_at' => now(),
+            'phone' => $this->faker->phoneNumber(),
+            'password' => bcrypt('password'),
+            'remember_token' => Str::random(10),
+            'role' => $this->faker->randomElement(['customer', 'seller', 'admin']),
+            'avatar_url' => $this->faker->imageUrl(200, 200, 'people'),
+            'date_of_birth' => $this->faker->date(),
+            'gender' => $this->faker->randomElement(['male', 'female', 'other']),
+            'is_active' => true,
+            'last_login_at' => $this->faker->dateTimeThisYear(),
+        ];
+    }
+
+    public function customer(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'role' => 'customer',
+        ]);
+    }
+
+    public function seller(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'role' => 'seller',
+        ]);
+    }
+
+    public function admin(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'role' => 'admin',
+            'email' => 'admin@blife.com',
+        ]);
+    }
+
+    public function unverified(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'email_verified_at' => null,
+        ]);
+    }
+}
+
+// database/factories/ProductFactory.php
+class ProductFactory extends Factory
+{
+    public function definition(): array
+    {
+        $name = $this->faker->productName;
+        
+        return [
+            'seller_id' => Vendor::factory(),
+            'category_id' => Category::factory(),
+            'name' => $name,
+            'name_th' => $name . ' (ไทย)',
+            'slug' => Str::slug($name),
+            'description' => $this->faker->paragraphs(3, true),
+            'description_th' => $this->faker->paragraphs(3, true),
+            'short_description' => $this->faker->sentence(),
+            'base_price' => $this->faker->numberBetween(100, 5000),
+            'compare_price' => $this->faker->numberBetween(150, 6000),
+            'cost_price' => $this->faker->numberBetween(50, 4000),
+            'sku' => 'SKU-' . $this->faker->unique()->numberBetween(1000, 9999),
+            'barcode' => $this->faker->isbn13(),
+            'quantity' => $this->faker->numberBetween(0, 100),
+            'low_stock_threshold' => 5,
+            'weight' => $this->faker->randomFloat(2, 0.1, 10),
+            'has_variants' => false,
+            'status' => 'active',
+            'approval_status' => 'approved',
+            'total_sold' => $this->faker->numberBetween(0, 1000),
+            'total_revenue' => $this->faker->numberBetween(1000, 100000),
+            'average_rating' => $this->faker->randomFloat(1, 3, 5),
+            'review_count' => $this->faker->numberBetween(0, 500),
+            'view_count' => $this->faker->numberBetween(0, 10000),
+            'published_at' => $this->faker->dateTimeThisYear(),
+        ];
+    }
+
+    public function withVariants(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'has_variants' => true,
+            'variant_options' => json_encode([
+                'color' => ['Red', 'Blue', 'Green', 'Black'],
+                'size' => ['S', 'M', 'L', 'XL']
+            ]),
+        ]);
+    }
+
+    public function withSnowball(): static
+    {
+        return $this->afterCreating(function (Product $product) {
+            ProductSnowballSetting::factory()->create([
+                'product_id' => $product->id,
+                'package_id' => SnowballPackage::inRandomOrder()->first()->id,
+                'pv' => $this->faker->numberBetween(100, 5000),
+                'input_values' => json_encode(['commission_rate' => 15]),
+            ]);
+        });
+    }
+}
+```
+
+---
+
+🔄 Stored Procedures & Database Functions
+
+1. Commission Calculation Procedure
+
+```sql
+DELIMITER $$
+
+CREATE PROCEDURE CalculateOrderCommissions(IN order_id BIGINT)
+BEGIN
+    DECLARE done INT DEFAULT FALSE;
+    DECLARE item_id BIGINT;
+    DECLARE product_id BIGINT;
+    DECLARE seller_id BIGINT;
+    DECLARE sale_amount DECIMAL(10,2);
+    DECLARE pv_value DECIMAL(10,2);
+    DECLARE commission_rate DECIMAL(5,2);
+    DECLARE commission_amount DECIMAL(10,2);
+    DECLARE snowball_active BOOLEAN;
+    
+    -- Cursor for order items
+    DECLARE item_cursor CURSOR FOR 
+        SELECT oi.id, oi.product_id, p.seller_id, oi.total_price
+        FROM order_items oi
+        JOIN products p ON oi.product_id = p.id
+        WHERE oi.order_id = order_id;
+    
+    DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = TRUE;
+    
+    OPEN item_cursor;
+    
+    read_loop: LOOP
+        FETCH item_cursor INTO item_id, product_id, seller_id, sale_amount;
+        IF done THEN
+            LEAVE read_loop;
+        END IF;
+        
+        -- Check if product has Snowball MLM enabled
+        SELECT COUNT(*) INTO snowball_active
+        FROM product_snowball_settings pss
+        WHERE pss.product_id = product_id AND pss.is_active = TRUE;
+        
+        IF snowball_active > 0 THEN
+            -- Get Snowball settings
+            SELECT pss.pv, pss.calculated_commission_rate 
+            INTO pv_value, commission_rate
+            FROM product_snowball_settings pss
+            WHERE pss.product_id = product_id;
+            
+            -- Calculate commission
+            SET commission_amount = (sale_amount * commission_rate) / 100;
+            
+            -- Insert commission log
+            INSERT INTO snowball_commission_logs (
+                seller_id, product_id, package_id, order_id, order_item_id,
+                sale_amount, pv_value, commission_rate, commission_amount,
+                formula_used, variables_used, calculation_breakdown,
+                status, mlm_reference_id
+            )
+            SELECT 
+                seller_id, product_id, pss.package_id, order_id, item_id,
+                sale_amount, pv_value, commission_rate, commission_amount,
+                sp.commission_formula, pss.input_values,
+                JSON_OBJECT(
+                    'base_amount', sale_amount,
+                    'commission_rate', commission_rate,
+                    'calculated_amount', commission_amount
+                ),
+                'pending', UUID()
+            FROM product_snowball_settings pss
+            JOIN snowball_packages sp ON pss.package_id = sp.id
+            WHERE pss.product_id = product_id;
+            
+            -- Update order item commission
+            UPDATE order_items 
+            SET commission_rate = commission_rate, 
+                commission_amount = commission_amount
+            WHERE id = item_id;
+        END IF;
+    END LOOP;
+    
+    CLOSE item_cursor;
+END$$
+
+DELIMITER ;
+```
+
+2. Vendor Statistics Update Trigger
+
+```sql
+DELIMITER $$
+
+CREATE TRIGGER after_vendor_order_update
+AFTER UPDATE ON vendor_orders
+FOR EACH ROW
+BEGIN
+    IF NEW.status = 'delivered' AND OLD.status != 'delivered' THEN
+        -- Update vendor sales statistics
+        UPDATE vendors 
+        SET 
+            total_orders = total_orders + 1,
+            total_sales = total_sales + NEW.total_amount,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = NEW.seller_id;
+    END IF;
+END$$
+
+DELIMITER ;
+```
+
+---
+
+📊 Database Performance Optimization
+
+1. Recommended Indexes
+
+```sql
+-- Additional performance indexes
+CREATE INDEX idx_products_price_range ON products(base_price) WHERE base_price BETWEEN 0 AND 10000;
+CREATE INDEX idx_orders_date_range ON orders(created_at) WHERE created_at >= DATE_SUB(NOW(), INTERVAL 1 YEAR);
+CREATE INDEX idx_vendor_orders_composite ON vendor_orders(seller_id, status, created_at);
+
+-- Full-text search optimization
+ALTER TABLE products ADD FULLTEXT ft_products_search (name, description, short_description);
+ALTER TABLE vendors ADD FULLTEXT ft_vendors_search (shop_name, shop_description);
+```
+
+2. Partitioning for Large Tables
+
+```sql
+-- Partition orders by year for better performance
+ALTER TABLE orders 
+PARTITION BY RANGE (YEAR(created_at)) (
+    PARTITION p2023 VALUES LESS THAN (2024),
+    PARTITION p2024 VALUES LESS THAN (2025),
+    PARTITION p2025 VALUES LESS THAN (2026),
+    PARTITION p_future VALUES LESS THAN MAXVALUE
+);
+```
+
+This comprehensive database architecture provides:
+
+· ✅ Micro-process architecture with triggers and stored procedures
+· ✅ End-to-end data flow with automatic updates
+· ✅ Dynamic commission calculations for MLM system
+· ✅ Multi-vendor order splitting
+· ✅ Comprehensive audit trails
+· ✅ Performance optimization with proper indexing
+· ✅ Data integrity with constraints and triggers
+· ✅ Scalable design for future growth
+
+The system ensures data consistency while maintaining high performance through proper normalization, indexing, and strategic denormalization for frequently accessed data.
