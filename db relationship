@@ -1,0 +1,1574 @@
+🗃️ Complete Database Schema & Relationships - Blife Platform
+
+📊 Database Architecture Overview
+
+1. User Management & Authentication
+
+```sql
+-- Users table
+users
+├── id (PK)
+├── name
+├── email
+├── password
+├── role (enum: customer, seller, admin)
+├── email_verified_at
+├── phone
+├── avatar
+├── is_active
+├── last_login_at
+├── created_at
+├── updated_at
+└── remember_token
+
+-- Seller profiles
+sellers
+├── id (PK)
+├── user_id (FK → users)
+├── shop_name
+├── shop_slug
+├── shop_description
+├── shop_logo
+├── shop_banner
+├── shop_category_id (FK → categories)
+├── bank_name
+├── account_number
+├── account_name
+├── tax_id
+├── status (enum: pending, approved, rejected, suspended)
+├── approval_status
+├── approved_at
+├── commission_rate (default: platform setting)
+├── total_earnings
+├── created_at
+└── updated_at
+
+-- User addresses
+addresses
+├── id (PK)
+├── user_id (FK → users)
+├── type (enum: billing, shipping)
+├── address_line_1
+├── address_line_2
+├── province_id (FK → provinces)
+├── district_id (FK → districts)
+├── subdistrict_id (FK → subdistricts)
+├── zipcode
+├── is_default
+├── created_at
+└── updated_at
+```
+
+2. Product & Catalog Management
+
+```sql
+-- Categories
+categories
+├── id (PK)
+├── parent_id (FK → categories, self-referential)
+├── name
+├── slug
+├── description
+├── image
+├── meta_title
+├── meta_description
+├── is_active
+├── order
+├── created_at
+└── updated_at
+
+-- Products
+products
+├── id (PK)
+├── seller_id (FK → sellers)
+├── category_id (FK → categories)
+├── name
+├── slug
+├── description
+├── short_description
+├── price
+├── compare_price
+├── cost_price
+├── sku
+├── barcode
+├── weight
+├── dimensions (JSON: {width, height, length})
+├── is_published
+├── is_featured
+├── is_digital
+├── requires_shipping
+├── track_quantity
+├── quantity
+├── low_stock_threshold
+├── meta_title
+├── meta_description
+├── created_at
+└── updated_at
+
+-- Product variants
+product_variants
+├── id (PK)
+├── product_id (FK → products)
+├── name (e.g., "Color", "Size")
+├── value (e.g., "Red", "XL")
+├── price_adjustment
+├── sku
+├── quantity
+├── image
+├── created_at
+└── updated_at
+
+-- Product images
+product_images
+├── id (PK)
+├── product_id (FK → products)
+├── variant_id (FK → product_variants, nullable)
+├── image_path
+├── alt_text
+├── order
+├── is_primary
+├── created_at
+└── updated_at
+
+-- Inventory management
+inventory_logs
+├── id (PK)
+├── product_id (FK → products)
+├── variant_id (FK → product_variants, nullable)
+├── type (enum: in, out, adjustment)
+├── quantity
+├── reason
+├── note
+├── created_by (FK → users)
+├── created_at
+└── updated_at
+```
+
+3. Order & Payment System
+
+```sql
+-- Orders
+orders
+├── id (PK)
+├── user_id (FK → users)
+├── code (unique order number)
+├── status (enum: pending, confirmed, processing, shipped, delivered, cancelled, refunded)
+├── payment_status (enum: pending, paid, failed, refunded)
+├── shipping_address_id (FK → addresses)
+├── billing_address_id (FK → addresses)
+├── shipping_method
+├── shipping_cost
+├── subtotal
+├── tax_amount
+├── discount_amount
+├── total
+├── note
+├── cancelled_at
+├── shipped_at
+├── delivered_at
+├── created_at
+└── updated_at
+
+-- Order items
+order_items
+├── id (PK)
+├── order_id (FK → orders)
+├── product_id (FK → products)
+├── variant_id (FK → product_variants, nullable)
+├── product_name (snapshot)
+├── variant_name (snapshot)
+├── quantity
+├── unit_price
+├── total_price
+├── created_at
+└── updated_at
+
+-- Vendor orders (split by seller)
+vendor_orders
+├── id (PK)
+├── order_id (FK → orders)
+├── seller_id (FK → sellers)
+├── status (enum: pending, confirmed, processing, shipped, delivered, cancelled)
+├── subtotal
+├── shipping_cost
+├── commission_amount
+├── seller_earnings
+├── shipping_tracking_number
+├── shipped_at
+├── created_at
+└── updated_at
+
+-- Vendor order items
+vendor_order_items
+├── id (PK)
+├── vendor_order_id (FK → vendor_orders)
+├── order_item_id (FK → order_items)
+├── created_at
+└── updated_at
+
+-- Transactions
+transactions
+├── id (PK)
+├── order_id (FK → orders)
+├── payment_method (enum: credit_card, bank_transfer, promptpay, cash)
+├── payment_gateway
+├── gateway_transaction_id
+├── amount
+├── fee
+├── status (enum: pending, completed, failed, refunded)
+├── gateway_response (JSON)
+├── paid_at
+├── created_at
+└── updated_at
+```
+
+4. ⭐ MLM Snowball System
+
+```sql
+-- Snowball packages
+snowball_packages
+├── id (PK)
+├── name (Basic, Pro, Enterprise)
+├── slug
+├── description
+├── formula (e.g., "pv * commission_rate / 100")
+├── variables (JSON: configurable variables)
+├── monthly_fee
+├── product_limit
+├── is_active
+├── created_at
+└── updated_at
+
+-- Product snowball settings
+product_snowball_settings
+├── id (PK)
+├── product_id (FK → products)
+├── snowball_package_id (FK → snowball_packages)
+├── is_active
+├── input_values (JSON: vendor-provided values)
+├── pv (Point Value)
+├── created_at
+└── updated_at
+
+-- Commission logs
+snowball_commission_logs
+├── id (PK)
+├── seller_id (FK → sellers)
+├── product_snowball_setting_id (FK → product_snowball_settings)
+├── order_id (FK → orders)
+├── vendor_order_id (FK → vendor_orders)
+├── snowball_package_id (FK → snowball_packages)
+├── commission_amount
+├── calculation_formula
+├── calculated_values (JSON)
+├── mlm_api_reference
+├── status (enum: pending, approved, paid)
+├── paid_at
+├── created_at
+└── updated_at
+
+-- Payouts
+payouts
+├── id (PK)
+├── seller_id (FK → sellers)
+├── amount
+├── status (enum: pending, processing, paid, failed)
+├── payment_method
+├── payment_reference
+├── paid_at
+├── created_at
+└── updated_at
+
+-- Payout items
+payout_items
+├── id (PK)
+├── payout_id (FK → payouts)
+├── commission_log_id (FK → snowball_commission_logs)
+├── amount
+├── created_at
+└── updated_at
+```
+
+5. Content & Reviews System
+
+```sql
+-- Reviews
+reviews
+├── id (PK)
+├── product_id (FK → products)
+├── user_id (FK → users)
+├── order_id (FK → orders)
+├── rating (1-5)
+├── title
+├── comment
+├── is_approved
+├── created_at
+└── updated_at
+
+-- Review images
+review_images
+├── id (PK)
+├── review_id (FK → reviews)
+├── image_path
+├── order
+├── created_at
+└── updated_at
+
+-- Wishlist
+wishlists
+├── id (PK)
+├── user_id (FK → users)
+├── product_id (FK → products)
+├── created_at
+└── updated_at
+
+-- Blog system
+blog_categories
+├── id (PK)
+├── name
+├── slug
+├── description
+├── is_active
+├── created_at
+└── updated_at
+
+blog_posts
+├── id (PK)
+├── author_id (FK → users)
+├── category_id (FK → blog_categories)
+├── title
+├── slug
+├── excerpt
+├── content
+├── featured_image
+├── meta_title
+├── meta_description
+├── is_published
+├── published_at
+├── views_count
+├── created_at
+└── updated_at
+
+blog_post_tags
+├── id (PK)
+├── post_id (FK → blog_posts)
+├── tag_id (FK → blog_tags)
+├── created_at
+└── updated_at
+
+blog_tags
+├── id (PK)
+├── name
+├── slug
+├── created_at
+└── updated_at
+```
+
+6. Support & Communication
+
+```sql
+-- Support tickets
+tickets
+├── id (PK)
+├── user_id (FK → users)
+├── seller_id (FK → sellers, nullable)
+├── subject
+├── message
+├── status (enum: open, in_progress, resolved, closed)
+├── priority (enum: low, medium, high, urgent)
+├── assigned_to (FK → users, nullable)
+├── resolved_at
+├── created_at
+└── updated_at
+
+-- Ticket replies
+ticket_replies
+├── id (PK)
+├── ticket_id (FK → tickets)
+├── user_id (FK → users)
+├── message
+├── is_internal_note
+├── created_at
+└── updated_at
+
+-- Ticket attachments
+ticket_attachments
+├── id (PK)
+├── ticket_reply_id (FK → ticket_replies)
+├── file_path
+├── file_name
+├── file_size
+├── mime_type
+├── created_at
+└── updated_at
+```
+
+7. System & Configuration
+
+```sql
+-- System settings
+system_settings
+├── id (PK)
+├── key
+├── value (JSON)
+├── type (enum: string, number, boolean, json, array)
+├── group (general, payment, shipping, email, mlm)
+├── is_public
+├── created_at
+└── updated_at
+
+-- Service integrations
+service_integrations
+├── id (PK)
+├── name
+├── service_key
+├── service_type (enum: payment, shipping, mlm, email, sms)
+├── is_enabled
+├── credentials (JSON, encrypted)
+├── settings (JSON)
+├── last_checked_at
+├── last_success_at
+├── success_count
+├── failure_count
+├── created_at
+└── updated_at
+
+-- Service logs
+service_logs
+├── id (PK)
+├── service_integration_id (FK → service_integrations)
+├── type (enum: request, response, error, info)
+├── message
+├── data (JSON)
+├── created_at
+└── updated_at
+
+-- Thai address data
+provinces
+├── id (PK)
+├── name_th
+├── name_en
+├── created_at
+└── updated_at
+
+districts
+├── id (PK)
+├── province_id (FK → provinces)
+├── name_th
+├── name_en
+├── created_at
+└── updated_at
+
+subdistricts
+├── id (PK)
+├── district_id (FK → districts)
+├── name_th
+├── name_en
+├── zipcode
+├── created_at
+└── updated_at
+```
+
+---
+
+🚀 Database Migrations
+
+1. Users Migration
+
+```php
+<?php
+// database/migrations/2024_01_01_000000_create_users_table.php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up()
+    {
+        Schema::create('users', function (Blueprint $table) {
+            $table->id();
+            $table->string('name');
+            $table->string('email')->unique();
+            $table->timestamp('email_verified_at')->nullable();
+            $table->string('password');
+            $table->enum('role', ['customer', 'seller', 'admin'])->default('customer');
+            $table->string('phone')->nullable();
+            $table->string('avatar')->nullable();
+            $table->boolean('is_active')->default(true);
+            $table->timestamp('last_login_at')->nullable();
+            $table->rememberToken();
+            $table->timestamps();
+        });
+    }
+
+    public function down()
+    {
+        Schema::dropIfExists('users');
+    }
+};
+```
+
+2. Sellers Migration
+
+```php
+<?php
+// database/migrations/2024_01_01_000001_create_sellers_table.php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up()
+    {
+        Schema::create('sellers', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('user_id')->constrained()->onDelete('cascade');
+            $table->string('shop_name');
+            $table->string('shop_slug')->unique();
+            $table->text('shop_description')->nullable();
+            $table->string('shop_logo')->nullable();
+            $table->string('shop_banner')->nullable();
+            $table->foreignId('shop_category_id')->nullable()->constrained('categories');
+            $table->string('bank_name');
+            $table->string('account_number');
+            $table->string('account_name');
+            $table->string('tax_id')->nullable();
+            $table->enum('status', ['pending', 'approved', 'rejected', 'suspended'])->default('pending');
+            $table->text('approval_status')->nullable();
+            $table->timestamp('approved_at')->nullable();
+            $table->decimal('commission_rate', 5, 2)->default(0);
+            $table->decimal('total_earnings', 15, 2)->default(0);
+            $table->timestamps();
+        });
+    }
+
+    public function down()
+    {
+        Schema::dropIfExists('sellers');
+    }
+};
+```
+
+3. Snowball Packages Migration
+
+```php
+<?php
+// database/migrations/2024_01_01_000002_create_snowball_packages_table.php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up()
+    {
+        Schema::create('snowball_packages', function (Blueprint $table) {
+            $table->id();
+            $table->string('name');
+            $table->string('slug')->unique();
+            $table->text('description')->nullable();
+            $table->text('formula'); // Commission calculation formula
+            $table->json('variables'); // Configurable variables for the formula
+            $table->decimal('monthly_fee', 10, 2)->default(0);
+            $table->integer('product_limit')->default(0); // 0 = unlimited
+            $table->boolean('is_active')->default(true);
+            $table->timestamps();
+        });
+    }
+
+    public function down()
+    {
+        Schema::dropIfExists('snowball_packages');
+    }
+};
+```
+
+4. Product Snowball Settings Migration
+
+```php
+<?php
+// database/migrations/2024_01_01_000003_create_product_snowball_settings_table.php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up()
+    {
+        Schema::create('product_snowball_settings', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('product_id')->constrained()->onDelete('cascade');
+            $table->foreignId('snowball_package_id')->constrained()->onDelete('cascade');
+            $table->boolean('is_active')->default(true);
+            $table->json('input_values'); // Vendor-provided values for variables
+            $table->decimal('pv', 10, 2)->default(0); // Point Value
+            $table->timestamps();
+            
+            $table->unique(['product_id', 'snowball_package_id']);
+        });
+    }
+
+    public function down()
+    {
+        Schema::dropIfExists('product_snowball_settings');
+    }
+};
+```
+
+---
+
+🌱 Database Seeders
+
+1. Database Seeder
+
+```php
+<?php
+// database/seeders/DatabaseSeeder.php
+
+namespace Database\Seeders;
+
+use Illuminate\Database\Seeder;
+
+class DatabaseSeeder extends Seeder
+{
+    public function run()
+    {
+        $this->call([
+            RoleSeeder::class,
+            UserSeeder::class,
+            CategorySeeder::class,
+            SnowballPackageSeeder::class,
+            SystemSettingSeeder::class,
+            ServiceIntegrationSeeder::class,
+            ThaiAddressSeeder::class,
+        ]);
+    }
+}
+```
+
+2. Snowball Package Seeder
+
+```php
+<?php
+// database/seeders/SnowballPackageSeeder.php
+
+namespace Database\Seeders;
+
+use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
+
+class SnowballPackageSeeder extends Seeder
+{
+    public function run()
+    {
+        $packages = [
+            [
+                'name' => 'Basic Snowball',
+                'slug' => 'basic-snowball',
+                'description' => 'แพ็คเกจเริ่มต้นสำหรับผู้ขายใหม่ ฟรีไม่มีค่าใช้จ่าย',
+                'formula' => 'pv * commission_rate / 100',
+                'variables' => json_encode([
+                    'pv' => [
+                        'type' => 'number',
+                        'label' => 'Point Value (PV)',
+                        'required' => true,
+                        'min' => 0,
+                        'max' => 100000
+                    ],
+                    'commission_rate' => [
+                        'type' => 'number',
+                        'label' => 'Commission Rate (%)',
+                        'required' => true,
+                        'default' => 10,
+                        'min' => 1,
+                        'max' => 50
+                    ]
+                ]),
+                'monthly_fee' => 0,
+                'product_limit' => 10,
+                'is_active' => true,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'name' => 'Pro Snowball',
+                'slug' => 'pro-snowball',
+                'description' => 'แพ็คเกจสำหรับผู้ขายระดับมืออาชีพ มีฟีเจอร์ครบครัน',
+                'formula' => '((pv * bv_multiplier) + base_commission) * level_multiplier',
+                'variables' => json_encode([
+                    'pv' => [
+                        'type' => 'number',
+                        'label' => 'Point Value (PV)',
+                        'required' => true,
+                        'min' => 0,
+                        'max' => 100000
+                    ],
+                    'bv_multiplier' => [
+                        'type' => 'number',
+                        'label' => 'BV Multiplier',
+                        'required' => true,
+                        'default' => 1.5,
+                        'min' => 1,
+                        'max' => 5
+                    ],
+                    'base_commission' => [
+                        'type' => 'number',
+                        'label' => 'Base Commission',
+                        'required' => true,
+                        'default' => 50,
+                        'min' => 0,
+                        'max' => 1000
+                    ],
+                    'level_multiplier' => [
+                        'type' => 'select',
+                        'label' => 'Level Multiplier',
+                        'required' => true,
+                        'options' => [
+                            '1x' => 1,
+                            '1.2x' => 1.2,
+                            '1.5x' => 1.5,
+                            '1.8x' => 1.8,
+                            '2x' => 2
+                        ],
+                        'default' => 1
+                    ]
+                ]),
+                'monthly_fee' => 299,
+                'product_limit' => 50,
+                'is_active' => true,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'name' => 'Enterprise Snowball',
+                'slug' => 'enterprise-snowball',
+                'description' => 'แพ็คเกจสำหรับผู้ขายระดับองค์กร ไม่จำกัดการใช้งาน',
+                'formula' => '(pv * stype_multiplier * rank_bonus) + (team_volume * team_commission_rate / 100)',
+                'variables' => json_encode([
+                    'pv' => [
+                        'type' => 'number',
+                        'label' => 'Point Value (PV)',
+                        'required' => true,
+                        'min' => 0,
+                        'max' => 100000
+                    ],
+                    'stype_multiplier' => [
+                        'type' => 'select',
+                        'label' => 'Sales Type Multiplier',
+                        'required' => true,
+                        'options' => [
+                            'Type A (1x)' => 1,
+                            'Type B (1.3x)' => 1.3,
+                            'Type C (1.5x)' => 1.5,
+                            'Type D (2x)' => 2
+                        ],
+                        'default' => 1
+                    ],
+                    'rank_bonus' => [
+                        'type' => 'select',
+                        'label' => 'Rank Bonus',
+                        'required' => true,
+                        'options' => [
+                            'Member (1x)' => 1,
+                            'Silver (1.2x)' => 1.2,
+                            'Gold (1.5x)' => 1.5,
+                            'Platinum (2x)' => 2,
+                            'Crown (2.5x)' => 2.5
+                        ],
+                        'default' => 1
+                    ],
+                    'team_volume' => [
+                        'type' => 'number',
+                        'label' => 'Team Volume',
+                        'required' => false,
+                        'default' => 0,
+                        'min' => 0,
+                        'max' => 10000000
+                    ],
+                    'team_commission_rate' => [
+                        'type' => 'number',
+                        'label' => 'Team Commission Rate (%)',
+                        'required' => true,
+                        'default' => 3,
+                        'min' => 1,
+                        'max' => 10
+                    ]
+                ]),
+                'monthly_fee' => 999,
+                'product_limit' => 0, // Unlimited
+                'is_active' => true,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]
+        ];
+
+        DB::table('snowball_packages')->insert($packages);
+    }
+}
+```
+
+3. User Seeder
+
+```php
+<?php
+// database/seeders/UserSeeder.php
+
+namespace Database\Seeders;
+
+use App\Models\User;
+use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Hash;
+
+class UserSeeder extends Seeder
+{
+    public function run()
+    {
+        // Create Admin User
+        User::create([
+            'name' => 'System Admin',
+            'email' => 'admin@blife.com',
+            'password' => Hash::make('password'),
+            'role' => 'admin',
+            'email_verified_at' => now(),
+            'phone' => '0812345678',
+            'is_active' => true,
+        ]);
+
+        // Create Sample Seller
+        $sellerUser = User::create([
+            'name' => 'John Seller',
+            'email' => 'seller@blife.com',
+            'password' => Hash::make('password'),
+            'role' => 'seller',
+            'email_verified_at' => now(),
+            'phone' => '0823456789',
+            'is_active' => true,
+        ]);
+
+        // Create seller profile
+        $sellerUser->seller()->create([
+            'shop_name' => 'John\'s Fashion Store',
+            'shop_slug' => 'johns-fashion-store',
+            'shop_description' => 'ร้านขายเสื้อผ้าแฟชั่นคุณภาพสูงจาก John',
+            'bank_name' => 'KBANK',
+            'account_number' => '1234567890',
+            'account_name' => 'John Seller',
+            'status' => 'approved',
+            'approved_at' => now(),
+            'commission_rate' => 15.00,
+        ]);
+
+        // Create Sample Customer
+        User::create([
+            'name' => 'Jane Customer',
+            'email' => 'customer@blife.com',
+            'password' => Hash::make('password'),
+            'role' => 'customer',
+            'email_verified_at' => now(),
+            'phone' => '0834567890',
+            'is_active' => true,
+        ]);
+
+        // Create multiple customers for testing
+        User::factory()->count(50)->create(['role' => 'customer']);
+        
+        // Create multiple sellers for testing
+        User::factory()->count(10)->create(['role' => 'seller'])->each(function ($user) {
+            $user->seller()->create([
+                'shop_name' => fake()->company() . ' Store',
+                'shop_slug' => \Illuminate\Support\Str::slug(fake()->company() . ' Store'),
+                'shop_description' => fake()->paragraph(),
+                'bank_name' => fake()->randomElement(['KBANK', 'SCB', 'BBL', 'KTB']),
+                'account_number' => fake()->numerify('############'),
+                'account_name' => $user->name,
+                'status' => fake()->randomElement(['approved', 'pending']),
+                'commission_rate' => fake()->randomFloat(2, 10, 30),
+            ]);
+        });
+    }
+}
+```
+
+---
+
+🏭 Model Factories
+
+1. User Factory
+
+```php
+<?php
+// database/factories/UserFactory.php
+
+namespace Database\Factories;
+
+use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
+
+class UserFactory extends Factory
+{
+    public function definition()
+    {
+        return [
+            'name' => fake()->name(),
+            'email' => fake()->unique()->safeEmail(),
+            'email_verified_at' => now(),
+            'password' => Hash::make('password'),
+            'role' => 'customer',
+            'phone' => fake()->numerify('08#######'),
+            'avatar' => null,
+            'is_active' => true,
+            'remember_token' => Str::random(10),
+        ];
+    }
+
+    public function admin()
+    {
+        return $this->state(fn (array $attributes) => [
+            'role' => 'admin',
+        ]);
+    }
+
+    public function seller()
+    {
+        return $this->state(fn (array $attributes) => [
+            'role' => 'seller',
+        ]);
+    }
+
+    public function customer()
+    {
+        return $this->state(fn (array $attributes) => [
+            'role' => 'customer',
+        ]);
+    }
+
+    public function unverified()
+    {
+        return $this->state(fn (array $attributes) => [
+            'email_verified_at' => null,
+        ]);
+    }
+
+    public function inactive()
+    {
+        return $this->state(fn (array $attributes) => [
+            'is_active' => false,
+        ]);
+    }
+}
+```
+
+2. Product Factory
+
+```php
+<?php
+// database/factories/ProductFactory.php
+
+namespace Database\Factories;
+
+use App\Models\Seller;
+use App\Models\Category;
+use Illuminate\Database\Eloquent\Factories\Factory;
+
+class ProductFactory extends Factory
+{
+    public function definition()
+    {
+        $price = fake()->numberBetween(100, 5000);
+        $comparePrice = $price + fake()->numberBetween(100, 1000);
+
+        return [
+            'seller_id' => Seller::factory(),
+            'category_id' => Category::factory(),
+            'name' => fake()->words(3, true),
+            'slug' => fn (array $attributes) => \Illuminate\Support\Str::slug($attributes['name']),
+            'description' => fake()->paragraphs(3, true),
+            'short_description' => fake()->sentence(),
+            'price' => $price,
+            'compare_price' => $comparePrice,
+            'cost_price' => $price * 0.6,
+            'sku' => fake()->unique()->bothify('SKU-#####'),
+            'barcode' => fake()->isbn13(),
+            'weight' => fake()->randomFloat(2, 0.1, 10),
+            'dimensions' => json_encode([
+                'width' => fake()->randomFloat(2, 10, 50),
+                'height' => fake()->randomFloat(2, 10, 50),
+                'length' => fake()->randomFloat(2, 10, 50),
+            ]),
+            'is_published' => true,
+            'is_featured' => fake()->boolean(20),
+            'is_digital' => false,
+            'requires_shipping' => true,
+            'track_quantity' => true,
+            'quantity' => fake()->numberBetween(0, 100),
+            'low_stock_threshold' => 10,
+            'meta_title' => fn (array $attributes) => $attributes['name'],
+            'meta_description' => fn (array $attributes) => $attributes['short_description'],
+        ];
+    }
+
+    public function published()
+    {
+        return $this->state(fn (array $attributes) => [
+            'is_published' => true,
+        ]);
+    }
+
+    public function unpublished()
+    {
+        return $this->state(fn (array $attributes) => [
+            'is_published' => false,
+        ]);
+    }
+
+    public function featured()
+    {
+        return $this->state(fn (array $attributes) => [
+            'is_featured' => true,
+        ]);
+    }
+
+    public function digital()
+    {
+        return $this->state(fn (array $attributes) => [
+            'is_digital' => true,
+            'requires_shipping' => false,
+            'weight' => 0,
+            'dimensions' => json_encode(['width' => 0, 'height' => 0, 'length' => 0]),
+        ]);
+    }
+
+    public function outOfStock()
+    {
+        return $this->state(fn (array $attributes) => [
+            'quantity' => 0,
+        ]);
+    }
+
+    public function lowStock()
+    {
+        return $this->state(fn (array $attributes) => [
+            'quantity' => fake()->numberBetween(1, 10),
+        ]);
+    }
+}
+```
+
+3. Order Factory
+
+```php
+<?php
+// database/factories/OrderFactory.php
+
+namespace Database\Factories;
+
+use App\Models\User;
+use App\Models\Address;
+use Illuminate\Database\Eloquent\Factories\Factory;
+
+class OrderFactory extends Factory
+{
+    public function definition()
+    {
+        $subtotal = fake()->numberBetween(500, 5000);
+        $shippingCost = fake()->numberBetween(30, 100);
+        $taxAmount = $subtotal * 0.07;
+        $total = $subtotal + $shippingCost + $taxAmount;
+
+        return [
+            'user_id' => User::factory(),
+            'code' => 'ORD-' . fake()->unique()->numerify('########'),
+            'status' => fake()->randomElement(['pending', 'confirmed', 'processing', 'shipped', 'delivered']),
+            'payment_status' => fake()->randomElement(['pending', 'paid', 'failed']),
+            'shipping_address_id' => Address::factory(),
+            'billing_address_id' => Address::factory(),
+            'shipping_method' => fake()->randomElement(['kerry', 'flash', 'ems', 'registered']),
+            'shipping_cost' => $shippingCost,
+            'subtotal' => $subtotal,
+            'tax_amount' => $taxAmount,
+            'discount_amount' => 0,
+            'total' => $total,
+            'note' => fake()->boolean(30) ? fake()->sentence() : null,
+            'shipped_at' => fn (array $attributes) => 
+                in_array($attributes['status'], ['shipped', 'delivered']) ? now() : null,
+            'delivered_at' => fn (array $attributes) => 
+                $attributes['status'] === 'delivered' ? now() : null,
+        ];
+    }
+
+    public function pending()
+    {
+        return $this->state(fn (array $attributes) => [
+            'status' => 'pending',
+            'payment_status' => 'pending',
+        ]);
+    }
+
+    public function paid()
+    {
+        return $this->state(fn (array $attributes) => [
+            'payment_status' => 'paid',
+        ]);
+    }
+
+    public function delivered()
+    {
+        return $this->state(fn (array $attributes) => [
+            'status' => 'delivered',
+            'shipped_at' => now()->subDays(3),
+            'delivered_at' => now()->subDays(1),
+        ]);
+    }
+
+    public function withDiscount($amount)
+    {
+        return $this->state(fn (array $attributes) => [
+            'discount_amount' => $amount,
+            'total' => $attributes['subtotal'] + $attributes['shipping_cost'] + $attributes['tax_amount'] - $amount,
+        ]);
+    }
+}
+```
+
+---
+
+🔗 Eloquent Relationships
+
+1. User Model Relationships
+
+```php
+<?php
+// app/Models/User.php
+
+namespace App\Models;
+
+use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Notifications\Notifiable;
+
+class User extends Authenticatable
+{
+    use Notifiable;
+
+    protected $fillable = [
+        'name', 'email', 'password', 'role', 'phone', 'avatar', 'is_active'
+    ];
+
+    protected $hidden = [
+        'password', 'remember_token',
+    ];
+
+    protected $casts = [
+        'email_verified_at' => 'datetime',
+        'last_login_at' => 'datetime',
+        'is_active' => 'boolean',
+    ];
+
+    // Relationships
+    public function seller()
+    {
+        return $this->hasOne(Seller::class);
+    }
+
+    public function addresses()
+    {
+        return $this->hasMany(Address::class);
+    }
+
+    public function orders()
+    {
+        return $this->hasMany(Order::class);
+    }
+
+    public function reviews()
+    {
+        return $this->hasMany(Review::class);
+    }
+
+    public function wishlist()
+    {
+        return $this->hasMany(Wishlist::class);
+    }
+
+    public function tickets()
+    {
+        return $this->hasMany(Ticket::class);
+    }
+
+    public function assignedTickets()
+    {
+        return $this->hasMany(Ticket::class, 'assigned_to');
+    }
+
+    public function ticketReplies()
+    {
+        return $this->hasMany(TicketReply::class);
+    }
+
+    // Scopes
+    public function scopeCustomers($query)
+    {
+        return $query->where('role', 'customer');
+    }
+
+    public function scopeSellers($query)
+    {
+        return $query->where('role', 'seller');
+    }
+
+    public function scopeAdmins($query)
+    {
+        return $query->where('role', 'admin');
+    }
+
+    public function scopeActive($query)
+    {
+        return $query->where('is_active', true);
+    }
+
+    // Methods
+    public function isAdmin()
+    {
+        return $this->role === 'admin';
+    }
+
+    public function isSeller()
+    {
+        return $this->role === 'seller';
+    }
+
+    public function isCustomer()
+    {
+        return $this->role === 'customer';
+    }
+
+    public function hasSellerProfile()
+    {
+        return $this->seller()->exists();
+    }
+
+    public function getAvatarUrlAttribute()
+    {
+        return $this->avatar ? asset('storage/' . $this->avatar) : asset('images/placeholders/avatar-placeholder.png');
+    }
+}
+```
+
+2. Product Model with Snowball Relationship
+
+```php
+<?php
+// app/Models/Product.php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+
+class Product extends Model
+{
+    use HasFactory;
+
+    protected $fillable = [
+        'seller_id', 'category_id', 'name', 'slug', 'description', 'short_description',
+        'price', 'compare_price', 'cost_price', 'sku', 'barcode', 'weight', 'dimensions',
+        'is_published', 'is_featured', 'is_digital', 'requires_shipping', 'track_quantity',
+        'quantity', 'low_stock_threshold', 'meta_title', 'meta_description'
+    ];
+
+    protected $casts = [
+        'price' => 'decimal:2',
+        'compare_price' => 'decimal:2',
+        'cost_price' => 'decimal:2',
+        'weight' => 'decimal:2',
+        'dimensions' => 'array',
+        'is_published' => 'boolean',
+        'is_featured' => 'boolean',
+        'is_digital' => 'boolean',
+        'requires_shipping' => 'boolean',
+        'track_quantity' => 'boolean',
+        'quantity' => 'integer',
+        'low_stock_threshold' => 'integer',
+    ];
+
+    // Relationships
+    public function seller()
+    {
+        return $this->belongsTo(Seller::class);
+    }
+
+    public function category()
+    {
+        return $this->belongsTo(Category::class);
+    }
+
+    public function variants()
+    {
+        return $this->hasMany(ProductVariant::class);
+    }
+
+    public function images()
+    {
+        return $this->hasMany(ProductImage::class);
+    }
+
+    public function reviews()
+    {
+        return $this->hasMany(Review::class);
+    }
+
+    public function wishlists()
+    {
+        return $this->hasMany(Wishlist::class);
+    }
+
+    public function orderItems()
+    {
+        return $this->hasMany(OrderItem::class);
+    }
+
+    // ⭐ Snowball MLM Relationship
+    public function snowballSetting()
+    {
+        return $this->hasOne(ProductSnowballSetting::class);
+    }
+
+    public function snowballPackage()
+    {
+        return $this->hasOneThrough(
+            SnowballPackage::class,
+            ProductSnowballSetting::class,
+            'product_id', // Foreign key on product_snowball_settings table
+            'id', // Foreign key on snowball_packages table
+            'id', // Local key on products table
+            'snowball_package_id' // Local key on product_snowball_settings table
+        );
+    }
+
+    // Scopes
+    public function scopePublished($query)
+    {
+        return $query->where('is_published', true);
+    }
+
+    public function scopeFeatured($query)
+    {
+        return $query->where('is_featured', true);
+    }
+
+    public function scopeInStock($query)
+    {
+        return $query->where('quantity', '>', 0);
+    }
+
+    public function scopeBySeller($query, $sellerId)
+    {
+        return $query->where('seller_id', $sellerId);
+    }
+
+    public function scopeByCategory($query, $categoryId)
+    {
+        return $query->where('category_id', $categoryId);
+    }
+
+    public function scopeWithSnowball($query)
+    {
+        return $query->whereHas('snowballSetting', function ($q) {
+            $q->where('is_active', true);
+        });
+    }
+
+    // Methods
+    public function getPrimaryImageAttribute()
+    {
+        return $this->images->where('is_primary', true)->first() 
+            ?? $this->images->first() 
+            ?? null;
+    }
+
+    public function getRatingAttribute()
+    {
+        return $this->reviews()->avg('rating') ?: 0;
+    }
+
+    public function getReviewCountAttribute()
+    {
+        return $this->reviews()->count();
+    }
+
+    public function getIsInStockAttribute()
+    {
+        return $this->track_quantity ? $this->quantity > 0 : true;
+    }
+
+    public function getIsLowStockAttribute()
+    {
+        return $this->track_quantity && $this->quantity <= $this->low_stock_threshold && $this->quantity > 0;
+    }
+
+    public function getHasSnowballAttribute()
+    {
+        return $this->snowballSetting()->where('is_active', true)->exists();
+    }
+
+    public function getDiscountPercentageAttribute()
+    {
+        if ($this->compare_price > $this->price) {
+            return round((($this->compare_price - $this->price) / $this->compare_price) * 100);
+        }
+        return 0;
+    }
+}
+```
+
+3. Snowball Package Model
+
+```php
+<?php
+// app/Models/SnowballPackage.php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+
+class SnowballPackage extends Model
+{
+    use HasFactory;
+
+    protected $fillable = [
+        'name', 'slug', 'description', 'formula', 'variables', 
+        'monthly_fee', 'product_limit', 'is_active'
+    ];
+
+    protected $casts = [
+        'variables' => 'array',
+        'monthly_fee' => 'decimal:2',
+        'is_active' => 'boolean',
+    ];
+
+    // Relationships
+    public function productSettings()
+    {
+        return $this->hasMany(ProductSnowballSetting::class);
+    }
+
+    public function commissionLogs()
+    {
+        return $this->hasMany(SnowballCommissionLog::class);
+    }
+
+    public function activeProducts()
+    {
+        return $this->hasManyThrough(
+            Product::class,
+            ProductSnowballSetting::class,
+            'snowball_package_id',
+            'id',
+            'id',
+            'product_id'
+        )->where('product_snowball_settings.is_active', true)
+         ->where('products.is_published', true);
+    }
+
+    // Scopes
+    public function scopeActive($query)
+    {
+        return $query->where('is_active', true);
+    }
+
+    public function scopeFree($query)
+    {
+        return $query->where('monthly_fee', 0);
+    }
+
+    public function scopePaid($query)
+    {
+        return $query->where('monthly_fee', '>', 0);
+    }
+
+    // Methods
+    public function getMonthlyFeeFormattedAttribute()
+    {
+        return number_format($this->monthly_fee, 2);
+    }
+
+    public function getVariablesParsedAttribute()
+    {
+        return collect($this->variables)->map(function ($variable, $key) {
+            return [
+                'name' => $key,
+                ...$variable
+            ];
+        })->values();
+    }
+
+    public function calculateCommission($inputValues)
+    {
+        // This would be handled by the CommissionCalculator service
+        // This is a simplified version
+        $formula = $this->formula;
+        
+        foreach ($inputValues as $key => $value) {
+            $formula = str_replace($key, $value, $formula);
+        }
+
+        try {
+            // Using eval for demonstration - in production use a proper formula parser
+            $result = eval("return $formula;");
+            return max(0, $result);
+        } catch (\Exception $e) {
+            return 0;
+        }
+    }
+
+    public function getIsUnlimitedAttribute()
+    {
+        return $this->product_limit === 0;
+    }
+}
+```
+
+---
+
+📈 Summary
+
+Total Tables Count: ~35 Tables
+
+```
+👥 User Management: 3 tables
+🏪 Vendor System: 2 tables  
+📦 Product Catalog: 6 tables
+🛒 Order System: 6 tables
+⭐ MLM Snowball: 5 tables
+📝 Content & Reviews: 6 tables
+🎫 Support System: 3 tables
+⚙️ System & Config: 4 tables
+```
+
+Key Features:
+
+· ✅ Multi-vendor support with proper seller management
+· ✅ MLM Snowball integration with flexible package system
+· ✅ Inventory management with variant support
+· ✅ Order splitting by vendor for commission calculation
+· ✅ Thai address system with provinces, districts, subdistricts
+· ✅ Comprehensive review and rating system
+· ✅ Support ticket system for customer service
+· ✅ Flexible system settings and service integrations
+
+Next Steps:
+
+1. Run migrations: php artisan migrate
+2. Seed database: php artisan db:seed
+3. Test relationships and factories
+4. Implement business logic in services
+
+This database schema provides a solid foundation for the Blife multi-vendor e-commerce platform with MLM capabilities!
