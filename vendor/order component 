@@ -1,0 +1,3165 @@
+🏪 Vendor Snowball MLM & Orders Components
+
+❄️ VENDOR SNOWBALL MLM COMPONENTS
+
+1. Snowball Dashboard (snowball-dashboard.blade.php)
+
+```blade
+{{-- components/vendor/snowball/snowball-dashboard.blade.php --}}
+@props([
+    'stats' => [],
+    'activePackages' => [],
+    'recentCommissions' => [],
+    'performanceData' => []
+])
+
+<div class="snowball-dashboard">
+    <!-- Header -->
+    <div class="dashboard-header mb-6">
+        <x-global.headline level="h1" variant="primary" thai-font>
+            ❄️ Snowball MLM Dashboard
+        </x-global.headline>
+        <p class="text-gray-600">จัดการระบบคอมมิชชั่นและติดตามประสิทธิภาพ</p>
+    </div>
+
+    <!-- Key Metrics -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+        <x-vendor.snowball.metric-card
+            icon="💰"
+            label="คอมมิชชั่นรวม"
+            :value="$stats['total_commissions']"
+            format="currency"
+            trend="up"
+            trend-value="15%"
+            color="green"
+        />
+        
+        <x-vendor.snowball.metric-card
+            icon="📦"
+            label="สินค้าใช้ Snowball"
+            :value="$stats['snowball_products']"
+            trend="up"
+            trend-value="8%"
+            color="blue"
+        />
+        
+        <x-vendor.snowball.metric-card
+            icon="🏆"
+            label="อันดับประสิทธิภาพ"
+            :value="$stats['performance_rank']"
+            format="rank"
+            color="purple"
+        />
+        
+        <x-vendor.snowball.metric-card
+            icon="📊"
+            label="อัตราการแปลง"
+            :value="$stats['conversion_rate']"
+            format="percentage"
+            trend="stable"
+            color="orange"
+        />
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Active Packages -->
+        <div class="lg:col-span-2">
+            <x-vendor.snowball.active-packages 
+                :packages="$activePackages"
+            />
+        </div>
+
+        <!-- Quick Actions -->
+        <div>
+            <x-vendor.snowball.quick-actions />
+        </div>
+    </div>
+
+    <!-- Recent Commissions -->
+    <div class="mt-8">
+        <x-vendor.snowball.recent-commissions 
+            :commissions="$recentCommissions"
+        />
+    </div>
+
+    <!-- Performance Chart -->
+    <div class="mt-8">
+        <x-vendor.snowball.performance-chart 
+            :data="$performanceData"
+        />
+    </div>
+</div>
+```
+
+2. Package Selector (package-selector.blade.php)
+
+```blade
+{{-- components/vendor/snowball/package-selector.blade.php --}}
+@props([
+    'packages' => [],
+    'selectedPackage' => null,
+    'onPackageSelect' => null
+])
+
+<div class="snowball-package-selector">
+    <div class="selector-header mb-4">
+        <h3 class="text-lg font-semibold text-gray-900">เลือกแพ็คเกจ Snowball</h3>
+        <p class="text-sm text-gray-600">เลือกแพ็คเกจที่เหมาะกับสินค้าของคุณ</p>
+    </div>
+
+    <div class="packages-grid grid grid-cols-1 md:grid-cols-3 gap-4">
+        @foreach($packages as $package)
+            <div class="package-card {{ $selectedPackage?->id === $package->id ? 'package-card-selected' : 'package-card-default' }}"
+                 wire:click="{{ $onPackageSelect }}({{ $package->id }})">
+                
+                <!-- Package Header -->
+                <div class="package-header">
+                    <div class="package-icon">
+                        @if($package->name === 'Basic')
+                            🌱
+                        @elseif($package->name === 'Pro')
+                            ⚡
+                        @else
+                            🚀
+                        @endif
+                    </div>
+                    <h4 class="package-name">{{ $package->name }}</h4>
+                    <div class="package-price">
+                        ฿{{ number_format($package->monthly_fee) }}/เดือน
+                    </div>
+                </div>
+
+                <!-- Package Features -->
+                <div class="package-features">
+                    <ul class="space-y-2">
+                        <li class="feature-item">
+                            <span class="feature-icon">✓</span>
+                            คอมมิชชั่น: {{ $package->commission_rate }}%
+                        </li>
+                        <li class="feature-item">
+                            <span class="feature-icon">📦</span>
+                            สินค้าสูงสุด: {{ $package->product_limit }} ชิ้น
+                        </li>
+                        <li class="feature-item">
+                            <span class="feature-icon">📊</span>
+                            {{ $package->features }}
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Package Status -->
+                <div class="package-footer">
+                    @if($selectedPackage?->id === $package->id)
+                        <div class="selected-badge">
+                            ✅ เลือกแล้ว
+                        </div>
+                    @else
+                        <button class="select-btn">
+                            เลือกแพ็คเกจ
+                        </button>
+                    @endif
+                </div>
+            </div>
+        @endforeach
+    </div>
+
+    <!-- Package Comparison -->
+    <div class="package-comparison mt-6">
+        <button class="comparison-toggle text-blue-600 text-sm font-medium">
+            🔍 เปรียบเทียบแพ็คเกจทั้งหมด
+        </button>
+        
+        <div class="comparison-table hidden mt-4">
+            <x-vendor.snowball.package-comparison :packages="$packages" />
+        </div>
+    </div>
+</div>
+
+<style>
+.package-card {
+    @apply border rounded-lg p-4 cursor-pointer transition-all duration-200;
+}
+
+.package-card-default {
+    @apply border-gray-200 hover:border-blue-300 hover:shadow-md;
+}
+
+.package-card-selected {
+    @apply border-blue-500 bg-blue-50 ring-2 ring-blue-200;
+}
+
+.package-header {
+    @apply text-center mb-4;
+}
+
+.package-icon {
+    @apply text-3xl mb-2;
+}
+
+.package-name {
+    @apply text-xl font-bold text-gray-900 mb-1;
+}
+
+.package-price {
+    @apply text-lg text-green-600 font-semibold;
+}
+
+.feature-item {
+    @apply flex items-center text-sm text-gray-700;
+}
+
+.feature-icon {
+    @apply mr-2 text-green-500;
+}
+
+.select-btn {
+    @apply w-full bg-blue-500 text-white py-2 px-4 rounded text-sm hover:bg-blue-600 transition-colors;
+}
+
+.selected-badge {
+    @apply w-full bg-green-100 text-green-700 py-2 px-4 rounded text-sm text-center;
+}
+</style>
+
+<script>
+document.querySelector('.comparison-toggle').addEventListener('click', function() {
+    const table = document.querySelector('.comparison-table');
+    table.classList.toggle('hidden');
+});
+</script>
+```
+
+3. Package Card (package-card.blade.php)
+
+```blade
+{{-- components/vendor/snowball/package-card.blade.php --}}
+@props([
+    'package',
+    'selected' => false,
+    'onSelect' => null
+])
+
+<div {{ $attributes->merge(['class' => "snowball-package-card {$selected ? 'package-selected' : ''}"]) }}
+     @if($onSelect) wire:click="{{ $onSelect }}" @endif>
+    
+    <!-- Package Badge -->
+    <div class="package-badge {{ $package->name === 'Enterprise' ? 'premium-badge' : 'standard-badge' }}">
+        {{ $package->name }}
+    </div>
+
+    <!-- Package Icon -->
+    <div class="package-icon-wrapper">
+        @if($package->name === 'Basic')
+            <div class="package-icon basic-icon">🌱</div>
+        @elseif($package->name === 'Pro')
+            <div class="package-icon pro-icon">⚡</div>
+        @else
+            <div class="package-icon enterprise-icon">🚀</div>
+        @endif
+    </div>
+
+    <!-- Package Price -->
+    <div class="package-price">
+        @if($package->monthly_fee > 0)
+            <div class="price-amount">฿{{ number_format($package->monthly_fee) }}</div>
+            <div class="price-period">ต่อเดือน</div>
+        @else
+            <div class="price-free">ฟรี</div>
+        @endif
+    </div>
+
+    <!-- Package Features -->
+    <div class="package-features">
+        <div class="feature-item">
+            <span class="feature-icon">📊</span>
+            <span class="feature-text">คอมมิชชั่นสูงสุด {{ $package->max_commission }}%</span>
+        </div>
+        
+        <div class="feature-item">
+            <span class="feature-icon">📦</span>
+            <span class="feature-text">สินค้า {{ $package->product_limit }} ชิ้น</span>
+        </div>
+        
+        <div class="feature-item">
+            <span class="feature-icon">🔄</span>
+            <span class="feature-text">อัพเดทเรียลไทม์</span>
+        </div>
+        
+        @if($package->has_advanced_features)
+        <div class="feature-item premium-feature">
+            <span class="feature-icon">⭐</span>
+            <span class="feature-text">ฟีเจอร์พิเศษ</span>
+        </div>
+        @endif
+    </div>
+
+    <!-- Selection Indicator -->
+    @if($selected)
+    <div class="selection-indicator">
+        <div class="indicator-icon">✅</div>
+        <span class="indicator-text">เลือกแล้ว</span>
+    </div>
+    @else
+    <button class="select-package-btn">
+        เลือกแพ็คเกจ
+    </button>
+    @endif
+</div>
+
+<style>
+.snowball-package-card {
+    @apply relative border rounded-xl p-6 text-center transition-all duration-300 hover:shadow-lg;
+}
+
+.package-selected {
+    @apply border-blue-500 bg-blue-50 ring-2 ring-blue-200;
+}
+
+.package-badge {
+    @apply inline-block px-3 py-1 rounded-full text-xs font-semibold mb-4;
+}
+
+.standard-badge {
+    @apply bg-gray-100 text-gray-800;
+}
+
+.premium-badge {
+    @apply bg-gradient-to-r from-purple-500 to-pink-500 text-white;
+}
+
+.package-icon-wrapper {
+    @apply mb-4;
+}
+
+.package-icon {
+    @apply text-4xl mb-2;
+}
+
+.basic-icon { @apply text-green-500; }
+.pro-icon { @apply text-blue-500; }
+.enterprise-icon { @apply text-purple-500; }
+
+.package-price {
+    @apply mb-6;
+}
+
+.price-amount {
+    @apply text-2xl font-bold text-gray-900;
+}
+
+.price-period {
+    @apply text-sm text-gray-600;
+}
+
+.price-free {
+    @apply text-2xl font-bold text-green-600;
+}
+
+.package-features {
+    @apply space-y-3 mb-6;
+}
+
+.feature-item {
+    @apply flex items-center justify-center text-sm text-gray-700;
+}
+
+.feature-icon {
+    @apply mr-2 text-lg;
+}
+
+.premium-feature {
+    @apply text-purple-600 font-semibold;
+}
+
+.selection-indicator {
+    @apply flex items-center justify-center space-x-2 text-green-600 font-semibold;
+}
+
+.indicator-icon {
+    @apply text-lg;
+}
+
+.select-package-btn {
+    @apply w-full bg-blue-500 text-white py-3 px-4 rounded-lg font-semibold hover:bg-blue-600 transition-colors;
+}
+</style>
+```
+
+4. Variable Input (variable-input.blade.php)
+
+```blade
+{{-- components/vendor/snowball/variable-input.blade.php --}}
+@props([
+    'variable' => [],
+    'value' => null,
+    'onChange' => null
+])
+
+@php
+    $variableTypes = [
+        'number' => 'number',
+        'percentage' => 'number',
+        'select' => 'select',
+        'text' => 'text',
+        'range' => 'range'
+    ];
+@endphp
+
+<div class="snowball-variable-input">
+    <label class="variable-label">
+        {{ $variable['label'] }}
+        @if($variable['required'])
+            <span class="text-red-500">*</span>
+        @endif
+    </label>
+    
+    <div class="variable-description text-sm text-gray-600 mb-2">
+        {{ $variable['description'] }}
+    </div>
+
+    @if($variable['type'] === 'select')
+        <select class="variable-select" 
+                wire:model="{{ $value }}"
+                @if($onChange) wire:change="{{ $onChange }}" @endif>
+            <option value="">เลือก {{ $variable['label'] }}</option>
+            @foreach($variable['options'] as $option)
+                <option value="{{ $option['value'] }}">
+                    {{ $option['label'] }} 
+                    @if(isset($option['multiplier']))
+                        ({{ $option['multiplier'] }}x)
+                    @endif
+                </option>
+            @endforeach
+        </select>
+    
+    @elseif($variable['type'] === 'range')
+        <div class="variable-range-container">
+            <input type="range" 
+                   class="variable-range"
+                   min="{{ $variable['min'] }}"
+                   max="{{ $variable['max'] }}"
+                   step="{{ $variable['step'] ?? 1 }}"
+                   wire:model="{{ $value }}"
+                   @if($onChange) wire:change="{{ $onChange }}" @endif>
+            <div class="range-value-display">
+                <span class="value">{{ $value ?? $variable['default'] }}</span>
+                <span class="unit">{{ $variable['unit'] }}</span>
+            </div>
+        </div>
+    
+    @else
+        <div class="variable-input-wrapper">
+            <input type="{{ $variableTypes[$variable['type']] ?? 'text' }}"
+                   class="variable-input"
+                   placeholder="{{ $variable['placeholder'] ?? '' }}"
+                   min="{{ $variable['min'] ?? '' }}"
+                   max="{{ $variable['max'] ?? '' }}"
+                   step="{{ $variable['step'] ?? '' }}"
+                   wire:model="{{ $value }}"
+                   @if($onChange) wire:change="{{ $onChange }}" @endif>
+            
+            @if($variable['type'] === 'percentage')
+                <span class="input-suffix">%</span>
+            @elseif(isset($variable['unit']))
+                <span class="input-suffix">{{ $variable['unit'] }}</span>
+            @endif
+        </div>
+    @endif
+
+    <!-- Help Text -->
+    @if(isset($variable['help']))
+        <div class="variable-help text-xs text-gray-500 mt-1">
+            💡 {{ $variable['help'] }}
+        </div>
+    @endif
+
+    <!-- Validation Error -->
+    @error($value)
+        <div class="variable-error text-red-500 text-xs mt-1">
+            {{ $message }}
+        </div>
+    @enderror
+</div>
+
+<style>
+.variable-label {
+    @apply block text-sm font-medium text-gray-700 mb-1;
+}
+
+.variable-select {
+    @apply w-full border border-gray-300 rounded-lg px-3 py-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500;
+}
+
+.variable-range-container {
+    @apply space-y-2;
+}
+
+.variable-range {
+    @apply w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer;
+    
+    /* Webkit */
+    &::-webkit-slider-thumb {
+        @apply appearance-none h-4 w-4 bg-blue-500 rounded-full cursor-pointer;
+    }
+    
+    /* Firefox */
+    &::-moz-range-thumb {
+        @apply h-4 w-4 bg-blue-500 rounded-full cursor-pointer border-0;
+    }
+}
+
+.range-value-display {
+    @apply text-center text-sm font-semibold text-gray-700;
+}
+
+.variable-input-wrapper {
+    @apply relative;
+}
+
+.variable-input {
+    @apply w-full border border-gray-300 rounded-lg px-3 py-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500;
+    
+    @if(isset($variable['unit']))
+        padding-right: 3rem;
+    @endif
+}
+
+.input-suffix {
+    @apply absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm;
+}
+
+.variable-help {
+    @apply flex items-center space-x-1;
+}
+</style>
+```
+
+5. Commission Calculator (commission-calculator.blade.php)
+
+```blade
+{{-- components/vendor/snowball/commission-calculator.blade.php --}}
+@props([
+    'package' => null,
+    'productPrice' => 0,
+    'inputValues' => [],
+    'calculatedCommission' => 0
+])
+
+<div class="commission-calculator">
+    <div class="calculator-header mb-6">
+        <x-global.headline level="h2" size="lg">
+            🧮 เครื่องคิดเลขคอมมิชชั่น
+        </x-global.headline>
+        <p class="text-gray-600">คำนวณคอมมิชชั่นที่คุณจะได้รับ</p>
+    </div>
+
+    <div class="calculator-grid grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <!-- Input Section -->
+        <div class="input-section">
+            <div class="input-card">
+                <h4 class="input-title">ข้อมูลพื้นฐาน</h4>
+                
+                <!-- Product Price -->
+                <div class="input-group">
+                    <label class="input-label">ราคาสินค้า (บาท)</label>
+                    <div class="price-input-wrapper">
+                        <input type="number" 
+                               class="price-input"
+                               wire:model="productPrice"
+                               min="0"
+                               step="0.01"
+                               placeholder="0.00">
+                        <span class="currency-symbol">฿</span>
+                    </div>
+                </div>
+
+                <!-- Dynamic Variables -->
+                @if($package && $package->variables)
+                    <div class="variables-section">
+                        <h5 class="variables-title">ตัวแปรคอมมิชชั่น</h5>
+                        <div class="variables-grid space-y-4">
+                            @foreach($package->variables as $variable)
+                                <x-vendor.snowball.variable-input
+                                    :variable="$variable"
+                                    :value="'inputValues.' . $variable['name']"
+                                    :onChange="'calculateCommission'"
+                                />
+                            @endforeach
+                        </div>
+                    </div>
+                @endif
+            </div>
+        </div>
+
+        <!-- Results Section -->
+        <div class="results-section">
+            <div class="results-card">
+                <h4 class="results-title">ผลลัพธ์การคำนวณ</h4>
+                
+                <!-- Commission Breakdown -->
+                <div class="breakdown-list space-y-3">
+                    <div class="breakdown-item">
+                        <span class="breakdown-label">ราคาสินค้า:</span>
+                        <span class="breakdown-value">฿{{ number_format($productPrice, 2) }}</span>
+                    </div>
+                    
+                    @if($package)
+                        <div class="breakdown-item">
+                            <span class="breakdown-label">แพ็คเกจ:</span>
+                            <span class="breakdown-value">{{ $package->name }}</span>
+                        </div>
+                        
+                        <!-- Dynamic Breakdown -->
+                        @foreach($inputValues as $key => $value)
+                            @if($value)
+                                <div class="breakdown-item">
+                                    <span class="breakdown-label">{{ $key }}:</span>
+                                    <span class="breakdown-value">{{ $value }}</span>
+                                </div>
+                            @endif
+                        @endforeach
+                    @endif
+                    
+                    <div class="breakdown-divider"></div>
+                    
+                    <div class="breakdown-total">
+                        <span class="total-label">คอมมิชชั่นที่ได้รับ:</span>
+                        <span class="total-value">฿{{ number_format($calculatedCommission, 2) }}</span>
+                    </div>
+                </div>
+
+                <!-- Commission Percentage -->
+                @if($productPrice > 0)
+                    <div class="commission-percentage">
+                        <div class="percentage-bar">
+                            <div class="percentage-fill" 
+                                 style="width: {{ min(($calculatedCommission / $productPrice) * 100, 100) }}%">
+                            </div>
+                        </div>
+                        <div class="percentage-text">
+                            อัตราคอมมิชชั่น: {{ number_format(($calculatedCommission / $productPrice) * 100, 2) }}%
+                        </div>
+                    </div>
+                @endif
+
+                <!-- Formula Display -->
+                @if($package && $package->formula)
+                    <div class="formula-display">
+                        <h5 class="formula-title">สูตรการคำนวณ:</h5>
+                        <code class="formula-code">{{ $package->formula }}</code>
+                    </div>
+                @endif
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="calculator-actions mt-4">
+                <button class="btn btn-secondary" wire:click="resetCalculator">
+                    🔄 คำนวณใหม่
+                </button>
+                <button class="btn btn-primary" wire:click="saveCalculation">
+                    💾 บันทึกการตั้งค่า
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.commission-calculator {
+    @apply bg-white rounded-lg p-6;
+}
+
+.input-card, .results-card {
+    @apply bg-gray-50 rounded-lg p-6 border border-gray-200;
+}
+
+.input-title, .results-title {
+    @apply text-lg font-semibold text-gray-900 mb-4;
+}
+
+.price-input-wrapper {
+    @apply relative;
+}
+
+.price-input {
+    @apply w-full border border-gray-300 rounded-lg pl-3 pr-10 py-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500;
+}
+
+.currency-symbol {
+    @apply absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500;
+}
+
+.variables-title {
+    @apply font-medium text-gray-700 mb-3 mt-4;
+}
+
+.breakdown-item {
+    @apply flex justify-between items-center py-2 border-b border-gray-100;
+}
+
+.breakdown-label {
+    @apply text-gray-600;
+}
+
+.breakdown-value {
+    @apply font-semibold text-gray-900;
+}
+
+.breakdown-divider {
+    @apply border-t border-gray-300 my-3;
+}
+
+.breakdown-total {
+    @apply flex justify-between items-center py-3 bg-green-50 rounded-lg px-3;
+}
+
+.total-label {
+    @apply font-semibold text-green-800;
+}
+
+.total-value {
+    @apply text-xl font-bold text-green-600;
+}
+
+.commission-percentage {
+    @apply mt-4;
+}
+
+.percentage-bar {
+    @apply w-full bg-gray-200 rounded-full h-2 mb-2;
+}
+
+.percentage-fill {
+    @apply bg-gradient-to-r from-green-400 to-blue-500 h-2 rounded-full transition-all duration-500;
+}
+
+.percentage-text {
+    @apply text-sm text-gray-600 text-center;
+}
+
+.formula-display {
+    @apply mt-4 p-3 bg-blue-50 rounded-lg;
+}
+
+.formula-title {
+    @apply font-medium text-blue-800 mb-2;
+}
+
+.formula-code {
+    @apply text-sm text-blue-700 bg-blue-100 px-2 py-1 rounded;
+}
+
+.calculator-actions {
+    @apply flex space-x-3;
+}
+</style>
+```
+
+6. Commission Preview (commission-preview.blade.php)
+
+```blade
+{{-- components/vendor/snowball/commission-preview.blade.php --}}
+@props([
+    'commissionData' => [],
+    'product' => null,
+    'package' => null
+])
+
+<div class="commission-preview">
+    <div class="preview-header mb-4">
+        <h3 class="text-lg font-semibold text-gray-900">📊 ตัวอย่างคอมมิชชั่น</h3>
+        <p class="text-sm text-gray-600">การคำนวณจากข้อมูลปัจจุบัน</p>
+    </div>
+
+    <div class="preview-grid grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Commission Summary -->
+        <div class="summary-card">
+            <div class="summary-header">
+                <h4 class="summary-title">สรุปคอมมิชชั่น</h4>
+                <div class="summary-amount">
+                    ฿{{ number_format($commissionData['total_commission'] ?? 0, 2) }}
+                </div>
+            </div>
+            
+            <div class="summary-breakdown space-y-2">
+                <div class="breakdown-item">
+                    <span class="breakdown-label">คอมมิชชั่นพื้นฐาน:</span>
+                    <span class="breakdown-value">฿{{ number_format($commissionData['base_commission'] ?? 0, 2) }}</span>
+                </div>
+                
+                @if($commissionData['bonus_commission'] ?? 0 > 0)
+                <div class="breakdown-item">
+                    <span class="breakdown-label">โบนัส:</span>
+                    <span class="breakdown-value text-green-600">+฿{{ number_format($commissionData['bonus_commission'] ?? 0, 2) }}</span>
+                </div>
+                @endif
+                
+                @if($commissionData['multiplier'] ?? 1 > 1)
+                <div class="breakdown-item">
+                    <span class="breakdown-label">ตัวคูณ:</span>
+                    <span class="breakdown-value text-blue-600">×{{ $commissionData['multiplier'] ?? 1 }}</span>
+                </div>
+                @endif
+            </div>
+        </div>
+
+        <!-- Performance Indicators -->
+        <div class="performance-card">
+            <h4 class="performance-title">ตัวชี้วัดประสิทธิภาพ</h4>
+            
+            <div class="performance-metrics space-y-3">
+                <div class="metric-item">
+                    <div class="metric-label">อัตราคอมมิชชั่น</div>
+                    <div class="metric-value">
+                        {{ number_format($commissionData['commission_rate'] ?? 0, 2) }}%
+                    </div>
+                    <div class="metric-bar">
+                        <div class="metric-fill" style="width: {{ min(($commissionData['commission_rate'] ?? 0), 100) }}%"></div>
+                    </div>
+                </div>
+                
+                <div class="metric-item">
+                    <div class="metric-label">ประสิทธิภาพ</div>
+                    <div class="metric-value">
+                        {{ $commissionData['efficiency'] ?? 'N/A' }}
+                    </div>
+                    <div class="metric-badge {{ $commissionData['efficiency_class'] ?? 'default' }}">
+                        {{ $commissionData['efficiency_label'] ?? 'กำลังคำนวณ' }}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Projected Earnings -->
+    @if($commissionData['projected_earnings'] ?? false)
+    <div class="projected-earnings mt-6">
+        <h4 class="projected-title mb-3">💰 รายได้โดยประมาณ</h4>
+        <div class="projected-grid grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div class="projected-item">
+                <div class="projected-period">รายวัน</div>
+                <div class="projected-amount">฿{{ number_format($commissionData['projected_earnings']['daily'] ?? 0, 2) }}</div>
+            </div>
+            <div class="projected-item">
+                <div class="projected-period">รายสัปดาห์</div>
+                <div class="projected-amount">฿{{ number_format($commissionData['projected_earnings']['weekly'] ?? 0, 2) }}</div>
+            </div>
+            <div class="projected-item">
+                <div class="projected-period">รายเดือน</div>
+                <div class="projected-amount">฿{{ number_format($commissionData['projected_earnings']['monthly'] ?? 0, 2) }}</div>
+            </div>
+            <div class="projected-item">
+                <div class="projected-period">รายปี</div>
+                <div class="projected-amount">฿{{ number_format($commissionData['projected_earnings']['yearly'] ?? 0, 2) }}</div>
+            </div>
+        </div>
+    </div>
+    @endif
+
+    <!-- Recommendations -->
+    <div class="recommendations mt-6 p-4 bg-blue-50 rounded-lg">
+        <h4 class="recommendations-title text-blue-800 font-semibold mb-2">
+            💡 คำแนะนำ
+        </h4>
+        <div class="recommendations-list text-sm text-blue-700 space-y-1">
+            @foreach($commissionData['recommendations'] ?? [] as $recommendation)
+                <div class="recommendation-item">• {{ $recommendation }}</div>
+            @endforeach
+        </div>
+    </div>
+</div>
+
+<style>
+.commission-preview {
+    @apply bg-white border border-gray-200 rounded-lg p-6;
+}
+
+.summary-card, .performance-card {
+    @apply bg-gray-50 rounded-lg p-4 border border-gray-200;
+}
+
+.summary-header {
+    @apply flex justify-between items-center mb-3 pb-2 border-b border-gray-300;
+}
+
+.summary-title, .performance-title {
+    @apply font-semibold text-gray-900;
+}
+
+.summary-amount {
+    @apply text-2xl font-bold text-green-600;
+}
+
+.breakdown-item {
+    @apply flex justify-between items-center text-sm;
+}
+
+.breakdown-label {
+    @apply text-gray-600;
+}
+
+.breakdown-value {
+    @apply font-semibold;
+}
+
+.metric-item {
+    @apply space-y-1;
+}
+
+.metric-label {
+    @apply text-sm text-gray-600;
+}
+
+.metric-value {
+    @apply font-semibold text-gray-900;
+}
+
+.metric-bar {
+    @apply w-full bg-gray-200 rounded-full h-1;
+}
+
+.metric-fill {
+    @apply bg-gradient-to-r from-green-400 to-blue-500 h-1 rounded-full transition-all duration-500;
+}
+
+.metric-badge {
+    @apply inline-block px-2 py-1 rounded-full text-xs font-semibold;
+}
+
+.metric-badge.high { @apply bg-green-100 text-green-800; }
+.metric-badge.medium { @apply bg-yellow-100 text-yellow-800; }
+.metric-badge.low { @apply bg-red-100 text-red-800; }
+.metric-badge.default { @apply bg-gray-100 text-gray-800; }
+
+.projected-item {
+    @apply text-center bg-white rounded-lg p-3 border border-gray-200;
+}
+
+.projected-period {
+    @apply text-sm text-gray-600 mb-1;
+}
+
+.projected-amount {
+    @apply font-bold text-lg text-green-600;
+}
+</style>
+```
+
+7. Products List (products-list.blade.php)
+
+```blade
+{{-- components/vendor/snowball/products-list.blade.php --}}
+@props([
+    'products' => [],
+    'snowballStats' => []
+])
+
+<div class="snowball-products-list">
+    <div class="list-header mb-6">
+        <div class="flex justify-between items-center">
+            <div>
+                <x-global.headline level="h2" size="lg">
+                    📦 สินค้าใช้ Snowball
+                </x-global.headline>
+                <p class="text-gray-600">จัดการสินค้าที่เปิดใช้งานระบบคอมมิชชั่น</p>
+            </div>
+            <div class="stats-badge">
+                <span class="stat-count">{{ count($products) }}</span>
+                <span class="stat-label">สินค้า</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="filters-section mb-4">
+        <div class="flex flex-wrap gap-3">
+            <select class="filter-select" wire:model="filterPackage">
+                <option value="">แพ็คเกจทั้งหมด</option>
+                <option value="basic">Basic</option>
+                <option value="pro">Pro</option>
+                <option value="enterprise">Enterprise</option>
+            </select>
+            
+            <select class="filter-select" wire:model="filterStatus">
+                <option value="">สถานะทั้งหมด</option>
+                <option value="active">ใช้งานอยู่</option>
+                <option value="paused">หยุดชั่วคราว</option>
+            </select>
+            
+            <input type="text" 
+                   class="search-input" 
+                   placeholder="ค้นหาสินค้า..."
+                   wire:model="searchQuery">
+        </div>
+    </div>
+
+    <!-- Products Table -->
+    <div class="products-table-container">
+        <table class="products-table">
+            <thead>
+                <tr>
+                    <th class="table-header">สินค้า</th>
+                    <th class="table-header">แพ็คเกจ</th>
+                    <th class="table-header">คอมมิชชั่น</th>
+                    <th class="table-header">ประสิทธิภาพ</th>
+                    <th class="table-header">สถานะ</th>
+                    <th class="table-header">การดำเนินการ</th>
+                </tr>
+            </thead>
+            <tbody>
+                @forelse($products as $product)
+                    <tr class="table-row">
+                        <td class="table-cell">
+                            <div class="product-info">
+                                <img src="{{ $product->thumbnail }}" 
+                                     alt="{{ $product->name }}"
+                                     class="product-thumbnail">
+                                <div class="product-details">
+                                    <div class="product-name">{{ $product->name }}</div>
+                                    <div class="product-price">฿{{ number_format($product->price) }}</div>
+                                </div>
+                            </div>
+                        </td>
+                        
+                        <td class="table-cell">
+                            <div class="package-info">
+                                <span class="package-badge {{ $product->snowball_package }}">
+                                    {{ $product->snowball_package }}
+                                </span>
+                                <div class="package-fee text-xs text-gray-500">
+                                    ฿{{ number_format($product->package_fee) }}/เดือน
+                                </div>
+                            </div>
+                        </td>
+                        
+                        <td class="table-cell">
+                            <div class="commission-info">
+                                <div class="commission-amount">
+                                    ฿{{ number_format($product->total_commission, 2) }}
+                                </div>
+                                <div class="commission-rate text-sm text-gray-600">
+                                    {{ $product->commission_rate }}%
+                                </div>
+                            </div>
+                        </td>
+                        
+                        <td class="table-cell">
+                            <div class="performance-info">
+                                <div class="performance-badge {{ $product->performance_class }}">
+                                    {{ $product->performance_label }}
+                                </div>
+                                <div class="performance-metric text-xs text-gray-500">
+                                    ยอดขาย: {{ $product->sales_count }}
+                                </div>
+                            </div>
+                        </td>
+                        
+                        <td class="table-cell">
+                            <div class="status-info">
+                                <span class="status-badge {{ $product->is_active ? 'status-active' : 'status-paused' }}">
+                                    {{ $product->is_active ? 'ใช้งาน' : 'หยุดชั่วคราว' }}
+                                </span>
+                            </div>
+                        </td>
+                        
+                        <td class="table-cell">
+                            <div class="action-buttons flex space-x-2">
+                                <button class="btn-action btn-edit" 
+                                        wire:click="editProduct({{ $product->id }})">
+                                    ✏️
+                                </button>
+                                <button class="btn-action btn-chart"
+                                        wire:click="viewAnalytics({{ $product->id }})">
+                                    📊
+                                </button>
+                                <button class="btn-action btn-{{ $product->is_active ? 'pause' : 'play' }}"
+                                        wire:click="toggleProduct({{ $product->id }})">
+                                    {{ $product->is_active ? '⏸️' : '▶️' }}
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                @empty
+                    <tr>
+                        <td colspan="6" class="table-cell text-center py-8">
+                            <x-global.empty-state 
+                                icon="📦"
+                                title="ไม่มีสินค้าใช้ Snowball"
+                                description="เริ่มต้นโดยการเพิ่มสินค้าและเปิดใช้งานระบบคอมมิชชั่น"
+                                action-label="เพิ่มสินค้า"
+                                action-url="{{ route('vendor.products.create') }}"
+                            />
+                        </td>
+                    </tr>
+                @endforelse
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    @if($products->hasPages())
+    <div class="pagination-section mt-6">
+        {{ $products->links() }}
+    </div>
+    @endif
+</div>
+
+<style>
+.snowball-products-list {
+    @apply bg-white rounded-lg border border-gray-200;
+}
+
+.stats-badge {
+    @apply bg-blue-100 text-blue-800 px-3 py-2 rounded-lg text-center;
+}
+
+.stat-count {
+    @apply block text-2xl font-bold;
+}
+
+.stat-label {
+    @apply text-sm;
+}
+
+.filter-select, .search-input {
+    @apply border border-gray-300 rounded-lg px-3 py-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500;
+}
+
+.search-input {
+    @apply min-w-[200px];
+}
+
+.products-table {
+    @apply w-full;
+}
+
+.table-header {
+    @apply bg-gray-50 px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-200;
+}
+
+.table-row {
+    @apply hover:bg-gray-50 transition-colors;
+}
+
+.table-cell {
+    @apply px-4 py-3 border-b border-gray-200;
+}
+
+.product-info {
+    @apply flex items-center space-x-3;
+}
+
+.product-thumbnail {
+    @apply w-10 h-10 rounded object-cover;
+}
+
+.product-name {
+    @apply font-medium text-gray-900;
+}
+
+.product-price {
+    @apply text-sm text-gray-500;
+}
+
+.package-badge {
+    @apply inline-block px-2 py-1 rounded text-xs font-semibold;
+}
+
+.package-badge.basic { @apply bg-green-100 text-green-800; }
+.package-badge.pro { @apply bg-blue-100 text-blue-800; }
+.package-badge.enterprise { @apply bg-purple-100 text-purple-800; }
+
+.commission-amount {
+    @apply font-semibold text-gray-900;
+}
+
+.performance-badge {
+    @apply inline-block px-2 py-1 rounded text-xs font-semibold;
+}
+
+.performance-badge.high { @apply bg-green-100 text-green-800; }
+.performance-badge.medium { @apply bg-yellow-100 text-yellow-800; }
+.performance-badge.low { @apply bg-red-100 text-red-800; }
+
+.status-badge {
+    @apply inline-block px-2 py-1 rounded text-xs font-semibold;
+}
+
+.status-active { @apply bg-green-100 text-green-800; }
+.status-paused { @apply bg-gray-100 text-gray-800; }
+
+.btn-action {
+    @apply p-2 rounded transition-colors;
+}
+
+.btn-edit { @apply bg-blue-100 text-blue-600 hover:bg-blue-200; }
+.btn-chart { @apply bg-purple-100 text-purple-600 hover:bg-purple-200; }
+.btn-pause { @apply bg-yellow-100 text-yellow-600 hover:bg-yellow-200; }
+.btn-play { @apply bg-green-100 text-green-600 hover:bg-green-200; }
+</style>
+```
+
+8. Performance Metrics (performance-metrics.blade.php)
+
+```blade
+{{-- components/vendor/snowball/performance-metrics.blade.php --}}
+@props([
+    'metrics' => [],
+    'timeRange' => 'monthly'
+])
+
+<div class="performance-metrics-dashboard">
+    <div class="dashboard-header mb-6">
+        <x-global.headline level="h2" size="lg">
+            📈 เมตริกประสิทธิภาพ
+        </x-global.headline>
+        
+        <!-- Time Range Selector -->
+        <div class="time-range-selector">
+            <select class="range-select" wire:model="timeRange">
+                <option value="daily">รายวัน</option>
+                <option value="weekly">รายสัปดาห์</option>
+                <option value="monthly" selected>รายเดือน</option>
+                <option value="yearly">รายปี</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- Key Performance Indicators -->
+    <div class="kpi-grid grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <x-vendor.snowball.kpi-card
+            icon="💰"
+            label="คอมมิชชั่นรวม"
+            :value="$metrics['total_commissions']"
+            format="currency"
+            trend="up"
+            trend-value="12%"
+            color="green"
+        />
+        
+        <x-vendor.snowball.kpi-card
+            icon="📊"
+            label="อัตราการแปลง"
+            :value="$metrics['conversion_rate']"
+            format="percentage"
+            trend="up"
+            trend-value="5%"
+            color="blue"
+        />
+        
+        <x-vendor.snowball.kpi-card
+            icon="🚀"
+            label="ประสิทธิภาพ"
+            :value="$metrics['performance_score']"
+            format="score"
+            trend="stable"
+            color="purple"
+        />
+        
+        <x-vendor.snowball.kpi-card
+            icon="⭐"
+            label="อันดับ"
+            :value="$metrics['rank']"
+            format="rank"
+            trend="up"
+            trend-value="2"
+            color="orange"
+        />
+    </div>
+
+    <div class="metrics-grid grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Commission Trends -->
+        <div class="metric-card">
+            <h4 class="metric-title">📊 แนวโน้มคอมมิชชั่น</h4>
+            <div class="chart-container">
+                <canvas id="commissionTrendChart" width="400" height="200"></canvas>
+            </div>
+        </div>
+
+        <!-- Package Performance -->
+        <div class="metric-card">
+            <h4 class="metric-title">🏆 ประสิทธิภาพแบ่งตามแพ็คเกจ</h4>
+            <div class="package-performance">
+                @foreach($metrics['package_performance'] ?? [] as $package)
+                <div class="package-item">
+                    <div class="package-header">
+                        <span class="package-name">{{ $package['name'] }}</span>
+                        <span class="package-value">{{ $package['value'] }}</span>
+                    </div>
+                    <div class="performance-bar">
+                        <div class="bar-fill" style="width: {{ $package['percentage'] }}%"></div>
+                    </div>
+                </div>
+                @endforeach
+            </div>
+        </div>
+    </div>
+
+    <!-- Detailed Metrics -->
+    <div class="detailed-metrics mt-6">
+        <h4 class="section-title mb-4">📋 เมตริกเชิงลึก</h4>
+        <div class="metrics-table">
+            <table class="w-full">
+                <thead>
+                    <tr>
+                        <th class="table-header">เมตริก</th>
+                        <th class="table-header">ค่า</th>
+                        <th class="table-header">เปลี่ยนแปลง</th>
+                        <th class="table-header">เป้าหมาย</th>
+                        <th class="table-header">สถานะ</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($metrics['detailed'] ?? [] as $metric)
+                    <tr>
+                        <td class="table-cell">
+                            <div class="flex items-center">
+                                <span class="metric-icon mr-2">{{ $metric['icon'] }}</span>
+                                {{ $metric['label'] }}
+                            </div>
+                        </td>
+                        <td class="table-cell font-semibold">{{ $metric['value'] }}</td>
+                        <td class="table-cell">
+                            <span class="change-indicator {{ $metric['change_class'] }}">
+                                {{ $metric['change'] }}
+                            </span>
+                        </td>
+                        <td class="table-cell">{{ $metric['target'] }}</td>
+                        <td class="table-cell">
+                            <span class="status-indicator {{ $metric['status_class'] }}">
+                                {{ $metric['status'] }}
+                            </span>
+                        </td>
+                    </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<style>
+.performance-metrics-dashboard {
+    @apply bg-white rounded-lg p-6 border border-gray-200;
+}
+
+.time-range-selector {
+    @apply mt-2;
+}
+
+.range-select {
+    @apply border border-gray-300 rounded-lg px-3 py-1 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500;
+}
+
+.metric-card {
+    @apply bg-gray-50 rounded-lg p-4 border border-gray-200;
+}
+
+.metric-title {
+    @apply font-semibold text-gray-900 mb-3;
+}
+
+.chart-container {
+    @apply h-48;
+}
+
+.package-performance {
+    @apply space-y-3;
+}
+
+.package-item {
+    @apply space-y-1;
+}
+
+.package-header {
+    @apply flex justify-between items-center text-sm;
+}
+
+.package-name {
+    @apply font-medium;
+}
+
+.package-value {
+    @apply text-gray-600;
+}
+
+.performance-bar {
+    @apply w-full bg-gray-200 rounded-full h-2;
+}
+
+.bar-fill {
+    @apply h-2 rounded-full bg-gradient-to-r from-blue-400 to-purple-500 transition-all duration-500;
+}
+
+.section-title {
+    @apply font-semibold text-gray-900;
+}
+
+.metrics-table {
+    @apply overflow-x-auto;
+}
+
+.table-header {
+    @apply bg-gray-50 px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-200;
+}
+
+.table-cell {
+    @apply px-4 py-3 border-b border-gray-200 text-sm;
+}
+
+.change-indicator {
+    @apply inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold;
+}
+
+.change-indicator.positive { @apply bg-green-100 text-green-800; }
+.change-indicator.negative { @apply bg-red-100 text-red-800; }
+.change-indicator.neutral { @apply bg-gray-100 text-gray-800; }
+
+.status-indicator {
+    @apply inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold;
+}
+
+.status-indicator.achieved { @apply bg-green-100 text-green-800; }
+.status-indicator.progress { @apply bg-yellow-100 text-yellow-800; }
+.status-indicator.behind { @apply bg-red-100 text-red-800; }
+
+.metric-icon {
+    @apply text-lg;
+}
+</style>
+
+<script>
+// Initialize charts when component loads
+document.addEventListener('DOMContentLoaded', function() {
+    const ctx = document.getElementById('commissionTrendChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.'],
+            datasets: [{
+                label: 'คอมมิชชั่น',
+                data: [12000, 19000, 15000, 25000, 22000, 30000],
+                borderColor: '#10B981',
+                backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                tension: 0.4,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return '฿' + value.toLocaleString();
+                        }
+                    }
+                }
+            }
+        }
+    });
+});
+</script>
+```
+
+9. Commission Reports (commission-reports.blade.php)
+
+```blade
+{{-- components/vendor/snowball/commission-reports.blade.php --}}
+@props([
+    'reports' => [],
+    'filters' => [],
+    'summary' => []
+])
+
+<div class="commission-reports">
+    <div class="reports-header mb-6">
+        <div class="flex justify-between items-center">
+            <div>
+                <x-global.headline level="h2" size="lg">
+                    📋 รายงานคอมมิชชั่น
+                </x-global.headline>
+                <p class="text-gray-600">ดูรายละเอียดและประวัติคอมมิชชั่นทั้งหมด</p>
+            </div>
+            <div class="header-actions flex space-x-3">
+                <button class="btn btn-outline" wire:click="exportReport">
+                    📤 ส่งออกรายงาน
+                </button>
+                <button class="btn btn-primary" wire:click="refreshReports">
+                    🔄 รีเฟรช
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Report Filters -->
+    <div class="filters-card mb-6">
+        <div class="filters-grid grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div class="filter-group">
+                <label class="filter-label">วันที่เริ่มต้น</label>
+                <input type="date" 
+                       class="filter-input" 
+                       wire:model="filters.start_date">
+            </div>
+            
+            <div class="filter-group">
+                <label class="filter-label">วันที่สิ้นสุด</label>
+                <input type="date" 
+                       class="filter-input" 
+                       wire:model="filters.end_date">
+            </div>
+            
+            <div class="filter-group">
+                <label class="filter-label">แพ็คเกจ</label>
+                <select class="filter-select" wire:model="filters.package">
+                    <option value="">ทั้งหมด</option>
+                    <option value="basic">Basic</option>
+                    <option value="pro">Pro</option>
+                    <option value="enterprise">Enterprise</option>
+                </select>
+            </div>
+            
+            <div class="filter-group">
+                <label class="filter-label">สถานะ</label>
+                <select class="filter-select" wire:model="filters.status">
+                    <option value="">ทั้งหมด</option>
+                    <option value="pending">รอการจ่าย</option>
+                    <option value="paid">จ่ายแล้ว</option>
+                    <option value="cancelled">ยกเลิก</option>
+                </select>
+            </div>
+        </div>
+        
+        <div class="filter-actions mt-4 flex justify-between">
+            <button class="btn btn-secondary" wire:click="resetFilters">
+                🔄 ล้างตัวกรอง
+            </button>
+            <button class="btn btn-primary" wire:click="applyFilters">
+                🔍 ใช้ตัวกรอง
+            </button>
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="summary-cards grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div class="summary-card total">
+            <div class="summary-icon">💰</div>
+            <div class="summary-content">
+                <div class="summary-label">คอมมิชชั่นรวม</div>
+                <div class="summary-value">฿{{ number_format($summary['total_commissions'], 2) }}</div>
+            </div>
+        </div>
+        
+        <div class="summary-card pending">
+            <div class="summary-icon">⏳</div>
+            <div class="summary-content">
+                <div class="summary-label">รอการจ่าย</div>
+                <div class="summary-value">฿{{ number_format($summary['pending_commissions'], 2) }}</div>
+            </div>
+        </div>
+        
+        <div class="summary-card paid">
+            <div class="summary-icon">✅</div>
+            <div class="summary-content">
+                <div class="summary-label">จ่ายแล้ว</div>
+                <div class="summary-value">฿{{ number_format($summary['paid_commissions'], 2) }}</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reports Table -->
+    <div class="reports-table-container">
+        <table class="reports-table">
+            <thead>
+                <tr>
+                    <th class="table-header">วันที่</th>
+                    <th class="table-header">สินค้า</th>
+                    <th class="table-header">แพ็คเกจ</th>
+                    <th class="table-header">คอมมิชชั่น</th>
+                    <th class="table-header">สถานะ</th>
+                    <th class="table-header">การคำนวณ</th>
+                    <th class="table-header">การดำเนินการ</th>
+                </tr>
+            </thead>
+            <tbody>
+                @forelse($reports as $report)
+                    <tr class="table-row">
+                        <td class="table-cell">
+                            <div class="date-info">
+                                <div class="date">{{ $report->date->format('d/m/Y') }}</div>
+                                <div class="time text-xs text-gray-500">{{ $report->date->format('H:i') }}</div>
+                            </div>
+                        </td>
+                        
+                        <td class="table-cell">
+                            <div class="product-info">
+                                <img src="{{ $report->product_thumbnail }}" 
+                                     alt="{{ $report->product_name }}"
+                                     class="product-thumbnail">
+                                <div class="product-details">
+                                    <div class="product-name">{{ $report->product_name }}</div>
+                                    <div class="product-sales text-xs text-gray-500">
+                                        ขายแล้ว {{ $report->sales_count }} ชิ้น
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                        
+                        <td class="table-cell">
+                            <span class="package-badge {{ $report->package }}">
+                                {{ $report->package }}
+                            </span>
+                        </td>
+                        
+                        <td class="table-cell">
+                            <div class="commission-info">
+                                <div class="commission-amount">
+                                    ฿{{ number_format($report->commission_amount, 2) }}
+                                </div>
+                                <div class="commission-rate text-xs text-gray-500">
+                                    {{ $report->commission_rate }}%
+                                </div>
+                            </div>
+                        </td>
+                        
+                        <td class="table-cell">
+                            <span class="status-badge {{ $report->status }}">
+                                {{ $report->status_label }}
+                            </span>
+                            @if($report->payout_date)
+                                <div class="payout-date text-xs text-gray-500">
+                                    จ่าย: {{ $report->payout_date->format('d/m/Y') }}
+                                </div>
+                            @endif
+                        </td>
+                        
+                        <td class="table-cell">
+                            <button class="calc-details-btn" 
+                                    wire:click="showCalculation({{ $report->id }})">
+                                🧮 ดูการคำนวณ
+                            </button>
+                        </td>
+                        
+                        <td class="table-cell">
+                            <div class="action-buttons flex space-x-2">
+                                @if($report->status === 'pending')
+                                    <button class="btn-action btn-view" 
+                                            wire:click="viewDetails({{ $report->id }})">
+                                        👁️ ดูรายละเอียด
+                                    </button>
+                                @else
+                                    <button class="btn-action btn-receipt"
+                                            wire:click="downloadReceipt({{ $report->id }})">
+                                        📄 ใบเสร็จ
+                                    </button>
+                                @endif
+                            </div>
+                        </td>
+                    </tr>
+                @empty
+                    <tr>
+                        <td colspan="7" class="table-cell text-center py-8">
+                            <x-global.empty-state 
+                                icon="📊"
+                                title="ไม่มีรายงานคอมมิชชั่น"
+                                description="ไม่พบรายงานคอมมิชชั่นในช่วงเวลาที่เลือก"
+                                action-label="ลองค้นหาใหม่"
+                                action-type="button"
+                                wire:click="resetFilters"
+                            />
+                        </td>
+                    </tr>
+                @endforelse
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    @if($reports->hasPages())
+    <div class="pagination-section mt-6">
+        {{ $reports->links() }}
+    </div>
+    @endif
+
+    <!-- Report Summary -->
+    <div class="report-summary mt-6 p-4 bg-gray-50 rounded-lg">
+        <h4 class="summary-title mb-3">📊 สรุปรายงาน</h4>
+        <div class="summary-grid grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+            <div class="summary-item">
+                <span class="summary-label">จำนวนรายการ:</span>
+                <span class="summary-value">{{ $summary['total_items'] }} รายการ</span>
+            </div>
+            <div class="summary-item">
+                <span class="summary-label">คอมมิชชั่นเฉลี่ย:</span>
+                <span class="summary-value">฿{{ number_format($summary['average_commission'], 2) }}</span>
+            </div>
+            <div class="summary-item">
+                <span class="summary-label">รายการสูงสุด:</span>
+                <span class="summary-value">฿{{ number_format($summary['max_commission'], 2) }}</span>
+            </div>
+            <div class="summary-item">
+                <span class="summary-label">อัตราคอมมิชชั่นเฉลี่ย:</span>
+                <span class="summary-value">{{ number_format($summary['average_rate'], 2) }}%</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.commission-reports {
+    @apply bg-white rounded-lg border border-gray-200;
+}
+
+.filters-card {
+    @apply bg-gray-50 rounded-lg p-4 border border-gray-200;
+}
+
+.filter-group {
+    @apply space-y-1;
+}
+
+.filter-label {
+    @apply block text-sm font-medium text-gray-700;
+}
+
+.filter-input, .filter-select {
+    @apply w-full border border-gray-300 rounded-lg px-3 py-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500;
+}
+
+.summary-cards {
+    @apply mb-6;
+}
+
+.summary-card {
+    @apply rounded-lg p-4 flex items-center space-x-4;
+}
+
+.summary-card.total { @apply bg-green-50 border border-green-200; }
+.summary-card.pending { @apply bg-yellow-50 border border-yellow-200; }
+.summary-card.paid { @apply bg-blue-50 border border-blue-200; }
+
+.summary-icon {
+    @apply text-2xl;
+}
+
+.summary-content {
+    @apply flex-1;
+}
+
+.summary-label {
+    @apply text-sm text-gray-600;
+}
+
+.summary-value {
+    @apply text-xl font-bold;
+}
+
+.summary-card.total .summary-value { @apply text-green-600; }
+.summary-card.pending .summary-value { @apply text-yellow-600; }
+.summary-card.paid .summary-value { @apply text-blue-600; }
+
+.reports-table {
+    @apply w-full;
+}
+
+.table-header {
+    @apply bg-gray-50 px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-200;
+}
+
+.table-row {
+    @apply hover:bg-gray-50 transition-colors;
+}
+
+.table-cell {
+    @apply px-4 py-3 border-b border-gray-200;
+}
+
+.date-info {
+    @apply space-y-1;
+}
+
+.product-info {
+    @apply flex items-center space-x-3;
+}
+
+.product-thumbnail {
+    @apply w-8 h-8 rounded object-cover;
+}
+
+.product-name {
+    @apply font-medium text-gray-900;
+}
+
+.package-badge {
+    @apply inline-block px-2 py-1 rounded text-xs font-semibold;
+}
+
+.package-badge.basic { @apply bg-green-100 text-green-800; }
+.package-badge.pro { @apply bg-blue-100 text-blue-800; }
+.package-badge.enterprise { @apply bg-purple-100 text-purple-800; }
+
+.commission-amount {
+    @apply font-semibold text-gray-900;
+}
+
+.status-badge {
+    @apply inline-block px-2 py-1 rounded text-xs font-semibold;
+}
+
+.status-badge.pending { @apply bg-yellow-100 text-yellow-800; }
+.status-badge.paid { @apply bg-green-100 text-green-800; }
+.status-badge.cancelled { @apply bg-red-100 text-red-800; }
+
+.calc-details-btn {
+    @apply text-blue-600 hover:text-blue-800 text-sm font-medium;
+}
+
+.btn-action {
+    @apply px-3 py-1 rounded text-sm font-medium transition-colors;
+}
+
+.btn-view { @apply bg-blue-100 text-blue-700 hover:bg-blue-200; }
+.btn-receipt { @apply bg-gray-100 text-gray-700 hover:bg-gray-200; }
+
+.report-summary {
+    @apply border border-gray-200;
+}
+
+.summary-title {
+    @apply font-semibold text-gray-900;
+}
+
+.summary-item {
+    @apply flex justify-between items-center;
+}
+
+.summary-label {
+    @apply text-gray-600;
+}
+
+.summary-value {
+    @apply font-semibold text-gray-900;
+}
+</style>
+```
+
+---
+
+📦 VENDOR ORDERS COMPONENTS
+
+1. Order List (order-list.blade.php)
+
+```blade
+{{-- components/vendor/orders/order-list.blade.php --}}
+@props([
+    'orders' => [],
+    'filters' => [],
+    'stats' => []
+])
+
+<div class="vendor-orders-list">
+    <div class="list-header mb-6">
+        <div class="flex justify-between items-center">
+            <div>
+                <x-global.headline level="h2" size="lg">
+                    📦 คำสั่งซื้อของฉัน
+                </x-global.headline>
+                <p class="text-gray-600">จัดการคำสั่งซื้อทั้งหมดจากร้านค้าของคุณ</p>
+            </div>
+            <div class="header-stats flex space-x-4">
+                <div class="stat-item">
+                    <div class="stat-value">{{ $stats['total_orders'] }}</div>
+                    <div class="stat-label">ทั้งหมด</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value text-orange-600">{{ $stats['pending_orders'] }}</div>
+                    <div class="stat-label">รอดำเนินการ</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Filters -->
+    <div class="quick-filters mb-4">
+        <div class="flex flex-wrap gap-2">
+            <button class="filter-chip {{ !$filters['status'] ? 'filter-chip-active' : 'filter-chip-inactive' }}"
+                    wire:click="$set('filters.status', '')">
+                ทั้งหมด ({{ $stats['total_orders'] }})
+            </button>
+            <button class="filter-chip {{ $filters['status'] === 'pending' ? 'filter-chip-active' : 'filter-chip-inactive' }}"
+                    wire:click="$set('filters.status', 'pending')">
+                รอการชำระเงิน ({{ $stats['pending_orders'] }})
+            </button>
+            <button class="filter-chip {{ $filters['status'] === 'confirmed' ? 'filter-chip-active' : 'filter-chip-inactive' }}"
+                    wire:click="$set('filters.status', 'confirmed')">
+                ยืนยันแล้ว ({{ $stats['confirmed_orders'] }})
+            </button>
+            <button class="filter-chip {{ $filters['status'] === 'shipped' ? 'filter-chip-active' : 'filter-chip-inactive' }}"
+                    wire:click="$set('filters.status', 'shipped')">
+                จัดส่งแล้ว ({{ $stats['shipped_orders'] }})
+            </button>
+            <button class="filter-chip {{ $filters['status'] === 'delivered' ? 'filter-chip-active' : 'filter-chip-inactive' }}"
+                    wire:click="$set('filters.status', 'delivered')">
+                จัดส่งสำเร็จ ({{ $stats['delivered_orders'] }})
+            </button>
+        </div>
+    </div>
+
+    <!-- Advanced Filters -->
+    <div class="advanced-filters mb-6">
+        <div class="filters-grid grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div class="filter-group">
+                <label class="filter-label">วันที่สั่งซื้อ</label>
+                <input type="date" 
+                       class="filter-input" 
+                       wire:model="filters.order_date">
+            </div>
+            
+            <div class="filter-group">
+                <label class="filter-label">หมายเลขคำสั่งซื้อ</label>
+                <input type="text" 
+                       class="filter-input" 
+                       placeholder="ค้นหาด้วยหมายเลข..."
+                       wire:model="filters.order_number">
+            </div>
+            
+            <div class="filter-group">
+                <label class="filter-label">ลูกค้า</label>
+                <input type="text" 
+                       class="filter-input" 
+                       placeholder="ค้นหาด้วยชื่อลูกค้า..."
+                       wire:model="filters.customer_name">
+            </div>
+            
+            <div class="filter-group">
+                <label class="filter-label">เรียงตาม</label>
+                <select class="filter-select" wire:model="filters.sort_by">
+                    <option value="newest">ล่าสุด</option>
+                    <option value="oldest">เก่าสุด</option>
+                    <option value="total">ยอดรวม</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- Orders Grid/Table View -->
+    <div class="orders-container">
+        @if($viewMode === 'grid')
+            <!-- Grid View -->
+            <div class="orders-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                @forelse($orders as $order)
+                    <x-vendor.orders.order-card 
+                        :order="$order"
+                        :show-actions="true"
+                    />
+                @empty
+                    <div class="col-span-full">
+                        <x-global.empty-state 
+                            icon="📦"
+                            title="ไม่มีคำสั่งซื้อ"
+                            description="ไม่พบคำสั่งซื้อที่ตรงกับเงื่อนไขการค้นหา"
+                            action-label="ล้างตัวกรอง"
+                            action-type="button"
+                            wire:click="resetFilters"
+                        />
+                    </div>
+                @endforelse
+            </div>
+        @else
+            <!-- Table View -->
+            <div class="orders-table-container">
+                <x-vendor.orders.order-table 
+                    :orders="$orders"
+                    :show-checkbox="true"
+                />
+            </div>
+        @endif
+    </div>
+
+    <!-- View Toggle -->
+    <div class="view-toggle mt-4 flex justify-between items-center">
+        <div class="view-buttons flex space-x-2">
+            <button class="view-btn {{ $viewMode === 'table' ? 'view-btn-active' : 'view-btn-inactive' }}"
+                    wire:click="$set('viewMode', 'table')">
+                📋 ตาราง
+            </button>
+            <button class="view-btn {{ $viewMode === 'grid' ? 'view-btn-active' : 'view-btn-inactive' }}"
+                    wire:click="$set('viewMode', 'grid')">
+                🎛️ การ์ด
+            </button>
+        </div>
+        
+        <!-- Pagination -->
+        @if($orders->hasPages())
+        <div class="pagination">
+            {{ $orders->links() }}
+        </div>
+        @endif
+    </div>
+</div>
+
+<style>
+.vendor-orders-list {
+    @apply bg-white rounded-lg p-6;
+}
+
+.header-stats {
+    @apply flex space-x-6;
+}
+
+.stat-item {
+    @apply text-center;
+}
+
+.stat-value {
+    @apply text-2xl font-bold text-gray-900;
+}
+
+.stat-label {
+    @apply text-sm text-gray-600;
+}
+
+.quick-filters {
+    @apply border-b border-gray-200 pb-4;
+}
+
+.filter-chip {
+    @apply px-3 py-1 rounded-full text-sm font-medium transition-colors;
+}
+
+.filter-chip-active {
+    @apply bg-blue-500 text-white;
+}
+
+.filter-chip-inactive {
+    @apply bg-gray-100 text-gray-700 hover:bg-gray-200;
+}
+
+.advanced-filters {
+    @apply bg-gray-50 rounded-lg p-4;
+}
+
+.filter-group {
+    @apply space-y-1;
+}
+
+.filter-label {
+    @apply block text-sm font-medium text-gray-700;
+}
+
+.filter-input, .filter-select {
+    @apply w-full border border-gray-300 rounded-lg px-3 py-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500;
+}
+
+.orders-container {
+    @apply min-h-[400px];
+}
+
+.view-toggle {
+    @apply border-t border-gray-200 pt-4;
+}
+
+.view-btn {
+    @apply px-4 py-2 rounded-lg font-medium transition-colors;
+}
+
+.view-btn-active {
+    @apply bg-blue-500 text-white;
+}
+
+.view-btn-inactive {
+    @apply bg-gray-100 text-gray-700 hover:bg-gray-200;
+}
+
+.pagination {
+    @apply flex items-center space-x-2;
+}
+</style>
+```
+
+🏪 Vendor Orders Components (ต่อ) & Vendor Zone Conclusion
+
+📦 VENDOR ORDERS COMPONENTS (ต่อ)
+
+2. Order Table (order-table.blade.php)
+
+```blade
+{{-- components/vendor/orders/order-table.blade.php --}}
+@props([
+    'orders' => [],
+    'selectedOrders' => [],
+    'showCheckbox' => false,
+    'bulkActions' => []
+])
+
+<div class="vendor-order-table">
+    <table class="order-table w-full">
+        <thead>
+            <tr class="bg-gray-50">
+                @if($showCheckbox)
+                <th class="table-header w-8">
+                    <input type="checkbox" 
+                           wire:model="selectAll"
+                           class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                </th>
+                @endif
+                <th class="table-header">คำสั่งซื้อ</th>
+                <th class="table-header">ลูกค้า</th>
+                <th class="table-header">สินค้า</th>
+                <th class="table-header">ยอดรวม</th>
+                <th class="table-header">สถานะ</th>
+                <th class="table-header">วันที่</th>
+                <th class="table-header">การดำเนินการ</th>
+            </tr>
+        </thead>
+        <tbody class="bg-white divide-y divide-gray-200">
+            @forelse($orders as $order)
+                <tr class="order-table-row hover:bg-gray-50 transition-colors">
+                    @if($showCheckbox)
+                    <td class="table-cell py-3">
+                        <input type="checkbox" 
+                               wire:model="selectedOrders"
+                               value="{{ $order->id }}"
+                               class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                    </td>
+                    @endif
+                    
+                    <td class="table-cell">
+                        <div class="order-info">
+                            <div class="order-number font-medium text-blue-600">
+                                #{{ $order->order_number }}
+                            </div>
+                            <div class="order-items text-xs text-gray-500">
+                                {{ $order->items_count }} รายการ
+                            </div>
+                        </div>
+                    </td>
+                    
+                    <td class="table-cell">
+                        <div class="customer-info">
+                            <div class="customer-name font-medium">
+                                {{ $order->customer->name }}
+                            </div>
+                            <div class="customer-contact text-xs text-gray-500">
+                                {{ $order->customer->email }}
+                            </div>
+                        </div>
+                    </td>
+                    
+                    <td class="table-cell">
+                        <div class="products-info">
+                            @foreach($order->items as $item)
+                                <div class="product-item flex items-center space-x-2 mb-1 last:mb-0">
+                                    <img src="{{ $item->product_thumbnail }}" 
+                                         alt="{{ $item->product_name }}"
+                                         class="w-6 h-6 rounded object-cover">
+                                    <span class="text-sm truncate max-w-[120px]">
+                                        {{ $item->product_name }}
+                                    </span>
+                                    <span class="text-xs text-gray-500">x{{ $item->quantity }}</span>
+                                </div>
+                            @endforeach
+                        </div>
+                    </td>
+                    
+                    <td class="table-cell">
+                        <div class="amount-info text-right">
+                            <div class="total-amount font-semibold">
+                                ฿{{ number_format($order->total_amount, 2) }}
+                            </div>
+                            @if($order->shipping_fee > 0)
+                                <div class="shipping-fee text-xs text-gray-500">
+                                    รวมค่าจัดส่ง
+                                </div>
+                            @endif
+                        </div>
+                    </td>
+                    
+                    <td class="table-cell">
+                        <x-vendor.orders.status-badge :status="$order->status" />
+                    </td>
+                    
+                    <td class="table-cell">
+                        <div class="date-info">
+                            <div class="order-date text-sm">
+                                {{ $order->created_at->format('d/m/Y') }}
+                            </div>
+                            <div class="order-time text-xs text-gray-500">
+                                {{ $order->created_at->format('H:i') }}
+                            </div>
+                        </div>
+                    </td>
+                    
+                    <td class="table-cell">
+                        <x-vendor.orders.order-actions :order="$order" />
+                    </td>
+                </tr>
+            @empty
+                <tr>
+                    <td colspan="{{ $showCheckbox ? 8 : 7 }}" class="table-cell text-center py-8">
+                        <x-global.empty-state 
+                            icon="📦"
+                            title="ไม่มีคำสั่งซื้อ"
+                            description="ไม่พบคำสั่งซื้อที่ตรงกับเงื่อนไขการค้นหา"
+                        />
+                    </td>
+                </tr>
+            @endforelse
+        </tbody>
+    </table>
+
+    <!-- Bulk Actions -->
+    @if($showCheckbox && count($selectedOrders) > 0)
+    <div class="bulk-actions-bar bg-blue-50 border border-blue-200 rounded-lg p-4 mt-4">
+        <div class="flex items-center justify-between">
+            <div class="selected-count text-blue-700">
+                เลือกแล้ว <span class="font-semibold">{{ count($selectedOrders) }}</span> รายการ
+            </div>
+            <div class="bulk-actions-buttons flex space-x-2">
+                <select wire:model="bulkAction" class="bulk-action-select">
+                    <option value="">เลือกการดำเนินการ...</option>
+                    <option value="mark_processing">ทำเครื่องหมายว่ากำลังดำเนินการ</option>
+                    <option value="mark_shipped">ทำเครื่องหมายว่าจัดส่งแล้ว</option>
+                    <option value="export">ส่งออกรายการ</option>
+                    <option value="print_labels">พิมพ์ป้าย</option>
+                </select>
+                <button wire:click="applyBulkAction" 
+                        class="btn btn-primary"
+                        {{ !$bulkAction ? 'disabled' : '' }}>
+                    ดำเนินการ
+                </button>
+                <button wire:click="clearSelection" class="btn btn-outline">
+                    ล้างการเลือก
+                </button>
+            </div>
+        </div>
+    </div>
+    @endif
+</div>
+
+<style>
+.vendor-order-table {
+    @apply bg-white rounded-lg border border-gray-200 overflow-hidden;
+}
+
+.order-table {
+    @apply min-w-full divide-y divide-gray-200;
+}
+
+.table-header {
+    @apply px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider;
+}
+
+.table-cell {
+    @apply px-4 py-3 whitespace-nowrap;
+}
+
+.order-table-row:hover {
+    @apply bg-gray-50;
+}
+
+.order-info, .customer-info, .amount-info, .date-info {
+    @apply space-y-1;
+}
+
+.products-info {
+    @apply max-w-[200px];
+}
+
+.product-item {
+    @apply flex items-center;
+}
+
+.bulk-actions-bar {
+    @apply animate-pulse;
+}
+
+.bulk-action-select {
+    @apply border border-gray-300 rounded-lg px-3 py-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500;
+}
+
+.btn {
+    @apply px-4 py-2 rounded-lg font-medium transition-colors;
+}
+
+.btn-primary {
+    @apply bg-blue-500 text-white hover:bg-blue-600;
+}
+
+.btn-primary:disabled {
+    @apply bg-blue-300 cursor-not-allowed;
+}
+
+.btn-outline {
+    @apply border border-gray-300 text-gray-700 hover:bg-gray-50;
+}
+</style>
+```
+
+3. Order Detail (order-detail.blade.php)
+
+```blade
+{{-- components/vendor/orders/order-detail.blade.php --}}
+@props(['order'])
+
+<div class="vendor-order-detail">
+    <!-- Order Header -->
+    <div class="order-header bg-white rounded-lg border border-gray-200 p-6 mb-6">
+        <div class="flex justify-between items-start">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-900 mb-2">
+                    คำสั่งซื้อ #{{ $order->order_number }}
+                </h1>
+                <div class="flex items-center space-x-4 text-sm text-gray-600">
+                    <div class="flex items-center">
+                        <span class="mr-1">📅</span>
+                        {{ $order->created_at->format('d/m/Y H:i') }}
+                    </div>
+                    <div class="flex items-center">
+                        <span class="mr-1">👤</span>
+                        {{ $order->customer->name }}
+                    </div>
+                    <x-vendor.orders.status-badge :status="$order->status" size="lg" />
+                </div>
+            </div>
+            <div class="text-right">
+                <div class="text-lg font-semibold text-gray-900 mb-1">
+                    ฿{{ number_format($order->total_amount, 2) }}
+                </div>
+                <div class="text-sm text-gray-600">
+                    ยอดรวมทั้งหมด
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Main Content -->
+        <div class="lg:col-span-2 space-y-6">
+            <!-- Order Items -->
+            <div class="order-items-card">
+                <h3 class="card-title">📦 รายการสินค้า</h3>
+                <div class="space-y-4">
+                    @foreach($order->items as $item)
+                    <div class="order-item flex items-center justify-between p-4 border border-gray-200 rounded-lg">
+                        <div class="flex items-center space-x-4">
+                            <img src="{{ $item->product_thumbnail }}" 
+                                 alt="{{ $item->product_name }}"
+                                 class="w-16 h-16 rounded object-cover">
+                            <div>
+                                <h4 class="font-medium text-gray-900">
+                                    {{ $item->product_name }}
+                                </h4>
+                                <p class="text-sm text-gray-600">
+                                    ราคาต่อชิ้น: ฿{{ number_format($item->unit_price, 2) }}
+                                </p>
+                                @if($item->variant)
+                                <p class="text-xs text-gray-500">
+                                    ตัวเลือก: {{ $item->variant }}
+                                </p>
+                                @endif
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-lg font-semibold">
+                                ฿{{ number_format($item->total_price, 2) }}
+                            </div>
+                            <div class="text-sm text-gray-600">
+                                จำนวน: {{ $item->quantity }} ชิ้น
+                            </div>
+                        </div>
+                    </div>
+                    @endforeach
+                </div>
+            </div>
+
+            <!-- Order Notes -->
+            @if($order->notes)
+            <div class="order-notes-card">
+                <h3 class="card-title">📝 หมายเหตุคำสั่งซื้อ</h3>
+                <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                    <p class="text-yellow-800">{{ $order->notes }}</p>
+                </div>
+            </div>
+            @endif
+        </div>
+
+        <!-- Sidebar -->
+        <div class="space-y-6">
+            <!-- Order Summary -->
+            <div class="order-summary-card">
+                <h3 class="card-title">💰 สรุปคำสั่งซื้อ</h3>
+                <div class="space-y-2">
+                    <div class="flex justify-between">
+                        <span>ยอดรวมสินค้า:</span>
+                        <span>฿{{ number_format($order->subtotal, 2) }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span>ค่าจัดส่ง:</span>
+                        <span>฿{{ number_format($order->shipping_fee, 2) }}</span>
+                    </div>
+                    @if($order->discount_amount > 0)
+                    <div class="flex justify-between text-green-600">
+                        <span>ส่วนลด:</span>
+                        <span>-฿{{ number_format($order->discount_amount, 2) }}</span>
+                    </div>
+                    @endif
+                    <div class="border-t pt-2 flex justify-between font-semibold text-lg">
+                        <span>ยอดรวมทั้งหมด:</span>
+                        <span>฿{{ number_format($order->total_amount, 2) }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Customer Information -->
+            <div class="customer-info-card">
+                <h3 class="card-title">👤 ข้อมูลลูกค้า</h3>
+                <div class="space-y-3">
+                    <div>
+                        <label class="text-sm text-gray-600">ชื่อ:</label>
+                        <p class="font-medium">{{ $order->customer->name }}</p>
+                    </div>
+                    <div>
+                        <label class="text-sm text-gray-600">อีเมล:</label>
+                        <p class="font-medium">{{ $order->customer->email }}</p>
+                    </div>
+                    <div>
+                        <label class="text-sm text-gray-600">โทรศัพท์:</label>
+                        <p class="font-medium">{{ $order->customer->phone }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Shipping Address -->
+            <div class="shipping-address-card">
+                <h3 class="card-title">🏠 ที่อยู่จัดส่ง</h3>
+                <div class="bg-gray-50 rounded-lg p-4">
+                    <p class="font-medium">{{ $order->shipping_address->full_name }}</p>
+                    <p class="text-sm text-gray-600">{{ $order->shipping_address->address_line_1 }}</p>
+                    @if($order->shipping_address->address_line_2)
+                    <p class="text-sm text-gray-600">{{ $order->shipping_address->address_line_2 }}</p>
+                    @endif
+                    <p class="text-sm text-gray-600">
+                        {{ $order->shipping_address->district }}, 
+                        {{ $order->shipping_address->province }} 
+                        {{ $order->shipping_address->postal_code }}
+                    </p>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="quick-actions-card">
+                <h3 class="card-title">⚡ การดำเนินการด่วน</h3>
+                <div class="space-y-2">
+                    <x-vendor.orders.status-updater :order="$order" />
+                    <x-vendor.orders.shipping-tracker :order="$order" />
+                    <button class="w-full btn btn-outline justify-center">
+                        📧 ส่งอีเมลยืนยัน
+                    </button>
+                    <button class="w-full btn btn-outline justify-center">
+                        🖨️ พิมพ์ใบสั่งซื้อ
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.vendor-order-detail {
+    @apply space-y-6;
+}
+
+.card-title {
+    @apply text-lg font-semibold text-gray-900 mb-4;
+}
+
+.order-items-card, .order-notes-card, .order-summary-card,
+.customer-info-card, .shipping-address-card, .quick-actions-card {
+    @apply bg-white rounded-lg border border-gray-200 p-6;
+}
+
+.order-item {
+    @apply transition-colors hover:bg-gray-50;
+}
+
+.btn {
+    @apply px-4 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2;
+}
+
+.btn-outline {
+    @apply border border-gray-300 text-gray-700 hover:bg-gray-50;
+}
+</style>
+```
+
+4. Status Updater (status-updater.blade.php)
+
+```blade
+{{-- components/vendor/orders/status-updater.blade.php --}}
+@props(['order'])
+
+<div class="status-updater">
+    <div class="status-current mb-4">
+        <label class="block text-sm font-medium text-gray-700 mb-2">
+            สถานะปัจจุบัน
+        </label>
+        <x-vendor.orders.status-badge :status="$order->status" size="lg" />
+    </div>
+
+    <div class="status-actions">
+        <label class="block text-sm font-medium text-gray-700 mb-2">
+            อัพเดทสถานะ
+        </label>
+        
+        <div class="space-y-2">
+            @if($order->status === 'pending')
+            <button wire:click="updateStatus('confirmed')" 
+                    class="w-full btn btn-primary justify-center">
+                ✅ ยืนยันคำสั่งซื้อ
+            </button>
+            <button wire:click="updateStatus('cancelled')" 
+                    class="w-full btn btn-danger justify-center">
+                ❌ ยกเลิกคำสั่งซื้อ
+            </button>
+            @endif
+
+            @if($order->status === 'confirmed')
+            <button wire:click="updateStatus('processing')" 
+                    class="w-full btn btn-primary justify-center">
+                🏭 กำลังเตรียมสินค้า
+            </button>
+            @endif
+
+            @if($order->status === 'processing')
+            <div class="shipping-section space-y-3">
+                <button wire:click="updateStatus('shipped')" 
+                        class="w-full btn btn-primary justify-center">
+                    🚚 จัดส่งสินค้า
+                </button>
+                
+                <div class="tracking-input">
+                    <label class="block text-xs text-gray-600 mb-1">
+                        หมายเลขติดตาม (ถ้ามี)
+                    </label>
+                    <input type="text" 
+                           wire:model="trackingNumber"
+                           placeholder="กรอกหมายเลขติดตาม..."
+                           class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                </div>
+            </div>
+            @endif
+
+            @if($order->status === 'shipped')
+            <button wire:click="updateStatus('delivered')" 
+                    class="w-full btn btn-success justify-center">
+                🎉 ยืนยันการจัดส่งสำเร็จ
+            </button>
+            @endif
+        </div>
+    </div>
+
+    <!-- Status History -->
+    <div class="status-history mt-6">
+        <h4 class="text-sm font-medium text-gray-700 mb-3">ประวัติสถานะ</h4>
+        <div class="space-y-2">
+            @foreach($order->statusHistory as $history)
+            <div class="history-item flex items-center justify-between text-sm">
+                <div class="flex items-center space-x-2">
+                    <x-vendor.orders.status-badge :status="$history->status" size="sm" />
+                    <span class="text-gray-600">โดย {{ $history->actor }}</span>
+                </div>
+                <span class="text-gray-500 text-xs">
+                    {{ $history->created_at->format('d/m/Y H:i') }}
+                </span>
+            </div>
+            @endforeach
+        </div>
+    </div>
+</div>
+
+<style>
+.status-updater {
+    @apply bg-white rounded-lg border border-gray-200 p-4;
+}
+
+.btn {
+    @apply px-4 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2;
+}
+
+.btn-primary {
+    @apply bg-blue-500 text-white hover:bg-blue-600;
+}
+
+.btn-success {
+    @apply bg-green-500 text-white hover:bg-green-600;
+}
+
+.btn-danger {
+    @apply bg-red-500 text-white hover:bg-red-600;
+}
+
+.history-item {
+    @apply py-2 border-b border-gray-100 last:border-b-0;
+}
+
+.tracking-input input {
+    @apply focus:border-blue-500 focus:ring-1 focus:ring-blue-500;
+}
+</style>
+```
+
+5. Shipping Tracker (shipping-tracker.blade.php)
+
+```blade
+{{-- components/vendor/orders/shipping-tracker.blade.php --}}
+@props(['order'])
+
+<div class="shipping-tracker">
+    <h3 class="text-lg font-semibold text-gray-900 mb-4">🚚 ติดตามการจัดส่ง</h3>
+
+    @if($order->tracking_number)
+    <div class="tracking-info mb-6">
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div class="flex items-center justify-between mb-2">
+                <div class="flex items-center space-x-2">
+                    <span class="text-blue-600">📦</span>
+                    <span class="font-semibold">หมายเลขติดตาม:</span>
+                </div>
+                <code class="bg-white px-2 py-1 rounded text-blue-600 font-mono">
+                    {{ $order->tracking_number }}
+                </code>
+            </div>
+            @if($order->shipping_carrier)
+            <div class="text-sm text-blue-700">
+                ผู้ให้บริการ: {{ $order->shipping_carrier }}
+            </div>
+            @endif
+        </div>
+    </div>
+    @endif
+
+    <!-- Shipping Progress -->
+    <div class="shipping-progress">
+        <div class="progress-steps">
+            @php
+                $steps = [
+                    'pending' => ['label' => 'รอการชำระเงิน', 'icon' => '⏳'],
+                    'confirmed' => ['label' => 'ยืนยันคำสั่งซื้อ', 'icon' => '✅'],
+                    'processing' => ['label' => 'กำลังเตรียมสินค้า', 'icon' => '🏭'],
+                    'shipped' => ['label' => 'จัดส่งแล้ว', 'icon' => '🚚'],
+                    'delivered' => ['label' => 'จัดส่งสำเร็จ', 'icon' => '🎉']
+                ];
+                
+                $currentStep = array_search($order->status, array_keys($steps));
+            @endphp
+
+            @foreach($steps as $status => $step)
+                @php
+                    $stepIndex = array_search($status, array_keys($steps));
+                    $isCompleted = $stepIndex < $currentStep;
+                    $isCurrent = $stepIndex === $currentStep;
+                    $isFuture = $stepIndex > $currentStep;
+                @endphp
+
+                <div class="progress-step {{ $isCompleted ? 'step-completed' : ($isCurrent ? 'step-current' : 'step-future') }}">
+                    <div class="step-icon">
+                        @if($isCompleted)
+                            ✅
+                        @elseif($isCurrent)
+                            ⭐
+                        @else
+                            {{ $step['icon'] }}
+                        @endif
+                    </div>
+                    <div class="step-content">
+                        <div class="step-label">{{ $step['label'] }}</div>
+                        @if($isCurrent && $order->status_updated_at)
+                        <div class="step-time text-xs text-gray-500">
+                            อัพเดท: {{ $order->status_updated_at->format('d/m/Y H:i') }}
+                        </div>
+                        @endif
+                    </div>
+                    @if(!$loop.last)
+                    <div class="step-connector"></div>
+                    @endif
+                </div>
+            @endforeach
+        </div>
+    </div>
+
+    <!-- Estimated Delivery -->
+    @if($order->estimated_delivery)
+    <div class="estimated-delivery mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+        <div class="flex items-center space-x-2">
+            <span class="text-green-600">📅</span>
+            <div>
+                <div class="font-semibold text-green-800">วันที่จัดส่งโดยประมาณ</div>
+                <div class="text-sm text-green-700">
+                    {{ $order->estimated_delivery->format('d/m/Y') }}
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
+
+    <!-- Shipping Actions -->
+    @if($order->status === 'shipped' && $order->tracking_number)
+    <div class="shipping-actions mt-4 space-y-2">
+        <button class="w-full btn btn-outline justify-center text-sm"
+                onclick="window.open('https://track.thailandpost.com/track.aspx?trackNumber={{ $order->tracking_number }}', '_blank')">
+            🔍 ติดตามผ่าน Thailand Post
+        </button>
+        <button class="w-full btn btn-outline justify-center text-sm"
+                wire:click="sendTrackingUpdate">
+            📧 แจ้งเตือนการจัดส่ง
+        </button>
+    </div>
+    @endif
+</div>
+
+<style>
+.shipping-tracker {
+    @apply bg-white rounded-lg border border-gray-200 p-6;
+}
+
+.progress-steps {
+    @apply space-y-4;
+}
+
+.progress-step {
+    @apply flex items-center;
+}
+
+.step-completed {
+    @apply text-green-600;
+}
+
+.step-current {
+    @apply text-blue-600 font-semibold;
+}
+
+.step-future {
+    @apply text-gray-400;
+}
+
+.step-icon {
+    @apply w-8 h-8 rounded-full bg-white border-2 flex items-center justify-center text-sm;
+}
+
+.step-completed .step-icon {
+    @apply border-green-500 bg-green-50;
+}
+
+.step-current .step-icon {
+    @apply border-blue-500 bg-blue-50;
+}
+
+.step-future .step-icon {
+    @apply border-gray-300 bg-gray-50;
+}
+
+.step-content {
+    @apply ml-3 flex-1;
+}
+
+.step-label {
+    @apply font-medium;
+}
+
+.step-connector {
+    @apply absolute left-4 top-8 w-0.5 h-6 -bottom-6;
+}
+
+.step-completed .step-connector {
+    @apply bg-green-500;
+}
+
+.step-current .step-connector {
+    @apply bg-blue-300;
+}
+
+.step-future .step-connector {
+    @apply bg-gray-300;
+}
+
+.btn {
+    @apply px-4 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2;
+}
+
+.btn-outline {
+    @apply border border-gray-300 text-gray-700 hover:bg-gray-50;
+}
+</style>
+```
+
+6. Order Actions (order-actions.blade.php)
+
+```blade
+{{-- components/vendor/orders/order-actions.blade.php --}}
+@props(['order', 'showLabel' => false])
+
+<div class="order-actions">
+    <div class="flex flex-wrap gap-2">
+        <!-- View Details -->
+        <button wire:click="$dispatch('viewOrder', { orderId: {{ $order->id }} })"
+                class="action-btn view-btn {{ $showLabel ? 'with-label' : 'icon-only' }}"
+                title="ดูรายละเอียด">
+            👁️
+            @if($showLabel)<span>ดู</span>@endif
+        </button>
+
+        <!-- Edit Order -->
+        @if(in_array($order->status, ['pending', 'confirmed']))
+        <button wire:click="editOrder({{ $order->id }})"
+                class="action-btn edit-btn {{ $showLabel ? 'with-label' : 'icon-only' }}"
+                title="แก้ไขคำสั่งซื้อ">
+            ✏️
+            @if($showLabel)<span>แก้ไข</span>@endif
+        </button>
+        @endif
+
+        <!-- Print -->
+        <button wire:click="printOrder({{ $order->id }})"
+                class="action-btn print-btn {{ $showLabel ? 'with-label' : 'icon-only' }}"
+                title="พิมพ์ใบสั่งซื้อ">
+            🖨️
+            @if($showLabel)<span>พิมพ์</span>@endif
+        </button>
+
+        <!-- Email -->
+        <button wire:click="sendEmail({{ $order->id }})"
+                class="action-btn email-btn {{ $showLabel ? 'with-label' : 'icon-only' }}"
+                title="ส่งอีเมล">
+            📧
+            @if($showLabel)<span>อีเมล</span>@endif
+        </button>
+
+        <!-- More Actions Dropdown -->
+        <div class="relative" x-data="{ open: false }">
+            <button @click="open = !open"
+                    class="action-btn more-btn {{ $showLabel ? 'with-label' : 'icon-only' }}"
+                    title="การดำเนินการเพิ่มเติม">
+            ⋮
+            @if($showLabel)<span>เพิ่มเติม</span>@endif
+            </button>
+
+            <div x-show="open" 
+                 @click.away="open = false"
+                 class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-10">
+                <div class="py-1">
+                    <!-- Duplicate Order -->
+                    <button wire:click="duplicateOrder({{ $order->id }})"
+                            class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center space-x-2">
+                        <span>📋</span>
+                        <span>ทำซ้ำคำสั่งซื้อ</span>
+                    </button>
+
+                    <!-- Create Return -->
+                    @if($order->status === 'delivered')
+                    <button wire:click="createReturn({{ $order->id }})"
+                            class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center space-x-2">
+                        <span>🔄</span>
+                        <span>สร้างการคืนสินค้า</span>
+                    </button>
+                    @endif
+
+                    <!-- Add Note -->
+                    <button wire:click="addNote({{ $order->id }})"
+                            class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center space-x-2">
+                        <span>📝</span>
+                        <span>เพิ่มหมายเหตุ</span>
+                    </button>
+
+                    <!-- Cancel Order -->
+                    @if(in_array($order->status, ['pending', 'confirmed']))
+                    <button wire:click="cancelOrder({{ $order->id }})"
+                            class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center space-x-2">
+                        <span>❌</span>
+                        <span>ยกเลิกคำสั่งซื้อ</span>
+                    </button>
+                    @endif
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.order-actions {
+    @apply flex items-center;
+}
+
+.action-btn {
+    @apply flex items-center justify-center transition-colors rounded-lg border;
+}
+
+.action-btn.icon-only {
+    @apply w-8 h-8;
+}
+
+.action-btn.with-label {
+    @apply px-3 py-1 space-x-1 text-sm;
+}
+
+.view-btn {
+    @apply border-blue-200 text-blue-600 bg-blue-50 hover:bg-blue-100;
+}
+
+.edit-btn {
+    @apply border-green-200 text-green-600 bg-green-50 hover:bg-green-100;
+}
+
+.print-btn {
+    @apply border-gray-200 text-gray-600 bg-gray-50 hover:bg-gray-100;
+}
+
+.email-btn {
+    @apply border-purple-200 text-purple-600 bg-purple-50 hover:bg-purple-100;
+}
+
+.more-btn {
+    @apply border-gray-200 text-gray-600 bg-gray-50 hover:bg-gray-100;
+}
+
+/* Dropdown animation */
+[x-show] {
+    animation: fadeIn 0.1s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+</style>
+```
+
+7. Status Badge (Supporting Component)
+
+```blade
+{{-- components/vendor/orders/status-badge.blade.php --}}
+@props([
+    'status' => 'pending',
+    'size' => 'md'
+])
+
+@php
+    $statusConfig = [
+        'pending' => [
+            'label' => 'รอการชำระเงิน',
+            'color' => 'yellow',
+            'icon' => '⏳'
+        ],
+        'confirmed' => [
+            'label' => 'ยืนยันแล้ว',
+            'color' => 'blue',
+            'icon' => '✅'
+        ],
+        'processing' => [
+            'label' => 'กำลังดำเนินการ',
+            'color' => 'purple',
+            'icon' => '🏭'
+        ],
+        'shipped' => [
+            'label' => 'จัดส่งแล้ว',
+            'color' => 'indigo',
+            'icon' => '🚚'
+        ],
+        'delivered' => [
+            'label' => 'จัดส่งสำเร็จ',
+            'color' => 'green',
+            'icon' => '🎉'
+        ],
+        'cancelled' => [
+            'label' => 'ยกเลิก',
+            'color' => 'red',
+            'icon' => '❌'
+        ],
+        'refunded' => [
+            'label' => 'คืนเงินแล้ว',
+            'color' => 'gray',
+            'icon' => '💸'
+        ]
+    ];
+
+    $config = $statusConfig[$status] ?? $statusConfig['pending'];
+    $sizeClasses = [
+        'sm' => 'px-2 py-1 text-xs',
+        'md' => 'px-3 py-1 text-sm',
+        'lg' => 'px-4 py-2 text-base'
+    ];
+@endphp
+
+<span {{ $attributes->merge(['class' => "inline-flex items-center rounded-full bg-{$config['color']}-100 text-{$config['color']}-800 {$sizeClasses[$size]}"]) }}>
+    <span class="mr-1">{{ $config['icon'] }}</span>
+    {{ $config['label'] }}
+</span>
+```
+
+---
+
+🎯 VENDOR ZONE CONCLUSION
+
+Complete Vendor Zone Architecture
+
+```
+vendor/
+├── auth/                          # การรับรองตัวตนผู้ขาย
+│   ├── registration-wizard.blade.php      # ฟอร์มสมัครหลายขั้นตอน
+│   ├── registration-step.blade.php        # ขั้นตอนการสมัคร
+│   ├── personal-info-form.blade.php       # ข้อมูลส่วนตัว
+│   ├── shop-setup-form.blade.php          # ตั้งค่าร้านค้า
+│   ├── business-info-form.blade.php       # ข้อมูลธุรกิจ
+│   └── confirmation-step.blade.php        # ยืนยันการสมัคร
+├── dashboard/                     # แดชบอร์ดผู้ขาย
+│   ├── dashboard.blade.php                # หน้าหลัก
+│   ├── stats-overview.blade.php           # ภาพรวมสถิติ
+│   ├── metric-card.blade.php              # การ์ดเมตริก
+│   ├── recent-orders-table.blade.php      # ตารางคำสั่งซื้อล่าสุด
+│   ├── top-products.blade.php             # สินค้าขายดี
+│   └── sales-chart.blade.php              # กราฟยอดขาย
+├── products/                      # การจัดการสินค้า
+│   ├── product-list.blade.php             # รายการสินค้า
+│   ├── product-table.blade.php            # ตารางสินค้า
+│   ├── product-form.blade.php             # ฟอร์มสินค้า (รองรับ MLM)
+│   ├── variant-manager.blade.php          # จัดการ Variants
+│   ├── variant-matrix.blade.php           # เมทริกซ์ Variants
+│   ├── inventory-manager.blade.php        # จัดการสต็อก
+│   ├── bulk-actions.blade.php             # การดำเนินการแบบกลุ่ม
+│   ├── image-gallery.blade.php            # แกลเลอรี่รูปภาพ
+│   └── category-selector.blade.php        # เลือกหมวดหมู่
+├── snowball/                      # ⭐ ระบบ MLM Snowball
+│   ├── snowball-dashboard.blade.php       # แดชบอร์ด Snowball
+│   ├── package-selector.blade.php         # เลือกแพ็คเกจ
+│   ├── package-card.blade.php             # การ์ดแพ็คเกจ
+│   ├── variable-input.blade.php           # Input ตัวแปร
+│   ├── commission-calculator.blade.php    # เครื่องคิดเลขคอมมิชชั่น
+│   ├── commission-preview.blade.php       # ตัวอย่างคอมมิชชั่น
+│   ├── products-list.blade.php            # สินค้าใช้ Snowball
+│   ├── performance-metrics.blade.php      # เมตริกประสิทธิภาพ
+│   └── commission-reports.blade.php       # รายงานคอมมิชชั่น
+├── orders/                        # การจัดการคำสั่งซื้อ
+│   ├── order-list.blade.php               # รายการคำสั่งซื้อ
+│   ├── order-table.blade.php              # ตารางคำสั่งซื้อ
+│   ├── order-detail.blade.php             # รายละเอียดคำสั่งซื้อ
+│   ├── status-updater.blade.php           # อัพเดทสถานะ
+│   ├── shipping-tracker.blade.php         # ติดตามการจัดส่ง
+│   ├── order-actions.blade.php            # การดำเนินการกับคำสั่งซื้อ
+│   └── status-badge.blade.php             # แบดจ์สถานะ
+├── settings/                      # ตั้งค่า
+│   ├── profile-form.blade.php             # โปรไฟล์ร้านค้า
+│   ├── payout-info-form.blade.php         # ข้อมูลการจ่ายเงิน
+│   ├── bank-account-form.blade.php        # บัญชีธนาคาร
+│   ├── shop-settings-form.blade.php       # ตั้งค่าร้านค้า
+│   └── notification-settings.blade.php    # การแจ้งเตือน
+└── support/                       # การสนับสนุน
+    ├── ticket-system.blade.php            # ระบบ Ticket
+    └── vendor-chat.blade.php              # แชตกับแอดมิน
+```
+
+Key Features Summary
+
+📊 Vendor Dashboard
+
+· ภาพรวมสถิติร้านค้าแบบเรียลไทม์
+· กราฟยอดขายและประสิทธิภาพ
+· คำสั่งซื้อล่าสุดและสินค้าขายดี
+
+🏪 Product Management
+
+· ระบบเพิ่ม/แก้ไขสินค้าที่สมบูรณ์
+· การจัดการ Variants และสต็อก
+· อัพโหลดรูปภาพหลายรูป
+· ⭐ รองรับ MLM Snowball ในฟอร์มสินค้า
+
+❄️ MLM Snowball System
+
+· เลือกแพ็คเกจคอมมิชชั่น (Basic, Pro, Enterprise)
+· เครื่องคิดเลขคอมมิชชั่นแบบเรียลไทม์
+· ติดตามประสิทธิภาพและรายงาน
+· การคำนวณคอมมิชชั่นแบบยืดหยุ่น
+
+📦 Order Management
+
+· มุมมองทั้งแบบตารางและการ์ด
+· การอัพเดทสถานะแบบหลายขั้นตอน
+· ระบบติดตามการจัดส่ง
+· การดำเนินการแบบกลุ่ม
+
+⚙️ Vendor Settings
+
+· ตั้งค่าร้านค้าและโปรไฟล์
+· ข้อมูลการจ่ายเงินและบัญชีธนาคาร
+· การตั้งค่าการแจ้งเตือน
+
+Security & Validation
+
+```php
+// Policies สำหรับ Vendor Zone
+class ProductPolicy
+{
+    public function viewAny(User $user): bool
+    {
+        return $user->hasRole('seller');
+    }
+
+    public function update(User $user, Product $product): bool
+    {
+        return $user->id === $product->seller_id;
+    }
+}
+
+class OrderPolicy
+{
+    public function viewVendorOrders(User $user, Order $order): bool
+    {
+        return $order->items()->whereHas('product', function($query) use ($user) {
+            $query->where('seller_id', $user->seller->id);
+        })->exists();
+    }
+}
+```
+
+Performance Optimizations
+
+```php
+// Eager Loading สำหรับ Vendor Queries
+$orders = Order::with([
+    'items.product:seller_id', 
+    'customer',
+    'statusHistory'
+])->whereHas('items.product', function($query) use ($vendorId) {
+    $query->where('seller_id', $vendorId);
+})->paginate(20);
+
+// Caching สำหรับสถิติ
+$stats = Cache::remember("vendor_stats_{$vendorId}", 300, function() use ($vendorId) {
+    return [
+        'total_sales' => Order::vendorSales($vendorId)->sum('total_amount'),
+        'total_orders' => Order::vendorOrders($vendorId)->count(),
+        // ... other stats
+    ];
+});
+```
+
+Responsive Design
+
+· Mobile-first approach
+· Breakpoints: sm (640px), md (768px), lg (1024px), xl (1280px)
+· Touch-friendly interfaces สำหรับมือถือ
+· Optimized images และ lazy loading
+
+Accessibility Features
+
+· ARIA labels และ roles
+· Keyboard navigation support
+· Color contrast ตามมาตรฐาน WCAG
+· Screen reader friendly
+
+ระบบ Vendor Zone นี้ถูกออกแบบมาเพื่อให้ผู้ขายสามารถจัดการร้านค้าได้อย่างมีประสิทธิภาพ พร้อมฟีเจอร์ครบถ้วนทั้งการจัดการสินค้า, คำสั่งซื้อ, ระบบ MLM Snowball และการตั้งค่าต่างๆ โดยรักษาความปลอดภัยและประสบการณ์ผู้ใช้ที่ดี
