@@ -1,0 +1,3359 @@
+🏪 Vendor Dashboard & Products Components - Complete Implementation
+
+📊 VENDOR DASHBOARD COMPONENTS
+
+1. Vendor Dashboard (dashboard.blade.php)
+
+```blade
+{{-- components/vendor/dashboard/dashboard.blade.php --}}
+@props([
+    'stats' => [
+        'today_sales' => 0,
+        'total_orders' => 0,
+        'total_products' => 0,
+        'pending_orders' => 0,
+        'monthly_revenue' => 0,
+        'snowball_commissions' => 0, // ⭐ MLM commissions
+    ],
+    'recentOrders' => [],
+    'topProducts' => [],
+    'salesData' => [],
+    'vendor' => null
+])
+
+<div class="vendor-dashboard space-y-6">
+    <!-- Welcome Header -->
+    <div class="welcome-header bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-6 border border-blue-200">
+        <div class="flex items-center justify-between">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-900 mb-2">
+                    สวัสดี, {{ $vendor->shop_name ?? 'ผู้ขาย' }}
+                        <x-user.role-badge role="seller" size="md" class="ml-2" />
+                </h1>
+                <p class="text-gray-600">ภาพรวมการขายและประสิทธิภาพร้านค้าของคุณ</p>
+            </div>
+            <div class="text-right">
+                <div class="text-sm text-gray-500">สถานะร้านค้า</div>
+                <div class="flex items-center space-x-2">
+                    <div class="w-3 h-3 bg-green-500 rounded-full"></div>
+                    <span class="font-medium text-green-700">เปิดดำเนินการ</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Stats Overview -->
+    <livewire:vendor.stats-overview :stats="$stats" />
+
+    <!-- Main Dashboard Grid -->
+    <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+        <!-- Left Column - Charts -->
+        <div class="xl:col-span-2 space-y-6">
+            <!-- Sales Chart -->
+            <livewire:vendor.sales-chart :sales-data="$salesData" />
+
+            <!-- Recent Orders Table -->
+            <livewire:vendor.recent-orders-table :orders="$recentOrders" />
+        </div>
+
+        <!-- Right Column - Sidebar -->
+        <div class="space-y-6">
+            <!-- Top Products -->
+            <livewire:vendor.top-products :products="$topProducts" />
+
+            <!-- Quick Actions -->
+            <div class="quick-actions-card bg-white rounded-lg border border-gray-200 p-6">
+                <h3 class="font-semibold text-lg mb-4">การดำเนินการด่วน</h3>
+                <div class="space-y-3">
+                    <a href="{{ route('vendor.products.create') }}" 
+                       class="flex items-center space-x-3 p-3 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors">
+                        <span class="text-blue-600">➕</span>
+                        <span>เพิ่มสินค้าใหม่</span>
+                    </a>
+                    
+                    <a href="{{ route('vendor.orders.index') }}" 
+                       class="flex items-center space-x-3 p-3 bg-green-50 text-green-700 rounded-lg hover:bg-green-100 transition-colors">
+                        <span class="text-green-600">📦</span>
+                        <span>จัดการคำสั่งซื้อ</span>
+                    </a>
+                    
+                    <a href="{{ route('vendor.snowball.index') }}" 
+                       class="flex items-center space-x-3 p-3 bg-purple-50 text-purple-700 rounded-lg hover:bg-purple-100 transition-colors">
+                        <span class="text-purple-600">❄️</span>
+                        <span>คอมมิชชั่น Snowball</span>
+                    </a>
+                    
+                    <a href="{{ route('vendor.profile') }}" 
+                       class="flex items-center space-x-3 p-3 bg-gray-50 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors">
+                        <span class="text-gray-600">⚙️</span>
+                        <span>ตั้งค่าร้านค้า</span>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Performance Metrics -->
+            <div class="performance-metrics bg-white rounded-lg border border-gray-200 p-6">
+                <h3 class="font-semibold text-lg mb-4">ประสิทธิภาพร้านค้า</h3>
+                <div class="space-y-4">
+                    <div class="metric-item">
+                        <div class="flex justify-between mb-1">
+                            <span class="text-sm text-gray-600">อัตราการตอบกลับ</span>
+                            <span class="text-sm font-medium">95%</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-2">
+                            <div class="bg-green-500 h-2 rounded-full" style="width: 95%"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="metric-item">
+                        <div class="flex justify-between mb-1">
+                            <span class="text-sm text-gray-600">เวลาจัดส่งเฉลี่ย</span>
+                            <span class="text-sm font-medium">2.3 วัน</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-2">
+                            <div class="bg-blue-500 h-2 rounded-full" style="width: 80%"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="metric-item">
+                        <div class="flex justify-between mb-1">
+                            <span class="text-sm text-gray-600">คะแนนความพึงพอใจ</span>
+                            <span class="text-sm font-medium">4.7/5</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-2">
+                            <div class="bg-yellow-500 h-2 rounded-full" style="width: 94%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.vendor-dashboard {
+    font-family: 'Sukhumvit Set', 'Noto Sans Thai', sans-serif;
+}
+
+.welcome-header {
+    background-image: url("{{ asset('images/patterns/dashboard-header-pattern.svg') }}");
+    background-size: cover;
+    background-position: center right;
+}
+</style>
+```
+
+2. Stats Overview (stats-overview.blade.php)
+
+```blade
+{{-- components/vendor/dashboard/stats-overview.blade.php --}}
+@props(['stats'])
+
+<div class="stats-overview grid grid-cols-2 lg:grid-cols-4 gap-4">
+    <!-- Today's Sales -->
+    <x-vendor.dashboard.metric-card
+        title="ยอดขายวันนี้"
+        :value="$stats['today_sales']"
+        format="currency"
+        icon="💰"
+        trend="up"
+        trend-value="12.5%"
+        color="green"
+        description="เทียบกับวันก่อน"
+    />
+
+    <!-- Total Orders -->
+    <x-vendor.dashboard.metric-card
+        title="คำสั่งซื้อทั้งหมด"
+        :value="$stats['total_orders']"
+        format="number"
+        icon="📦"
+        trend="up"
+        trend-value="8%"
+        color="blue"
+        description="คำสั่งซื้อที่ได้รับ"
+    />
+
+    <!-- Available Products -->
+    <x-vendor.dashboard.metric-card
+        title="สินค้าทั้งหมด"
+        :value="$stats['total_products']"
+        format="number"
+        icon="🏷️"
+        trend="stable"
+        color="purple"
+        description="สินค้าในร้านค้า"
+    />
+
+    <!-- Snowball Commissions -->
+    <x-vendor.dashboard.metric-card
+        title="คอมมิชชั่น Snowball"
+        :value="$stats['snowball_commissions']"
+        format="currency"
+        icon="❄️"
+        trend="up"
+        trend-value="15.2%"
+        color="indigo"
+        description="รายได้จาก MLM"
+    />
+</div>
+```
+
+3. Metric Card (metric-card.blade.php)
+
+```blade
+{{-- components/vendor/dashboard/metric-card.blade.php --}}
+@props([
+    'title',
+    'value' => 0,
+    'format' => 'number', // number, currency, percentage
+    'icon' => '📊',
+    'trend' => 'stable', // up, down, stable
+    'trendValue' => null,
+    'color' => 'blue',
+    'description' => null
+])
+
+@php
+    $colorClasses = [
+        'green' => 'bg-green-50 border-green-200 text-green-700',
+        'blue' => 'bg-blue-50 border-blue-200 text-blue-700',
+        'purple' => 'bg-purple-50 border-purple-200 text-purple-700',
+        'indigo' => 'bg-indigo-50 border-indigo-200 text-indigo-700',
+        'orange' => 'bg-orange-50 border-orange-200 text-orange-700',
+    ];
+
+    $trendIcons = [
+        'up' => '↗️',
+        'down' => '↘️',
+        'stable' => '➡️'
+    ];
+
+    $trendColors = [
+        'up' => 'text-green-600',
+        'down' => 'text-red-600',
+        'stable' => 'text-gray-600'
+    ];
+
+    // Format value
+    if ($format === 'currency') {
+        $displayValue = '฿' . number_format($value);
+    } elseif ($format === 'percentage') {
+        $displayValue = number_format($value, 1) . '%';
+    } else {
+        $displayValue = number_format($value);
+    }
+@endphp
+
+<div class="metric-card {{ $colorClasses[$color] }} border rounded-xl p-4 hover:shadow-md transition-shadow">
+    <div class="flex items-start justify-between">
+        <div class="flex-1">
+            <div class="flex items-center space-x-2 mb-2">
+                <span class="text-xl">{{ $icon }}</span>
+                <h3 class="font-semibold text-sm">{{ $title }}</h3>
+            </div>
+            
+            <div class="text-2xl font-bold mb-1">{{ $displayValue }}</div>
+            
+            @if($trendValue)
+            <div class="flex items-center space-x-1 text-xs {{ $trendColors[$trend] }}">
+                <span>{{ $trendIcons[$trend] }}</span>
+                <span>{{ $trendValue }}</span>
+                @if($description)
+                <span class="text-gray-500">• {{ $description }}</span>
+                @endif
+            </div>
+            @elseif($description)
+            <div class="text-xs text-gray-500">{{ $description }}</div>
+            @endif
+        </div>
+        
+        <!-- Mini Chart Placeholder -->
+        <div class="w-12 h-12 flex items-end justify-end space-x-px">
+            @foreach([3, 6, 4, 8, 5, 7] as $bar)
+            <div class="w-1 bg-current opacity-30 rounded-t" style="height: {{ $bar * 4 }}px"></div>
+            @endforeach
+        </div>
+    </div>
+</div>
+```
+
+4. Recent Orders Table (recent-orders-table.blade.php)
+
+```blade
+{{-- components/vendor/dashboard/recent-orders-table.blade.php --}}
+@props(['orders' => []])
+
+<div class="recent-orders bg-white rounded-lg border border-gray-200">
+    <div class="p-4 border-b border-gray-200">
+        <div class="flex items-center justify-between">
+            <h3 class="font-semibold text-lg">คำสั่งซื้อล่าสุด</h3>
+            <a href="{{ route('vendor.orders.index') }}" class="text-blue-600 text-sm hover:text-blue-800">
+                ดูทั้งหมด →
+            </a>
+        </div>
+    </div>
+
+    <div class="overflow-x-auto">
+        @if(count($orders) > 0)
+        <table class="w-full">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        คำสั่งซื้อ
+                    </th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        ลูกค้า
+                    </th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        จำนวน
+                    </th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        สถานะ
+                    </th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        การดำเนินการ
+                    </th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200">
+                @foreach($orders as $order)
+                <tr class="hover:bg-gray-50 transition-colors">
+                    <td class="px-4 py-3">
+                        <div class="text-sm font-medium text-gray-900">#{{ $order->order_number }}</div>
+                        <div class="text-xs text-gray-500">{{ $order->created_at->format('d/m/Y H:i') }}</div>
+                    </td>
+                    <td class="px-4 py-3">
+                        <div class="text-sm text-gray-900">{{ $order->customer_name }}</div>
+                        <div class="text-xs text-gray-500">{{ $order->customer_email }}</div>
+                    </td>
+                    <td class="px-4 py-3">
+                        <div class="text-sm font-medium text-gray-900">฿{{ number_format($order->total_amount) }}</div>
+                        <div class="text-xs text-gray-500">{{ $order->items_count }} รายการ</div>
+                    </td>
+                    <td class="px-4 py-3">
+                        <x-global.status-badge :status="$order->status" />
+                    </td>
+                    <td class="px-4 py-3">
+                        <div class="flex space-x-2">
+                            <a href="{{ route('vendor.orders.show', $order) }}" 
+                               class="text-blue-600 hover:text-blue-800 text-sm">
+                                ดูรายละเอียด
+                            </a>
+                            @if($order->status === 'pending')
+                            <button class="text-green-600 hover:text-green-800 text-sm">
+                                ยืนยัน
+                            </button>
+                            @endif
+                        </div>
+                    </td>
+                </tr>
+                @endforeach
+            </tbody>
+        </table>
+        @else
+        <div class="text-center py-8">
+            <div class="text-gray-400 text-4xl mb-2">📦</div>
+            <p class="text-gray-500">ยังไม่มีคำสั่งซื้อ</p>
+            <p class="text-sm text-gray-400 mt-1">คำสั่งซื้อจะแสดงที่นี่เมื่อมีลูกค้าสั่งสินค้า</p>
+        </div>
+        @endif
+    </div>
+</div>
+```
+
+5. Top Products (top-products.blade.php)
+
+```blade
+{{-- components/vendor/dashboard/top-products.blade.php --}}
+@props(['products' => []])
+
+<div class="top-products bg-white rounded-lg border border-gray-200">
+    <div class="p-4 border-b border-gray-200">
+        <h3 class="font-semibold text-lg">สินค้าขายดี</h3>
+    </div>
+
+    <div class="divide-y divide-gray-200">
+        @if(count($products) > 0)
+            @foreach($products as $product)
+            <div class="p-4 hover:bg-gray-50 transition-colors">
+                <div class="flex items-center space-x-3">
+                    <!-- Product Image -->
+                    <div class="flex-shrink-0 w-12 h-12 bg-gray-200 rounded-lg overflow-hidden">
+                        <img src="{{ $product->thumbnail ?? asset('images/placeholders/product-placeholder.jpg') }}" 
+                             alt="{{ $product->name }}"
+                             class="w-full h-full object-cover">
+                    </div>
+                    
+                    <!-- Product Info -->
+                    <div class="flex-1 min-w-0">
+                        <h4 class="text-sm font-medium text-gray-900 truncate">
+                            {{ $product->name }}
+                        </h4>
+                        <div class="flex items-center space-x-2 mt-1">
+                            <span class="text-xs text-gray-500">ขายได้ {{ $product->sold_count }} ชิ้น</span>
+                            <span class="text-xs text-green-600 font-medium">
+                                ฿{{ number_format($product->revenue) }}
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <!-- Snowball Badge -->
+                    @if($product->has_snowball)
+                    <div class="flex-shrink-0">
+                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
+                            ❄️ MLM
+                        </span>
+                    </div>
+                    @endif
+                </div>
+                
+                <!-- Progress Bar -->
+                <div class="mt-2">
+                    <div class="flex justify-between text-xs text-gray-500 mb-1">
+                        <span>อัตราการขาย</span>
+                        <span>{{ $product->conversion_rate }}%</span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-1.5">
+                        <div class="bg-green-500 h-1.5 rounded-full" 
+                             style="width: {{ min($product->conversion_rate, 100) }}%"></div>
+                    </div>
+                </div>
+            </div>
+            @endforeach
+        @else
+        <div class="text-center py-8">
+            <div class="text-gray-400 text-4xl mb-2">🏷️</div>
+            <p class="text-gray-500">ยังไม่มีข้อมูลสินค้าขายดี</p>
+            <p class="text-sm text-gray-400 mt-1">เพิ่มสินค้าและเริ่มขายเพื่อดูสถิติ</p>
+        </div>
+        @endif
+    </div>
+
+    @if(count($products) > 0)
+    <div class="p-4 border-t border-gray-200 bg-gray-50">
+        <a href="{{ route('vendor.products.index') }}" 
+           class="text-blue-600 text-sm hover:text-blue-800 flex items-center justify-center">
+            ดูสินค้าทั้งหมด →
+        </a>
+    </div>
+    @endif
+</div>
+```
+
+6. Sales Chart (sales-chart.blade.php)
+
+```blade
+{{-- components/vendor/dashboard/sales-chart.blade.php --}}
+@props(['salesData' => []])
+
+<div class="sales-chart bg-white rounded-lg border border-gray-200 p-6">
+    <div class="flex items-center justify-between mb-6">
+        <h3 class="font-semibold text-lg">ภาพรวมยอดขาย</h3>
+        
+        <div class="flex space-x-2">
+            <select class="text-sm border border-gray-300 rounded-lg px-3 py-1 focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                <option value="7days">7 วันล่าสุด</option>
+                <option value="30days" selected>30 วันล่าสุด</option>
+                <option value="90days">90 วันล่าสุด</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- Chart Container -->
+    <div class="chart-container h-64">
+        <canvas id="vendorSalesChart"></canvas>
+    </div>
+
+    <!-- Chart Legend -->
+    <div class="flex justify-center space-x-6 mt-4">
+        <div class="flex items-center space-x-2">
+            <div class="w-3 h-3 bg-blue-500 rounded"></div>
+            <span class="text-sm text-gray-600">ยอดขาย</span>
+        </div>
+        <div class="flex items-center space-x-2">
+            <div class="w-3 h-3 bg-green-500 rounded"></div>
+            <span class="text-sm text-gray-600">คำสั่งซื้อ</span>
+        </div>
+        <div class="flex items-center space-x-2">
+            <div class="w-3 h-3 bg-purple-500 rounded"></div>
+            <span class="text-sm text-gray-600">คอมมิชชั่น MLM</span>
+        </div>
+    </div>
+</div>
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const ctx = document.getElementById('vendorSalesChart').getContext('2d');
+    
+    // Sample data - in real app, this would come from Laravel
+    const salesChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: ['1 มี.ค.', '5 มี.ค.', '10 มี.ค.', '15 มี.ค.', '20 มี.ค.', '25 มี.ค.', '30 มี.ค.'],
+            datasets: [
+                {
+                    label: 'ยอดขาย',
+                    data: [12000, 19000, 15000, 25000, 22000, 30000, 28000],
+                    borderColor: '#3b82f6',
+                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                    tension: 0.4,
+                    fill: true
+                },
+                {
+                    label: 'คำสั่งซื้อ',
+                    data: [8, 12, 10, 15, 14, 18, 16],
+                    borderColor: '#10b981',
+                    backgroundColor: 'transparent',
+                    tension: 0.4,
+                    borderDash: [5, 5]
+                },
+                {
+                    label: 'คอมมิชชั่น MLM',
+                    data: [1200, 1900, 1500, 2500, 2200, 3000, 2800],
+                    borderColor: '#8b5cf6',
+                    backgroundColor: 'transparent',
+                    tension: 0.4
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    mode: 'index',
+                    intersect: false,
+                    callbacks: {
+                        label: function(context) {
+                            let label = context.dataset.label || '';
+                            if (label) {
+                                label += ': ';
+                            }
+                            if (context.parsed.y !== null) {
+                                if (context.dataset.label === 'คำสั่งซื้อ') {
+                                    label += context.parsed.y + ' คำสั่ง';
+                                } else {
+                                    label += '฿' + context.parsed.y.toLocaleString();
+                                }
+                            }
+                            return label;
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return '฿' + value.toLocaleString();
+                        }
+                    }
+                }
+            }
+        }
+    });
+});
+</script>
+@endpush
+```
+
+---
+
+🏷️ VENDOR PRODUCTS COMPONENTS
+
+1. Product List (product-list.blade.php)
+
+```blade
+{{-- components/vendor/products/product-list.blade.php --}}
+@props([
+    'products' => [],
+    'filters' => [],
+    'sortOptions' => []
+])
+
+<div class="vendor-products">
+    <!-- Header with Actions -->
+    <div class="products-header bg-white rounded-lg border border-gray-200 p-6 mb-6">
+        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-900">จัดการสินค้า</h1>
+                <p class="text-gray-600 mt-1">สินค้าทั้งหมดในร้านค้าของคุณ</p>
+            </div>
+            
+            <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
+                <!-- Search -->
+                <div class="relative">
+                    <input type="text" 
+                           placeholder="ค้นหาสินค้า..."
+                           class="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-500 w-full sm:w-64">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <span class="text-gray-400">🔍</span>
+                    </div>
+                </div>
+                
+                <!-- Add Product Button -->
+                <a href="{{ route('vendor.products.create') }}" 
+                   class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2">
+                    <span>➕</span>
+                    <span>เพิ่มสินค้าใหม่</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- Filters & Sort -->
+        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between mt-4 space-y-3 lg:space-y-0">
+            <div class="flex flex-wrap items-center space-x-4">
+                <!-- Status Filter -->
+                <select class="text-sm border border-gray-300 rounded-lg px-3 py-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                    <option value="">สถานะทั้งหมด</option>
+                    <option value="published">เผยแพร่แล้ว</option>
+                    <option value="draft">แบบร่าง</option>
+                    <option value="pending">รออนุมัติ</option>
+                </select>
+
+                <!-- Category Filter -->
+                <select class="text-sm border border-gray-300 rounded-lg px-3 py-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                    <option value="">หมวดหมู่ทั้งหมด</option>
+                    <option value="1">เสื้อผ้า</option>
+                    <option value="2">เครื่องสำอาง</option>
+                    <option value="3">ของใช้ในบ้าน</option>
+                </select>
+
+                <!-- Snowball Filter -->
+                <select class="text-sm border border-gray-300 rounded-lg px-3 py-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                    <option value="">ทั้งหมด</option>
+                    <option value="with_snowball">มี Snowball</option>
+                    <option value="without_snowball">ไม่มี Snowball</option>
+                </select>
+            </div>
+
+            <div class="flex items-center space-x-4">
+                <!-- Sort Options -->
+                <select class="text-sm border border-gray-300 rounded-lg px-3 py-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                    <option value="newest">ใหม่ล่าสุด</option>
+                    <option value="oldest">เก่าที่สุด</option>
+                    <option value="name_asc">ชื่อ A-Z</option>
+                    <option value="name_desc">ชื่อ Z-A</option>
+                    <option value="price_asc">ราคาต่ำ-สูง</option>
+                    <option value="price_desc">ราคาสูง-ต่ำ</option>
+                </select>
+
+                <!-- View Toggle -->
+                <div class="flex border border-gray-300 rounded-lg overflow-hidden">
+                    <button class="p-2 bg-white border-r border-gray-300 hover:bg-gray-50">
+                        <span>📋</span>
+                    </button>
+                    <button class="p-2 bg-gray-100 border-r border-gray-300">
+                        <span>🖼️</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Products Table -->
+    <livewire:vendor.products.product-table :products="$products" />
+
+    <!-- Bulk Actions -->
+    <livewire:vendor.products.bulk-actions />
+</div>
+```
+
+2. Product Table (product-table.blade.php)
+
+```blade
+{{-- components/vendor/products/product-table.blade.php --}}
+@props(['products' => []])
+
+<div class="product-table bg-white rounded-lg border border-gray-200 overflow-hidden">
+    <div class="overflow-x-auto">
+        <table class="w-full">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="w-8 px-4 py-3">
+                        <input type="checkbox" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                    </th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        สินค้า
+                    </th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        หมวดหมู่
+                    </th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        ราคา
+                    </th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        สต็อก
+                    </th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        ขายแล้ว
+                    </th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        สถานะ
+                    </th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        MLM
+                    </th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        การดำเนินการ
+                    </th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200">
+                @forelse($products as $product)
+                <tr class="hover:bg-gray-50 transition-colors">
+                    <!-- Checkbox -->
+                    <td class="px-4 py-3">
+                        <input type="checkbox" 
+                               value="{{ $product->id }}"
+                               class="rounded border-gray-300 text-blue-600 focus:ring-blue-500 product-checkbox">
+                    </td>
+
+                    <!-- Product Info -->
+                    <td class="px-4 py-3">
+                        <div class="flex items-center space-x-3">
+                            <div class="flex-shrink-0 w-12 h-12 bg-gray-200 rounded-lg overflow-hidden">
+                                <img src="{{ $product->thumbnail ?? asset('images/placeholders/product-placeholder.jpg') }}" 
+                                     alt="{{ $product->name }}"
+                                     class="w-full h-full object-cover">
+                            </div>
+                            <div>
+                                <div class="text-sm font-medium text-gray-900">{{ $product->name }}</div>
+                                <div class="text-xs text-gray-500">SKU: {{ $product->sku }}</div>
+                            </div>
+                        </div>
+                    </td>
+
+                    <!-- Category -->
+                    <td class="px-4 py-3">
+                        <div class="text-sm text-gray-900">{{ $product->category->name ?? '-' }}</div>
+                    </td>
+
+                    <!-- Price -->
+                    <td class="px-4 py-3">
+                        <div class="text-sm font-medium text-gray-900">฿{{ number_format($product->price) }}</div>
+                        @if($product->compare_price)
+                        <div class="text-xs text-gray-500 line-through">฿{{ number_format($product->compare_price) }}</div>
+                        @endif
+                    </td>
+
+                    <!-- Stock -->
+                    <td class="px-4 py-3">
+                        <div class="text-sm text-gray-900">{{ $product->stock_quantity }}</div>
+                        @if($product->stock_quantity < 10)
+                        <div class="text-xs text-red-600">สต็อกต่ำ</div>
+                        @endif
+                    </td>
+
+                    <!-- Sales -->
+                    <td class="px-4 py-3">
+                        <div class="text-sm text-gray-900">{{ $product->sold_count }}</div>
+                    </td>
+
+                    <!-- Status -->
+                    <td class="px-4 py-3">
+                        <x-global.status-badge :status="$product->status" />
+                    </td>
+
+                    <!-- MLM Status -->
+                    <td class="px-4 py-3">
+                        @if($product->snowball_setting)
+                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
+                            ❄️ {{ $product->snowball_setting->package->name }}
+                        </span>
+                        @else
+                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                            ปกติ
+                        </span>
+                        @endif
+                    </td>
+
+                    <!-- Actions -->
+                    <td class="px-4 py-3">
+                        <div class="flex items-center space-x-2">
+                            <a href="{{ route('vendor.products.edit', $product) }}" 
+                               class="text-blue-600 hover:text-blue-800 p-1 rounded hover:bg-blue-50"
+                               title="แก้ไข">
+                                <span>✏️</span>
+                            </a>
+                            
+                            <a href="{{ route('vendor.products.variants', $product) }}" 
+                               class="text-green-600 hover:text-green-800 p-1 rounded hover:bg-green-50"
+                               title="จัดการตัวเลือก">
+                                <span>🎨</span>
+                            </a>
+                            
+                            <button class="text-red-600 hover:text-red-800 p-1 rounded hover:bg-red-50"
+                                    onclick="confirmDelete({{ $product->id }})"
+                                    title="ลบ">
+                                <span>🗑️</span>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                @empty
+                <tr>
+                    <td colspan="9" class="px-4 py-8 text-center">
+                        <div class="text-gray-400 text-4xl mb-2">🏷️</div>
+                        <p class="text-gray-500">ยังไม่มีสินค้า</p>
+                        <a href="{{ route('vendor.products.create') }}" 
+                           class="inline-block mt-2 text-blue-600 hover:text-blue-800">
+                            เพิ่มสินค้าแรกของคุณ →
+                        </a>
+                    </td>
+                </tr>
+                @endforelse
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    @if($products->hasPages())
+    <div class="px-4 py-3 border-t border-gray-200 bg-gray-50">
+        {{ $products->links() }}
+    </div>
+    @endif
+</div>
+
+@push('scripts')
+<script>
+function confirmDelete(productId) {
+    if (confirm('คุณแน่ใจว่าต้องการลบสินค้านี้?')) {
+        // Implement delete logic
+        console.log('Deleting product:', productId);
+    }
+}
+
+// Bulk selection
+document.addEventListener('DOMContentLoaded', function() {
+    const selectAll = document.querySelector('thead input[type="checkbox"]');
+    const productCheckboxes = document.querySelectorAll('.product-checkbox');
+    
+    selectAll.addEventListener('change', function() {
+        productCheckboxes.forEach(checkbox => {
+            checkbox.checked = selectAll.checked;
+        });
+    });
+});
+</script>
+@endpush
+```
+
+3. Product Form (product-form.blade.php)
+
+```blade
+{{-- components/vendor/products/product-form.blade.php --}}
+@props([
+    'product' => null,
+    'categories' => [],
+    'snowballPackages' => [],
+    'mode' => 'create'
+])
+
+<div class="product-form">
+    <form wire:submit.prevent="{{ $mode === 'create' ? 'saveProduct' : 'updateProduct' }}" 
+          class="space-y-6" 
+          enctype="multipart/form-data">
+        
+        <!-- Basic Information Section -->
+        <div class="section-card">
+            <h2 class="section-title">ข้อมูลสินค้าพื้นฐาน</h2>
+            
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Product Name -->
+                <div class="lg:col-span-2">
+                    <x-global.form-input
+                        label="ชื่อสินค้า *"
+                        wire:model="name"
+                        placeholder="กรอกชื่อสินค้า"
+                        required
+                        thai-label
+                        :error="$errors->first('name')"
+                    />
+                </div>
+
+                <!-- Category & SKU -->
+                <x-global.form-select
+                    label="หมวดหมู่ *"
+                    :options="$categories"
+                    wire:model="category_id"
+                    required
+                    thai-label
+                    :error="$errors->first('category_id')"
+                />
+
+                <x-global.form-input
+                    label="SKU (รหัสสินค้า)"
+                    wire:model="sku"
+                    placeholder="SKU-001"
+                    thai-label
+                    :error="$errors->first('sku')"
+                />
+
+                <!-- Description -->
+                <div class="lg:col-span-2">
+                    <x-global.form-textarea
+                        label="รายละเอียดสินค้า *"
+                        wire:model="description"
+                        rows="5"
+                        placeholder="อธิบายรายละเอียดสินค้า..."
+                        required
+                        thai-label
+                        :error="$errors->first('description')"
+                    />
+                </div>
+            </div>
+        </div>
+
+        <!-- Pricing Section -->
+        <div class="section-card">
+            <h2 class="section-title">ราคาและสต็อก</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <x-global.form-input
+                    label="ราคาขาย *"
+                    type="number"
+                    wire:model="price"
+                    min="0"
+                    step="0.01"
+                    required
+                    thai-label
+                    prefix="฿"
+                    :error="$errors->first('price')"
+                />
+
+                <x-global.form-input
+                    label="ราคาปกติ (ก่อนลด)"
+                    type="number"
+                    wire:model="compare_price"
+                    min="0"
+                    step="0.01"
+                    thai-label
+                    prefix="฿"
+                />
+
+                <x-global.form-input
+                    label="จำนวนสต็อก *"
+                    type="number"
+                    wire:model="stock_quantity"
+                    min="0"
+                    required
+                    thai-label
+                    :error="$errors->first('stock_quantity')"
+                />
+            </div>
+        </div>
+
+        <!-- Images Section -->
+        <div class="section-card">
+            <h2 class="section-title">รูปภาพสินค้า</h2>
+            <livewire:vendor.products.image-gallery 
+                :images="old('images', $product->images ?? [])"
+                :max-files="5"
+            />
+        </div>
+
+        <!-- ⭐ Snowball MLM Section -->
+        <div class="section-card">
+            <h2 class="section-title">❄️ การตั้งค่า Snowball MLM</h2>
+            
+            <div class="snowball-toggle mb-4">
+                <label class="flex items-center space-x-3 cursor-pointer">
+                    <input type="checkbox" 
+                           wire:model="enable_snowball" 
+                           class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                    <span class="font-medium text-gray-900">เปิดใช้งานระบบคอมมิชชั่น Snowball</span>
+                </label>
+                <p class="text-sm text-gray-600 mt-1 ml-6">
+                    ระบบ MLM ที่ช่วยให้คุณได้รับค่าคอมมิชชั่นจากการขายสินค้า
+                </p>
+            </div>
+
+            @if($enable_snowball)
+            <div class="snowball-configuration bg-blue-50 rounded-lg p-4 border border-blue-200">
+                <h3 class="font-semibold text-blue-800 mb-4">เลือกแพ็คเกจ Snowball</h3>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                    @foreach($snowballPackages as $package)
+                    <div class="package-option">
+                        <input type="radio" 
+                               name="snowball_package" 
+                               value="{{ $package->id }}"
+                               wire:model="snowball_package_id"
+                               id="package-{{ $package->id }}"
+                               class="hidden">
+                        <label for="package-{{ $package->id }}" 
+                               class="block cursor-pointer border-2 rounded-lg p-4 transition-all 
+                                      {{ $snowball_package_id == $package->id ? 'border-blue-500 bg-blue-50' : 'border-gray-300 hover:border-gray-400' }}">
+                            <div class="flex items-center justify-between mb-2">
+                                <h4 class="font-semibold text-gray-900">{{ $package->name }}</h4>
+                                <span class="text-sm font-medium text-blue-600">฿{{ number_format($package->monthly_fee) }}/เดือน</span>
+                            </div>
+                            <p class="text-sm text-gray-600 mb-3">{{ $package->description }}</p>
+                            <div class="text-xs text-gray-500">
+                                <div>จำกัดสินค้า: {{ $package->product_limit }} รายการ</div>
+                                <div>คอมมิชชั่น: {{ $package->commission_rate }}%</div>
+                            </div>
+                        </label>
+                    </div>
+                    @endforeach
+                </div>
+
+                <!-- Package Configuration -->
+                @if($snowball_package_id)
+                <div class="package-settings bg-white rounded-lg p-4 border">
+                    <h4 class="font-semibold mb-3">ตั้งค่าสำหรับแพ็คเกจ</h4>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <x-global.form-input
+                            label="Point Value (PV)"
+                            type="number"
+                            wire:model="snowball_pv"
+                            min="0"
+                            help-text="ค่าคะแนนสำหรับคำนวณคอมมิชชั่น"
+                        />
+
+                        <x-global.form-select
+                            label="ระดับสมาชิก"
+                            :options="[
+                                'member' => 'สมาชิก (1x)',
+                                'silver' => 'Silver (1.2x)',
+                                'gold' => 'Gold (1.5x)',
+                                'platinum' => 'Platinum (1.8x)'
+                            ]"
+                            wire:model="snowball_level"
+                        />
+                    </div>
+
+                    <!-- Commission Preview -->
+                    <div class="commission-preview mt-4 p-3 bg-gray-50 rounded border">
+                        <h5 class="font-medium mb-2">ตัวอย่างการคำนวณคอมมิชชั่น:</h5>
+                        <div class="text-sm">
+                            <div class="flex justify-between">
+                                <span>ยอดขาย:</span>
+                                <span>฿1,000</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span>คอมมิชชั่นที่ได้รับ:</span>
+                                <span class="text-green-600 font-semibold">฿{{ number_format($calculated_commission ?? 0) }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                @endif
+            </div>
+            @endif
+        </div>
+
+        <!-- Shipping & Additional Info -->
+        <div class="section-card">
+            <h2 class="section-title">การจัดส่งและข้อมูลเพิ่มเติม</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <x-global.form-input
+                    label="น้ำหนัก (กก.)"
+                    type="number"
+                    step="0.1"
+                    wire:model="weight"
+                    thai-label
+                />
+
+                <x-global.form-input
+                    label="ขนาด (ซม.)"
+                    wire:model="dimensions"
+                    placeholder="กว้าง x ยาว x สูง"
+                    thai-label
+                />
+            </div>
+
+            <!-- Status & Visibility -->
+            <div class="mt-4 space-y-3">
+                <label class="flex items-center space-x-3">
+                    <input type="checkbox" 
+                           wire:model="is_published"
+                           class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                    <span class="font-medium text-gray-900">เผยแพร่สินค้าทันที</span>
+                </label>
+
+                <label class="flex items-center space-x-3">
+                    <input type="checkbox" 
+                           wire:model="track_inventory"
+                           class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                    <span class="font-medium text-gray-900">ติดตามสต็อกอัตโนมัติ</span>
+                </label>
+            </div>
+        </div>
+
+        <!-- Form Actions -->
+        <div class="form-actions flex justify-between pt-6 border-t">
+            <a href="{{ route('vendor.products.index') }}" 
+               class="btn btn-outline">
+                ← ยกเลิก
+            </a>
+            
+            <div class="flex space-x-3">
+                @if($mode === 'edit')
+                <button type="button" 
+                        class="btn btn-outline"
+                        wire:click="saveDraft">
+                    บันทึกแบบร่าง
+                </button>
+                @endif
+                
+                <button type="submit" 
+                        class="btn btn-primary"
+                        wire:loading.attr="disabled">
+                    <span wire:loading.remove>
+                        {{ $mode === 'create' ? 'เพิ่มสินค้า' : 'อัพเดทสินค้า' }}
+                    </span>
+                    <span wire:loading>กำลังบันทึก...</span>
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<style>
+.section-card {
+    @apply bg-white rounded-lg border border-gray-200 p-6;
+}
+
+.section-title {
+    @apply text-lg font-semibold text-gray-900 mb-4 pb-2 border-b border-gray-200;
+}
+
+.package-option {
+    transition: all 0.2s ease-in-out;
+}
+
+.package-option input:checked + label {
+    border-color: #3b82f6;
+    background-color: #eff6ff;
+}
+
+.btn {
+    @apply px-4 py-2 rounded-lg font-medium transition-colors;
+}
+
+.btn-primary {
+    @apply bg-blue-600 text-white hover:bg-blue-700;
+}
+
+.btn-outline {
+    @apply border border-gray-300 text-gray-700 hover:bg-gray-50;
+}
+</style>
+```
+
+4. Variant Manager (variant-manager.blade.php)
+
+```blade
+{{-- components/vendor/products/variant-manager.blade.php --}}
+@props(['product', 'variants' => [], 'options' => []])
+
+<div class="variant-manager">
+    <div class="mb-6">
+        <h2 class="text-xl font-bold text-gray-900 mb-2">จัดการตัวเลือกสินค้า</h2>
+        <p class="text-gray-600">เพิ่มสี, ขนาด, และตัวเลือกอื่นๆ สำหรับสินค้าของคุณ</p>
+    </div>
+
+    <!-- Variant Options Setup -->
+    <div class="section-card mb-6">
+        <h3 class="section-title">ตั้งค่าตัวเลือก</h3>
+        
+        <div class="space-y-4">
+            @foreach(['color' => 'สี', 'size' => 'ขนาด', 'material' => 'วัสดุ'] as $key => $label)
+            <div class="variant-option-group">
+                <label class="flex items-center space-x-3 mb-2">
+                    <input type="checkbox" 
+                           wire:model="enabled_options.{{ $key }}"
+                           class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                    <span class="font-medium text-gray-700">{{ $label }}</span>
+                </label>
+                
+                @if($enabled_options[$key] ?? false)
+                <div class="ml-6 space-y-2">
+                    <div class="flex flex-wrap gap-2">
+                        @foreach($options[$key] ?? [] as $option)
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-sm bg-gray-100 text-gray-800">
+                            {{ $option }}
+                            <button type="button" 
+                                    class="ml-1 text-gray-500 hover:text-red-500"
+                                    wire:click="removeOption('{{ $key }}', '{{ $option }}')">
+                                ×
+                            </button>
+                        </span>
+                        @endforeach
+                    </div>
+                    
+                    <div class="flex space-x-2">
+                        <input type="text" 
+                               wire:model="new_options.{{ $key }}"
+                               placeholder="เพิ่ม{{ $label }}ใหม่..."
+                               class="flex-1 border border-gray-300 rounded-lg px-3 py-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                        <button type="button"
+                                wire:click="addOption('{{ $key }}')"
+                                class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+                            เพิ่ม
+                        </button>
+                    </div>
+                </div>
+                @endif
+            </div>
+            @endforeach
+        </div>
+    </div>
+
+    <!-- Variant Matrix -->
+    <livewire:vendor.products.variant-matrix 
+        :product="$product"
+        :variants="$variants"
+        :enabled-options="$enabled_options"
+    />
+
+    <!-- Bulk Actions -->
+    <div class="section-card">
+        <h3 class="section-title">การจัดการแบบกลุ่ม</h3>
+        
+        <div class="flex flex-wrap gap-3">
+            <button type="button" 
+                    class="btn btn-outline"
+                    wire:click="generateVariants">
+                สร้างตัวเลือกอัตโนมัติ
+            </button>
+            
+            <button type="button" 
+                    class="btn btn-outline"
+                    wire:click="bulkUpdatePrice">
+                อัพเดทราคาพร้อมกัน
+            </button>
+            
+            <button type="button" 
+                    class="btn btn-outline"
+                    wire:click="bulkUpdateStock">
+                อัพเดทสต็อกพร้อมกัน
+            </button>
+            
+            <button type="button" 
+                    class="btn btn-outline text-red-600 hover:bg-red-50"
+                    wire:click="clearAllVariants">
+                ลบตัวเลือกทั้งหมด
+            </button>
+        </div>
+    </div>
+</div>
+```
+
+5. Variant Matrix (variant-matrix.blade.php)
+
+```blade
+{{-- components/vendor/products/variant-matrix.blade.php --}}
+@props(['product', 'variants' => [], 'enabledOptions' => []])
+
+<div class="variant-matrix">
+    <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-semibold">ตัวเลือกสินค้าทั้งหมด</h3>
+        <div class="text-sm text-gray-500">
+            {{ count($variants) }} ตัวเลือก
+        </div>
+    </div>
+
+    @if(count($variants) > 0)
+    <div class="overflow-x-auto">
+        <table class="w-full bg-white rounded-lg border border-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        ตัวเลือก
+                    </th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        SKU
+                    </th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        ราคา
+                    </th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        ราคาปกติ
+                    </th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        สต็อก
+                    </th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        น้ำหนัก
+                    </th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        การดำเนินการ
+                    </th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200">
+                @foreach($variants as $variant)
+                <tr class="hover:bg-gray-50 transition-colors">
+                    <!-- Variant Name -->
+                    <td class="px-4 py-3">
+                        <div class="text-sm font-medium text-gray-900">
+                            {{ $variant->name }}
+                        </div>
+                        <div class="text-xs text-gray-500">
+                            @foreach($variant->options as $option => $value)
+                            <span class="inline-block mr-2">{{ $option }}: {{ $value }}</span>
+                            @endforeach
+                        </div>
+                    </td>
+
+                    <!-- SKU -->
+                    <td class="px-4 py-3">
+                        <input type="text"
+                               wire:model="variants.{{ $loop->index }}.sku"
+                               class="w-full text-sm border border-gray-300 rounded px-2 py-1 focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                    </td>
+
+                    <!-- Price -->
+                    <td class="px-4 py-3">
+                        <div class="flex items-center space-x-1">
+                            <span class="text-gray-500">฿</span>
+                            <input type="number"
+                                   wire:model="variants.{{ $loop->index }}.price"
+                                   min="0"
+                                   step="0.01"
+                                   class="w-20 text-sm border border-gray-300 rounded px-2 py-1 focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                        </div>
+                    </td>
+
+                    <!-- Compare Price -->
+                    <td class="px-4 py-3">
+                        <div class="flex items-center space-x-1">
+                            <span class="text-gray-500">฿</span>
+                            <input type="number"
+                                   wire:model="variants.{{ $loop->index }}.compare_price"
+                                   min="0"
+                                   step="0.01"
+                                   class="w-20 text-sm border border-gray-300 rounded px-2 py-1 focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                        </div>
+                    </td>
+
+                    <!-- Stock -->
+                    <td class="px-4 py-3">
+                        <input type="number"
+                               wire:model="variants.{{ $loop->index }}.stock_quantity"
+                               min="0"
+                               class="w-16 text-sm border border-gray-300 rounded px-2 py-1 focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                    </td>
+
+                    <!-- Weight -->
+                    <td class="px-4 py-3">
+                        <div class="flex items-center space-x-1">
+                            <input type="number"
+                                   wire:model="variants.{{ $loop->index }}.weight"
+                                   step="0.1"
+                                   class="w-16 text-sm border border-gray-300 rounded px-2 py-1 focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                            <span class="text-gray-500 text-xs">กก.</span>
+                        </div>
+                    </td>
+
+                    <!-- Actions -->
+                    <td class="px-4 py-3">
+                        <button type="button"
+                                wire:click="removeVariant({{ $loop->index }})"
+                                class="text-red-600 hover:text-red-800 p-1 rounded hover:bg-red-50"
+                                title="ลบตัวเลือก">
+                            🗑️
+                        </button>
+                    </td>
+                </tr>
+                @endforeach
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Save Variants -->
+    <div class="mt-4 flex justify-end">
+        <button type="button"
+                wire:click="saveVariants"
+                class="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition-colors">
+            💾 บันทึกตัวเลือกทั้งหมด
+        </button>
+    </div>
+    @else
+    <div class="text-center py-8 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+        <div class="text-gray-400 text-4xl mb-2">🎨</div>
+        <p class="text-gray-500">ยังไม่มีตัวเลือกสินค้า</p>
+        <p class="text-sm text-gray-400 mt-1">เพิ่มตัวเลือกด้านบนเพื่อสร้างตัวเลือกสินค้า</p>
+    </div>
+    @endif
+</div>
+```
+
+6. Inventory Manager (inventory-manager.blade.php)
+
+```blade
+{{-- components/vendor/products/inventory-manager.blade.php --}}
+@props(['product', 'inventoryLogs' => []])
+
+<div class="inventory-manager">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Current Inventory -->
+        <div class="lg:col-span-1">
+            <div class="section-card">
+                <h3 class="section-title">สต็อกปัจจุบัน</h3>
+                
+                <div class="text-center py-6">
+                    <div class="text-4xl font-bold text-gray-900 mb-2">
+                        {{ $product->stock_quantity }}
+                    </div>
+                    <p class="text-gray-600">ชิ้นในสต็อก</p>
+                    
+                    @if($product->stock_quantity < 10)
+                    <div class="mt-2 inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">
+                        ⚠️ สต็อกต่ำ
+                    </div>
+                    @endif
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="space-y-3">
+                    <button type="button"
+                            wire:click="$set('showAddStockModal', true)"
+                            class="w-full bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center space-x-2">
+                        <span>➕</span>
+                        <span>เพิ่มสต็อก</span>
+                    </button>
+                    
+                    <button type="button"
+                            wire:click="$set('showAdjustStockModal', true)"
+                            class="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2">
+                        <span>📊</span>
+                        <span>ปรับปรุงสต็อก</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Inventory History -->
+        <div class="lg:col-span-2">
+            <div class="section-card">
+                <h3 class="section-title">ประวัติการจัดการสต็อก</h3>
+                
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    วันที่
+                                </th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    ประเภท
+                                </th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    จำนวน
+                                </th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    สต็อกหลังเปลี่ยนแปลง
+                                </th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    หมายเหตุ
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200">
+                            @forelse($inventoryLogs as $log)
+                            <tr>
+                                <td class="px-4 py-3 text-sm text-gray-900">
+                                    {{ $log->created_at->format('d/m/Y H:i') }}
+                                </td>
+                                <td class="px-4 py-3">
+                                    <x-global.status-badge :status="$log->type" 
+                                        :variants="[
+                                            'in' => 'success',
+                                            'out' => 'error', 
+                                            'adjustment' => 'warning'
+                                        ]" />
+                                </td>
+                                <td class="px-4 py-3 text-sm text-gray-900">
+                                    @if($log->type === 'in')
+                                    <span class="text-green-600">+{{ $log->quantity }}</span>
+                                    @elseif($log->type === 'out')
+                                    <span class="text-red-600">-{{ $log->quantity }}</span>
+                                    @else
+                                    <span class="text-orange-600">{{ $log->quantity > 0 ? '+' : '' }}{{ $log->quantity }}</span>
+                                    @endif
+                                </td>
+                                <td class="px-4 py-3 text-sm text-gray-900">
+                                    {{ $log->stock_after }}
+                                </td>
+                                <td class="px-4 py-3 text-sm text-gray-500">
+                                    {{ $log->notes ?? '-' }}
+                                </td>
+                            </tr>
+                            @empty
+                            <tr>
+                                <td colspan="5" class="px-4 py-8 text-center text-gray-500">
+                                    ยังไม่มีประวัติการจัดการสต็อก
+                                </td>
+                            </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Stock Modal -->
+    @if($showAddStockModal)
+    <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-lg p-6 w-full max-w-md">
+            <h3 class="text-lg font-semibold mb-4">เพิ่มสต็อกสินค้า</h3>
+            
+            <div class="space-y-4">
+                <x-global.form-input
+                    label="จำนวนที่ต้องการเพิ่ม"
+                    type="number"
+                    wire:model="addStockQuantity"
+                    min="1"
+                    required
+                    thai-label
+                />
+                
+                <x-global.form-textarea
+                    label="หมายเหตุ (ถ้ามี)"
+                    wire:model="addStockNotes"
+                    rows="3"
+                    thai-label
+                    placeholder="เช่น สินค้ามาจัดซื้อใหม่"
+                />
+            </div>
+            
+            <div class="flex justify-end space-x-3 mt-6">
+                <button type="button"
+                        wire:click="$set('showAddStockModal', false)"
+                        class="btn btn-outline">
+                    ยกเลิก
+                </button>
+                <button type="button"
+                        wire:click="addStock"
+                        class="btn btn-primary">
+                    ✅ ยืนยันการเพิ่ม
+                </button>
+            </div>
+        </div>
+    </div>
+    @endif
+</div>
+```
+
+7. Bulk Actions (bulk-actions.blade.php)
+
+```blade
+
+  🚀 Complete Bulk Actions Component
+
+```blade
+{{-- components/vendor/products/bulk-actions.blade.php --}}
+@props(['selectedProducts' => []])
+
+@if(count($selectedProducts) > 0)
+<div class="bulk-actions-bar bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6" wire:key="bulk-actions-{{ count($selectedProducts) }}">
+    <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
+        <div class="flex items-center space-x-3">
+            <div class="flex items-center space-x-2">
+                <div class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
+                    <span class="text-white text-sm font-bold">{{ count($selectedProducts) }}</span>
+                </div>
+                <span class="text-blue-700 font-medium">
+                    เลือกสินค้าแล้ว {{ count($selectedProducts) }} รายการ
+                </span>
+            </div>
+            
+            <!-- Quick Status Toggle -->
+            <div class="flex items-center space-x-2">
+                <button type="button"
+                        wire:click="quickPublish"
+                        class="text-sm bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600 transition-colors">
+                    📢 เผยแพร่
+                </button>
+                <button type="button"
+                        wire:click="quickUnpublish"
+                        class="text-sm bg-gray-500 text-white px-3 py-1 rounded hover:bg-gray-600 transition-colors">
+                    📝 แบบร่าง
+                </button>
+            </div>
+        </div>
+        
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center space-y-2 sm:space-y-0 sm:space-x-3">
+            <!-- Bulk Action Select -->
+            <div class="relative flex-1 sm:flex-none">
+                <select wire:model="bulkAction"
+                        class="w-full sm:w-64 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 appearance-none bg-white">
+                    <option value="">เลือกการดำเนินการแบบกลุ่ม...</option>
+                    <optgroup label="สถานะ">
+                        <option value="publish">📢 เผยแพร่สินค้า</option>
+                        <option value="unpublish">📝 เปลี่ยนเป็นแบบร่าง</option>
+                        <option value="archive">📁 เก็บเข้าคลัง</option>
+                    </optgroup>
+                    <optgroup label="จัดการหมวดหมู่">
+                        <option value="add_to_category">📂 เพิ่มเข้าหมวดหมู่</option>
+                        <option value="remove_from_category">📤 นำออกจากหมวดหมู่</option>
+                        <option value="change_category">🔄 เปลี่ยนหมวดหมู่</option>
+                    </optgroup>
+                    <optgroup label="❄️ Snowball MLM">
+                        <option value="add_snowball">➕ เพิ่ม Snowball MLM</option>
+                        <option value="remove_snowball">➖ ลบ Snowball MLM</option>
+                        <option value="change_snowball_package">🔄 เปลี่ยนแพ็คเกจ Snowball</option>
+                    </optgroup>
+                    <optgroup label="ราคาและสต็อก">
+                        <option value="adjust_price">💰 ปรับราคา</option>
+                        <option value="adjust_stock">📦 ปรับสต็อก</option>
+                        <option value="apply_discount">🎯 ตั้งค่าส่วนลด</option>
+                    </optgroup>
+                    <optgroup label="การจัดการ">
+                        <option value="duplicate">⎘ ทำสำเนาสินค้า</option>
+                        <option value="add_tags">🏷️ เพิ่มแท็ก</option>
+                        <option value="remove_tags">🗑️ ลบแท็ก</option>
+                        <option value="delete" class="text-red-600">🗑️ ลบสินค้า</option>
+                    </optgroup>
+                </select>
+                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+                    <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                        <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/>
+                    </svg>
+                </div>
+            </div>
+            
+            <!-- Execute Action Button -->
+            <button type="button"
+                    wire:click="executeBulkAction"
+                    :disabled="!$bulkAction"
+                    class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors flex items-center justify-center space-x-2 flex-1 sm:flex-none">
+                <span>⚡</span>
+                <span>ดำเนินการ</span>
+            </button>
+            
+            <!-- Clear Selection -->
+            <button type="button"
+                    wire:click="clearSelection"
+                    class="border border-gray-300 text-gray-700 px-3 py-2 rounded-lg text-sm hover:bg-gray-50 transition-colors flex items-center justify-center space-x-1 flex-1 sm:flex-none">
+                <span>✕</span>
+                <span>ล้างการเลือก</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Bulk Action Modals -->
+    @if($showBulkActionModal)
+    <!-- Backdrop -->
+    <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50" 
+         x-data="{ show: true }" 
+         x-show="show"
+         x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="transition ease-in duration-200"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0">
+         
+        <!-- Modal -->
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-md max-h-[90vh] overflow-hidden"
+             @click.away="show = false; $wire.cancelBulkAction()">
+             
+            <!-- Modal Header -->
+            <div class="flex items-center justify-between p-6 border-b border-gray-200">
+                <h3 class="text-lg font-semibold text-gray-900">
+                    @if($bulkAction === 'publish')
+                    📢 เผยแพร่สินค้า
+                    @elseif($bulkAction === 'unpublish')
+                    📝 เปลี่ยนเป็นแบบร่าง
+                    @elseif($bulkAction === 'archive')
+                    📁 เก็บเข้าคลัง
+                    @elseif($bulkAction === 'add_to_category')
+                    📂 เพิ่มเข้าหมวดหมู่
+                    @elseif($bulkAction === 'remove_from_category')
+                    📤 นำออกจากหมวดหมู่
+                    @elseif($bulkAction === 'change_category')
+                    🔄 เปลี่ยนหมวดหมู่
+                    @elseif($bulkAction === 'add_snowball')
+                    ❄️ เพิ่ม Snowball MLM
+                    @elseif($bulkAction === 'remove_snowball')
+                    ❄️ ลบ Snowball MLM
+                    @elseif($bulkAction === 'change_snowball_package')
+                    🔄 เปลี่ยนแพ็คเกจ Snowball
+                    @elseif($bulkAction === 'adjust_price')
+                    💰 ปรับราคาสินค้า
+                    @elseif($bulkAction === 'adjust_stock')
+                    📦 ปรับสต็อกสินค้า
+                    @elseif($bulkAction === 'apply_discount')
+                    🎯 ตั้งค่าส่วนลด
+                    @elseif($bulkAction === 'duplicate')
+                    ⎘ ทำสำเนาสินค้า
+                    @elseif($bulkAction === 'add_tags')
+                    🏷️ เพิ่มแท็ก
+                    @elseif($bulkAction === 'remove_tags')
+                    🗑️ ลบแท็ก
+                    @elseif($bulkAction === 'delete')
+                    🗑️ ลบสินค้า
+                    @endif
+                </h3>
+                <button type="button" 
+                        @click="show = false; $wire.cancelBulkAction()"
+                        class="text-gray-400 hover:text-gray-600 transition-colors">
+                    <span class="text-xl">×</span>
+                </button>
+            </div>
+            
+            <!-- Modal Body -->
+            <div class="p-6 max-h-[60vh] overflow-y-auto">
+                <!-- Warning for destructive actions -->
+                @if(in_array($bulkAction, ['delete', 'remove_snowball', 'remove_from_category']))
+                <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+                    <div class="flex items-center space-x-2 text-red-800">
+                        <span class="text-lg">⚠️</span>
+                        <span class="font-medium">คำเตือน: การดำเนินการนี้ไม่สามารถย้อนกลับได้</span>
+                    </div>
+                    <p class="text-sm text-red-700 mt-2">
+                        คุณกำลังจะดำเนินการกับสินค้า {{ count($selectedProducts) }} รายการ
+                    </p>
+                </div>
+                @endif
+
+                <div class="space-y-4">
+                    <!-- Category Actions -->
+                    @if(in_array($bulkAction, ['add_to_category', 'remove_from_category', 'change_category']))
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            @if($bulkAction === 'add_to_category') หมวดหมู่ที่ต้องการเพิ่ม
+                            @elseif($bulkAction === 'remove_from_category') หมวดหมู่ที่ต้องการนำออก
+                            @else หมวดหมู่ใหม่
+                            @endif
+                        </label>
+                        <select wire:model="bulkCategory"
+                                class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                            <option value="">เลือกหมวดหมู่...</option>
+                            @foreach($categories as $category)
+                            <option value="{{ $category->id }}">{{ $category->name }}</option>
+                            @endforeach
+                        </select>
+                        @error('bulkCategory') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
+                    </div>
+                    @endif
+
+                    <!-- Snowball MLM Actions -->
+                    @if(in_array($bulkAction, ['add_snowball', 'change_snowball_package']))
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">เลือกแพ็คเกจ Snowball</label>
+                        <select wire:model="bulkSnowballPackage"
+                                class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                            <option value="">เลือกแพ็คเกจ...</option>
+                            @foreach($snowballPackages as $package)
+                            <option value="{{ $package->id }}">{{ $package->name }} (฿{{ number_format($package->monthly_fee) }}/เดือน)</option>
+                            @endforeach
+                        </select>
+                        @error('bulkSnowballPackage') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
+                        
+                        @if($bulkSnowballPackage)
+                        <div class="mt-2 text-sm text-gray-600">
+                            <p>แพ็คเกจนี้ให้คอมมิชชั่น {{ $selectedSnowballPackage->commission_rate ?? 0 }}%</p>
+                            <p>จำกัดสินค้า {{ $selectedSnowballPackage->product_limit ?? 0 }} รายการ</p>
+                        </div>
+                        @endif
+                    </div>
+                    
+                    <!-- PV Input for Snowball -->
+                    @if($bulkAction === 'add_snowball' && $bulkSnowballPackage)
+                    <x-global.form-input
+                        label="Point Value (PV)"
+                        type="number"
+                        wire:model="snowballPV"
+                        min="0"
+                        help-text="ค่าคะแนนสำหรับคำนวณคอมมิชชั่น"
+                    />
+                    @endif
+                    @endif
+
+                    <!-- Price Adjustment -->
+                    @if($bulkAction === 'adjust_price')
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">ประเภทการปรับ</label>
+                            <select wire:model="priceAdjustmentType"
+                                    class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                                <option value="fixed">ตั้งราคาใหม่</option>
+                                <option value="increase">เพิ่มราคา</option>
+                                <option value="decrease">ลดราคา</option>
+                                <option value="percentage_increase">เพิ่มเป็นเปอร์เซ็นต์</option>
+                                <option value="percentage_decrease">ลดเป็นเปอร์เซ็นต์</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">จำนวน</label>
+                            <div class="relative">
+                                <input type="number"
+                                       wire:model="priceAdjustmentValue"
+                                       min="0"
+                                       step="0.01"
+                                       class="w-full border border-gray-300 rounded-lg pl-8 pr-3 py-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <span class="text-gray-500">฿</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    @if($priceAdjustmentType === 'percentage_increase' || $priceAdjustmentType === 'percentage_decrease')
+                    <p class="text-sm text-gray-600">ตัวอย่าง: ราคา 100 บาท {{ $priceAdjustmentType === 'percentage_increase' ? 'เพิ่ม' : 'ลด' }} {{ $priceAdjustmentValue }}% = ฿{{ $priceAdjustmentType === 'percentage_increase' ? 100 + (100 * $priceAdjustmentValue / 100) : 100 - (100 * $priceAdjustmentValue / 100) }}</p>
+                    @endif
+                    @endif
+
+                    <!-- Stock Adjustment -->
+                    @if($bulkAction === 'adjust_stock')
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">ประเภทการปรับ</label>
+                            <select wire:model="stockAdjustmentType"
+                                    class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                                <option value="set">ตั้งค่าสต็อก</option>
+                                <option value="increase">เพิ่มสต็อก</option>
+                                <option value="decrease">ลดสต็อก</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">จำนวน</label>
+                            <input type="number"
+                                   wire:model="stockAdjustmentValue"
+                                   min="0"
+                                   class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                        </div>
+                    </div>
+                    @endif
+
+                    <!-- Discount Application -->
+                    @if($bulkAction === 'apply_discount')
+                    <div class="space-y-4">
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">ประเภทส่วนลด</label>
+                                <select wire:model="discountType"
+                                        class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                                    <option value="percentage">เปอร์เซ็นต์ (%)</option>
+                                    <option value="fixed">จำนวนเงิน (บาท)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">จำนวนส่วนลด</label>
+                                <div class="relative">
+                                    <input type="number"
+                                           wire:model="discountValue"
+                                           min="0"
+                                           :max="discountType === 'percentage' ? 100 : null"
+                                           step="0.01"
+                                           class="w-full border border-gray-300 rounded-lg pl-8 pr-3 py-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <span class="text-gray-500">{{ $discountType === 'percentage' ? '%' : '฿' }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">ระยะเวลาส่วนลด</label>
+                            <div class="grid grid-cols-2 gap-4">
+                                <input type="datetime-local"
+                                       wire:model="discountStartDate"
+                                       class="border border-gray-300 rounded-lg px-3 py-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                                <input type="datetime-local"
+                                       wire:model="discountEndDate"
+                                       class="border border-gray-300 rounded-lg px-3 py-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                            </div>
+                        </div>
+                    </div>
+                    @endif
+
+                    <!-- Tags Management -->
+                    @if(in_array($bulkAction, ['add_tags', 'remove_tags']))
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            @if($bulkAction === 'add_tags') แท็กที่ต้องการเพิ่ม
+                            @else แท็กที่ต้องการลบ
+                            @endif
+                        </label>
+                        <input type="text"
+                               wire:model="bulkTags"
+                               placeholder="กรอกแท็ก (คั่นด้วย comma)"
+                               class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                        <p class="text-sm text-gray-500 mt-1">ตัวอย่าง: แฟชั่น, เสื้อผ้า, ใหม่</p>
+                    </div>
+                    @endif
+
+                    <!-- Duplicate Options -->
+                    @if($bulkAction === 'duplicate')
+                    <div class="space-y-3">
+                        <label class="flex items-center space-x-3">
+                            <input type="checkbox" 
+                                   wire:model="duplicateWithImages"
+                                   class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                            <span class="text-sm text-gray-700">สำเนารูปภาพสินค้า</span>
+                        </label>
+                        <label class="flex items-center space-x-3">
+                            <input type="checkbox" 
+                                   wire:model="duplicateWithVariants"
+                                   class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                            <span class="text-sm text-gray-700">สำเนาตัวเลือกสินค้า</span>
+                        </label>
+                        <label class="flex items-center space-x-3">
+                            <input type="checkbox" 
+                                   wire:model="duplicateAsDraft"
+                                   class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                            <span class="text-sm text-gray-700">บันทึกเป็นแบบร่าง</span>
+                        </label>
+                    </div>
+                    @endif
+
+                    <!-- Selected Products Preview -->
+                    <div class="bg-gray-50 rounded-lg p-3">
+                        <h4 class="text-sm font-medium text-gray-700 mb-2">สินค้าที่จะดำเนินการ:</h4>
+                        <div class="max-h-32 overflow-y-auto space-y-1">
+                            @foreach($selectedProductsPreview as $product)
+                            <div class="flex items-center space-x-2 text-sm text-gray-600">
+                                <span class="w-2 h-2 bg-blue-500 rounded-full"></span>
+                                <span class="truncate">{{ $product['name'] }}</span>
+                            </div>
+                            @endforeach
+                            @if(count($selectedProducts) > 5)
+                            <div class="text-xs text-gray-500 text-center">
+                                และอีก {{ count($selectedProducts) - 5 }} รายการ...
+                            </div>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="flex justify-end space-x-3 p-6 border-t border-gray-200 bg-gray-50">
+                <button type="button"
+                        @click="show = false; $wire.cancelBulkAction()"
+                        class="btn btn-outline">
+                    ยกเลิก
+                </button>
+                <button type="button"
+                        wire:click="confirmBulkAction"
+                        class="btn {{ in_array($bulkAction, ['delete', 'remove_snowball', 'remove_from_category']) ? 'btn-danger' : 'btn-primary' }}"
+                        wire:loading.attr="disabled">
+                    <span wire:loading.remove>
+                        @if($bulkAction === 'delete')
+                        🗑️ ลบสินค้า
+                        @elseif($bulkAction === 'duplicate')
+                        ⎘ ทำสำเนา
+                        @else
+                        ✅ ยืนยันการดำเนินการ
+                        @endif
+                    </span>
+                    <span wire:loading>กำลังประมวลผล...</span>
+                </button>
+            </div>
+        </div>
+    </div>
+    @endif
+
+    <!-- Loading Overlay -->
+    @if($processingBulkAction)
+    <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-6 text-center">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+            <p class="text-gray-700">กำลังดำเนินการกับ {{ count($selectedProducts) }} รายการ...</p>
+            <p class="text-sm text-gray-500 mt-1">กรุณารอสักครู่</p>
+        </div>
+    </div>
+    @endif
+</div>
+@endif
+
+<style>
+.btn {
+    @apply px-4 py-2 rounded-lg font-medium transition-colors text-sm;
+}
+
+.btn-primary {
+    @apply bg-blue-600 text-white hover:bg-blue-700;
+}
+
+.btn-outline {
+    @apply border border-gray-300 text-gray-700 hover:bg-gray-50;
+}
+
+.btn-danger {
+    @apply bg-red-600 text-white hover:bg-red-700;
+}
+
+/* Custom scrollbar for modal */
+.modal-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e0 #f7fafc;
+}
+
+.modal-scroll::-webkit-scrollbar {
+    width: 6px;
+}
+
+.modal-scroll::-webkit-scrollbar-track {
+    background: #f7fafc;
+}
+
+.modal-scroll::-webkit-scrollbar-thumb {
+    background-color: #cbd5e0;
+    border-radius: 3px;
+}
+</style>
+```
+
+🔧 Livewire Component for Bulk Actions
+
+```php
+<?php
+
+namespace App\Livewire\Vendor\Products;
+
+use Livewire\Component;
+use App\Models\Product;
+use App\Models\Category;
+use App\Models\SnowballPackage;
+use Illuminate\Support\Facades\DB;
+
+class BulkActions extends Component
+{
+    public $selectedProducts = [];
+    public $bulkAction = '';
+    public $showBulkActionModal = false;
+    public $processingBulkAction = false;
+    
+    // Category actions
+    public $bulkCategory;
+    
+    // Snowball actions
+    public $bulkSnowballPackage;
+    public $snowballPV = 100;
+    public $snowballLevel = 'member';
+    
+    // Price adjustment
+    public $priceAdjustmentType = 'fixed';
+    public $priceAdjustmentValue = 0;
+    
+    // Stock adjustment
+    public $stockAdjustmentType = 'set';
+    public $stockAdjustmentValue = 0;
+    
+    // Discount
+    public $discountType = 'percentage';
+    public $discountValue = 0;
+    public $discountStartDate;
+    public $discountEndDate;
+    
+    // Tags
+    public $bulkTags = '';
+    
+    // Duplicate options
+    public $duplicateWithImages = true;
+    public $duplicateWithVariants = true;
+    public $duplicateAsDraft = true;
+
+    protected $listeners = ['productsSelected' => 'updateSelectedProducts'];
+
+    public function mount()
+    {
+        $this->discountStartDate = now()->format('Y-m-d\TH:i');
+        $this->discountEndDate = now()->addWeek()->format('Y-m-d\TH:i');
+    }
+
+    public function updateSelectedProducts($selectedProducts)
+    {
+        $this->selectedProducts = $selectedProducts;
+    }
+
+    public function executeBulkAction()
+    {
+        if (empty($this->bulkAction)) {
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'กรุณาเลือกการดำเนินการ'
+            ]);
+            return;
+        }
+
+        if (empty($this->selectedProducts)) {
+            $this->dispatch('show-toast', [
+                'type' => 'error', 
+                'message' => 'ไม่มีสินค้าที่เลือก'
+            ]);
+            return;
+        }
+
+        $this->showBulkActionModal = true;
+    }
+
+    public function confirmBulkAction()
+    {
+        $this->processingBulkAction = true;
+
+        try {
+            DB::transaction(function () {
+                $products = Product::whereIn('id', $this->selectedProducts)
+                    ->where('seller_id', auth()->user()->seller->id)
+                    ->get();
+
+                switch ($this->bulkAction) {
+                    case 'publish':
+                        $this->bulkPublish($products);
+                        break;
+                    case 'unpublish':
+                        $this->bulkUnpublish($products);
+                        break;
+                    case 'archive':
+                        $this->bulkArchive($products);
+                        break;
+                    case 'add_to_category':
+                        $this->bulkAddToCategory($products);
+                        break;
+                    case 'remove_from_category':
+                        $this->bulkRemoveFromCategory($products);
+                        break;
+                    case 'change_category':
+                        $this->bulkChangeCategory($products);
+                        break;
+                    case 'add_snowball':
+                        $this->bulkAddSnowball($products);
+                        break;
+                    case 'remove_snowball':
+                        $this->bulkRemoveSnowball($products);
+                        break;
+                    case 'change_snowball_package':
+                        $this->bulkChangeSnowballPackage($products);
+                        break;
+                    case 'adjust_price':
+                        $this->bulkAdjustPrice($products);
+                        break;
+                    case 'adjust_stock':
+                        $this->bulkAdjustStock($products);
+                        break;
+                    case 'apply_discount':
+                        $this->bulkApplyDiscount($products);
+                        break;
+                    case 'duplicate':
+                        $this->bulkDuplicate($products);
+                        break;
+                    case 'add_tags':
+                        $this->bulkAddTags($products);
+                        break;
+                    case 'remove_tags':
+                        $this->bulkRemoveTags($products);
+                        break;
+                    case 'delete':
+                        $this->bulkDelete($products);
+                        break;
+                }
+            });
+
+            $this->dispatch('show-toast', [
+                'type' => 'success',
+                'message' => 'ดำเนินการเรียบร้อยแล้ว'
+            ]);
+
+            $this->dispatch('refreshProducts');
+            $this->resetBulkAction();
+
+        } catch (\Exception $e) {
+            $this->dispatch('show-toast', [
+                'type' => 'error',
+                'message' => 'เกิดข้อผิดพลาด: ' . $e->getMessage()
+            ]);
+        } finally {
+            $this->processingBulkAction = false;
+        }
+    }
+
+    // Quick Actions
+    public function quickPublish()
+    {
+        $this->bulkAction = 'publish';
+        $this->confirmBulkAction();
+    }
+
+    public function quickUnpublish()
+    {
+        $this->bulkAction = 'unpublish';
+        $this->confirmBulkAction();
+    }
+
+    // Bulk Action Methods
+    private function bulkPublish($products)
+    {
+        $products->each->update(['is_published' => true]);
+    }
+
+    private function bulkUnpublish($products)
+    {
+        $products->each->update(['is_published' => false]);
+    }
+
+    private function bulkArchive($products)
+    {
+        $products->each->update(['is_archived' => true]);
+    }
+
+    private function bulkAddToCategory($products)
+    {
+        if (!$this->bulkCategory) {
+            throw new \Exception('กรุณาเลือกหมวดหมู่');
+        }
+
+        $products->each(function ($product) {
+            $product->categories()->syncWithoutDetaching([$this->bulkCategory]);
+        });
+    }
+
+    private function bulkRemoveFromCategory($products)
+    {
+        if (!$this->bulkCategory) {
+            throw new \Exception('กรุณาเลือกหมวดหมู่');
+        }
+
+        $products->each(function ($product) {
+            $product->categories()->detach($this->bulkCategory);
+        });
+    }
+
+    private function bulkChangeCategory($products)
+    {
+        if (!$this->bulkCategory) {
+            throw new \Exception('กรุณาเลือกหมวดหมู่');
+        }
+
+        $products->each(function ($product) {
+            $product->update(['category_id' => $this->bulkCategory]);
+        });
+    }
+
+    private function bulkAddSnowball($products)
+    {
+        if (!$this->bulkSnowballPackage) {
+            throw new \Exception('กรุณาเลือกแพ็คเกจ Snowball');
+        }
+
+        $products->each(function ($product) {
+            $product->snowball_setting()->updateOrCreate(
+                ['product_id' => $product->id],
+                [
+                    'snowball_package_id' => $this->bulkSnowballPackage,
+                    'pv' => $this->snowballPV,
+                    'level' => $this->snowballLevel,
+                    'input_values' => [
+                        'pv' => $this->snowballPV,
+                        'level' => $this->snowballLevel,
+                    ]
+                ]
+            );
+        });
+    }
+
+    private function bulkRemoveSnowball($products)
+    {
+        $products->each(function ($product) {
+            $product->snowball_setting()->delete();
+        });
+    }
+
+    private function bulkChangeSnowballPackage($products)
+    {
+        if (!$this->bulkSnowballPackage) {
+            throw new \Exception('กรุณาเลือกแพ็คเกจ Snowball');
+        }
+
+        $products->each(function ($product) {
+            if ($product->snowball_setting) {
+                $product->snowball_setting()->update([
+                    'snowball_package_id' => $this->bulkSnowballPackage
+                ]);
+            }
+        });
+    }
+
+    private function bulkAdjustPrice($products)
+    {
+        $products->each(function ($product) {
+            $newPrice = $this->calculateAdjustedPrice($product->price);
+            $product->update(['price' => $newPrice]);
+        });
+    }
+
+    private function calculateAdjustedPrice($currentPrice)
+    {
+        switch ($this->priceAdjustmentType) {
+            case 'fixed':
+                return $this->priceAdjustmentValue;
+            case 'increase':
+                return $currentPrice + $this->priceAdjustmentValue;
+            case 'decrease':
+                return max(0, $currentPrice - $this->priceAdjustmentValue);
+            case 'percentage_increase':
+                return $currentPrice * (1 + $this->priceAdjustmentValue / 100);
+            case 'percentage_decrease':
+                return $currentPrice * (1 - $this->priceAdjustmentValue / 100);
+            default:
+                return $currentPrice;
+        }
+    }
+
+    private function bulkAdjustStock($products)
+    {
+        $products->each(function ($product) {
+            $newStock = $this->calculateAdjustedStock($product->stock_quantity);
+            $product->update(['stock_quantity' => $newStock]);
+            
+            // Log inventory change
+            $product->inventory_logs()->create([
+                'type' => 'adjustment',
+                'quantity' => $newStock - $product->getOriginal('stock_quantity'),
+                'stock_after' => $newStock,
+                'notes' => 'ปรับสต็อกแบบกลุ่ม'
+            ]);
+        });
+    }
+
+    private function calculateAdjustedStock($currentStock)
+    {
+        switch ($this->stockAdjustmentType) {
+            case 'set':
+                return $this->stockAdjustmentValue;
+            case 'increase':
+                return $currentStock + $this->stockAdjustmentValue;
+            case 'decrease':
+                return max(0, $currentStock - $this->stockAdjustmentValue);
+            default:
+                return $currentStock;
+        }
+    }
+
+    private function bulkApplyDiscount($products)
+    {
+        $products->each(function ($product) {
+            $product->update([
+                'discount_type' => $this->discountType,
+                'discount_value' => $this->discountValue,
+                'discount_start' => $this->discountStartDate,
+                'discount_end' => $this->discountEndDate,
+            ]);
+        });
+    }
+
+    private function bulkDuplicate($products)
+    {
+        $products->each(function ($product) {
+            $newProduct = $product->replicate();
+            $newProduct->name = $product->name . ' (สำเนา)';
+            $newProduct->sku = $product->sku . '-COPY-' . time();
+            $newProduct->is_published = !$this->duplicateAsDraft;
+            $newProduct->save();
+
+            // Duplicate images
+            if ($this->duplicateWithImages && $product->images) {
+                $newProduct->update(['images' => $product->images]);
+            }
+
+            // Duplicate variants
+            if ($this->duplicateWithVariants) {
+                foreach ($product->variants as $variant) {
+                    $newVariant = $variant->replicate();
+                    $newVariant->product_id = $newProduct->id;
+                    $newVariant->save();
+                }
+            }
+
+            // Duplicate Snowball settings
+            if ($product->snowball_setting) {
+                $newSnowball = $product->snowball_setting->replicate();
+                $newSnowball->product_id = $newProduct->id;
+                $newSnowball->save();
+            }
+        });
+    }
+
+    private function bulkAddTags($products)
+    {
+        $tags = array_map('trim', explode(',', $this->bulkTags));
+        
+        $products->each(function ($product) use ($tags) {
+            $currentTags = $product->tags ? explode(',', $product->tags) : [];
+            $newTags = array_unique(array_merge($currentTags, $tags));
+            $product->update(['tags' => implode(',', $newTags)]);
+        });
+    }
+
+    private function bulkRemoveTags($products)
+    {
+        $tagsToRemove = array_map('trim', explode(',', $this->bulkTags));
+        
+        $products->each(function ($product) use ($tagsToRemove) {
+            $currentTags = $product->tags ? explode(',', $product->tags) : [];
+            $newTags = array_diff($currentTags, $tagsToRemove);
+            $product->update(['tags' => implode(',', $newTags)]);
+        });
+    }
+
+    private function bulkDelete($products)
+    {
+        $products->each->delete();
+    }
+
+    public function cancelBulkAction()
+    {
+        $this->showBulkActionModal = false;
+        $this->resetBulkAction();
+    }
+
+    public function clearSelection()
+    {
+        $this->selectedProducts = [];
+        $this->dispatch('clearProductSelection');
+    }
+
+    private function resetBulkAction()
+    {
+        $this->bulkAction = '';
+        $this->showBulkActionModal = false;
+        $this->selectedProducts = [];
+        $this->reset([
+            'bulkCategory', 'bulkSnowballPackage', 'snowballPV', 'snowballLevel',
+            'priceAdjustmentType', 'priceAdjustmentValue', 'stockAdjustmentType', 
+            'stockAdjustmentValue', 'discountType', 'discountValue', 'bulkTags'
+        ]);
+    }
+
+    // Computed Properties
+    public function getSelectedProductsPreviewProperty()
+    {
+        return Product::whereIn('id', array_slice($this->selectedProducts, 0, 5))
+            ->select('id', 'name')
+            ->get()
+            ->toArray();
+    }
+
+    public function getSelectedSnowballPackageProperty()
+    {
+        if ($this->bulkSnowballPackage) {
+            return SnowballPackage::find($this->bulkSnowballPackage);
+        }
+        return null;
+    }
+
+    public function render()
+    {
+        return view('livewire.vendor.products.bulk-actions', [
+            'categories' => Category::where('is_active', true)->get(),
+            'snowballPackages' => SnowballPackage::where('is_active', true)->get(),
+        ]);
+    }
+}
+```
+
+🎯 JavaScript Integration
+
+```blade
+{{-- Add this to your main layout or product list component --}}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Product selection management
+    window.productSelection = {
+        selected: new Set(),
+        
+        toggle(productId) {
+            if (this.selected.has(productId)) {
+                this.selected.delete(productId);
+            } else {
+                this.selected.add(productId);
+            }
+            this.updateBulkActions();
+        },
+        
+        selectAll() {
+            const checkboxes = document.querySelectorAll('.product-checkbox');
+            checkboxes.forEach(checkbox => {
+                this.selected.add(checkbox.value);
+                checkbox.checked = true;
+            });
+            this.updateBulkActions();
+        },
+        
+        clear() {
+            this.selected.clear();
+            const checkboxes = document.querySelectorAll('.product-checkbox');
+            checkboxes.forEach(checkbox => checkbox.checked = false);
+            this.updateBulkActions();
+        },
+        
+        updateBulkActions() {
+            const selectedArray = Array.from(this.selected);
+            Livewire.dispatch('productsSelected', { selectedProducts: selectedArray });
+        }
+    };
+
+    // Select all functionality
+    const selectAllCheckbox = document.querySelector('thead input[type="checkbox"]');
+    if (selectAllCheckbox) {
+        selectAllCheckbox.addEventListener('change', function() {
+            if (this.checked) {
+                window.productSelection.selectAll();
+            } else {
+                window.productSelection.clear();
+            }
+        });
+    }
+
+    // Individual product selection
+    document.addEventListener('change', function(e) {
+        if (e.target.classList.contains('product-checkbox')) {
+            window.productSelection.toggle(e.target.value);
+        }
+    });
+});
+</script>
+```
+
+📊 Usage in Product List
+
+```blade
+{{-- In your product list view --}}
+<div>
+    <!-- Bulk Actions Component -->
+    <livewire:vendor.products.bulk-actions />
+    
+    <!-- Products Table -->
+    <table>
+        <thead>
+            <tr>
+                <th>
+                    <input type="checkbox" 
+                           onchange="window.productSelection.selectAll()"
+                           class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                </th>
+                <th>สินค้า</th>
+                <!-- ... other headers -->
+            </tr>
+        </thead>
+        <tbody>
+            @foreach($products as $product)
+            <tr>
+                <td>
+                    <input type="checkbox" 
+                           value="{{ $product->id }}"
+                           class="product-checkbox rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                </td>
+                <td>{{ $product->name }}</td>
+                <!-- ... other columns -->
+            </tr>
+            @endforeach
+        </tbody>
+    </table>
+</div>
+```
+
+ระบบ Bulk Actions นี้ครบถ้วนสมบูรณ์ พร้อมรองรับการดำเนินการแบบกลุ่มทุกประเภทที่ผู้ขายต้องการใช้งาน! 🚀  
+
+
+  ```blade
+{{-- components/vendor/products/bulk-actions.blade.php --}}
+@props(['selectedProducts' => []])
+
+@if(count($selectedProducts) > 0)
+<div class="bulk-actions-bar bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+    <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-3">
+            <span class="text-blue-700 font-medium">
+                เลือกแล้ว {{ count($selectedProducts) }} รายการ
+            </span>
+        </div>
+        
+        <div class="flex items-center space-x-3">
+            <!-- Bulk Action Select -->
+            <select wire:model="bulkAction"
+                    class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                <option value="">เลือกการดำเนินการ...</option>
+                <option value="publish">เผยแพร่</option>
+                <option value="unpublish">ไม่เผยแพร่</option>
+                <option value="add_to_category">เพิ่มเข้าหมวดหมู่</option>
+                <option value="add_snowball">เพิ่ม Snowball MLM</option>
+                <option value="remove_snowball">ลบ Snowball MLM</option>
+                <option value="adjust_price">ปรับราคา</option>
+                <option value="adjust_stock">ปรับสต็อก</option>
+                <option value="duplicate">ทำสำเนา</option>
+                <option value="delete">ลบสินค้า</option>
+            </select>
+            
+            <!-- Execute Action Button -->
+            <button type="button"
+                    wire:click="executeBulkAction"
+                    class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700 transition-colors flex items-center space-x-2">
+                <span>⚡</span>
+                <span>ดำเนินการ</span>
+            </button>
+            
+            <!-- Clear Selection -->
+            <button type="button"
+                    wire:click="clearSelection"
+                    class="text-gray-600 hover:text-gray-800 text-sm flex items-center space-x-1">
+                <span>✕</span>
+                <span>ล้างการเลือก</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Bulk Action Modals -->
+    @if($showBulkActionModal)
+    <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-lg p-6 w-full max-w-md">
+            <h3 class="text-lg font-semibold mb-4">
+                @if($bulkAction === 'publish')
+                เผยแพร่สินค้า
+                @elseif($bulkAction === 'unpublish')
+                ซ่อนสินค้า
+                @elseif($bulkAction === 'add_to_category')
+                เพิ่มเข้าหมวดหมู่
+                @elseif($bulkAction === 'add_snowball')
+                เพิ่ม Snowball MLM
+                @elseif($bulkAction === 'adjust_price')
+                ปรับราคาสินค้า
+                @elseif($bulkAction === 'adjust_stock')
+                ปรับสต็อกสินค้า
+                @elseif($bulkAction === 'delete')
+                ลบสินค้า
+                @endif
+            </h3>
+            
+            <div class="space-y-4">
+                @if($bulkAction === 'add_to_category')
+                <x-global.form-select
+                    label="เลือกหมวดหมู่"
+                    :options="$categories"
+                    wire:model="bulkCategory"
+                    required
+                    thai-label
+                />
+                @elseif($bulkAction === 'add_snowball')
+                <x-global.form-select
+                    label="เลือกแพ็คเกจ Snowball"
+                    :options="$snowballPackages"
+                    wire:model="bulkSnowballPackage"
+                    required
+                    thai-label
+                />
+                @elseif($bulkAction === 'adjust_price')
+                <div class="grid grid-cols-2 gap-4">
+                    <x-global.form-select
+                        label="ประเภทการปรับ"
+                        :options="[
+                            'fixed' => 'ตั้งราคาใหม่',
+                            'increase' => 'เพิ่มราคา',
+                            'decrease' => 'ลดราคา'
+                        ]"
+                        wire:model="priceAdjustmentType"
+                        required
+                        thai-label
+                    />
+                    <x-global.form-input
+                        label="จำนวน"
+                        type="number"
+                        wire:model="priceAdjustmentValue"
+                        required
+                        prefix="฿"
+                    />
+                </div>
+                @elseif($bulkAction === 'adjust_stock')
+                <div class="grid grid-cols-2 gap-4">
+                    <x-global.form-select
+                        label="ประเภทการปรับ"
+                        :options="[
+                            'set' => 'ตั้งค่าสต็อก',
+                            'increase' => 'เพิ่มสต็อก',
+                            'decrease' => 'ลดสต็อก'
+                        ]"
+                        wire:model="stockAdjustmentType"
+                        required
+                        thai-label
+                    />
+                    <x-global.form-input
+                        label="จำนวน"
+                        type="number"
+                        wire:model="stockAdjustmentValue"
+                        required
+                        min="0"
+                    />
+                </div>
+                @elseif($bulkAction === 'delete')
+                <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+                    <div class="flex items-center space-x-2 text-red-800">
+                        <span>⚠️</span>
+                        <span class="font-medium">คำเตือน: การลบสินค้าไม่สามารถกู้คืนได้</span>
+                    </div>
+                    <p class="text-sm text-red-700 mt-2">
+                        คุณกำลังจะลบสินค้า {{ count($selectedProducts) }} รายการ 
+                        การดำเนินการนี้ไม่สามารถย้อนกลับได้
+                    </p>
+                </div>
+                @endif
+            </div>
+            
+            <div class="flex justify-end space-x-3 mt-6">
+                <button type="button"
+                        wire:click="cancelBulkAction"
+                        class="btn btn-outline">
+                    ยกเลิก
+                </button>
+                <button type="button"
+                        wire:click="confirmBulkAction"
+                        class="btn {{ $bulkAction === 'delete' ? 'btn-danger' : 'btn-primary' }}">
+                    {{ $bulkAction === 'delete' ? '🗑️ ลบสินค้า' : '✅ ยืนยัน' }}
+                </button>
+            </div>
+        </div>
+    </div>
+    @endif
+</div>
+@endif
+
+<style>
+.btn-danger {
+    @apply bg-red-600 text-white hover:bg-red-700;
+}
+</style>
+```
+
+8. Image Gallery (image-gallery.blade.php)
+
+```blade
+{{-- components/vendor/products/image-gallery.blade.php --}}
+@props([
+    'images' => [],
+    'maxFiles' => 5,
+    'maxSize' => 5 // MB
+])
+
+<div class="image-gallery" wire:ignore>
+    <div class="mb-4">
+        <h3 class="text-lg font-semibold text-gray-900 mb-2">รูปภาพสินค้า</h3>
+        <p class="text-sm text-gray-600">
+            อัพโหลดได้สูงสุด {{ $maxFiles }} ไฟล์ (ไฟล์ละไม่เกิน {{ $maxSize }}MB)
+            <br>รูปแบบที่รองรับ: JPG, PNG, GIF, WebP
+        </p>
+    </div>
+
+    <!-- Upload Area -->
+    <div class="upload-area border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors mb-4"
+         id="dropZone">
+        <input type="file" 
+               id="imageUpload"
+               multiple
+               accept="image/*"
+               class="hidden"
+               wire:model="newImages">
+        
+        <div class="upload-placeholder">
+            <div class="text-gray-400 text-4xl mb-3">📷</div>
+            <p class="text-gray-600 mb-2">ลากรูปภาพมาวางที่นี่หรือคลิกเพื่อเลือกไฟล์</p>
+            <p class="text-sm text-gray-500">เลือกรูปภาพสินค้าจากอุปกรณ์ของคุณ</p>
+        </div>
+        
+        <div class="upload-progress hidden mt-4">
+            <div class="flex items-center justify-between mb-1">
+                <span class="text-sm text-gray-600">กำลังอัพโหลด...</span>
+                <span class="text-sm text-gray-600 upload-percentage">0%</span>
+            </div>
+            <div class="w-full bg-gray-200 rounded-full h-2">
+                <div class="bg-blue-500 h-2 rounded-full upload-progress-bar" style="width: 0%"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Image Preview Grid -->
+    @if(count($images) > 0)
+    <div class="image-preview-grid grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+        @foreach($images as $index => $image)
+        <div class="image-preview-item relative group border border-gray-200 rounded-lg overflow-hidden">
+            <!-- Main Image -->
+            <img src="{{ is_string($image) ? $image : $image->temporaryUrl() }}" 
+                 alt="ภาพสินค้า {{ $index + 1 }}"
+                 class="w-full h-32 object-cover">
+            
+            <!-- Overlay Actions -->
+            <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
+                <div class="flex space-x-2">
+                    <!-- Set as Thumbnail -->
+                    <button type="button"
+                            wire:click="setAsThumbnail({{ $index }})"
+                            class="bg-white text-blue-600 p-2 rounded-full hover:bg-blue-50 transition-colors"
+                            title="ตั้งเป็นภาพหลัก">
+                        ⭐
+                    </button>
+                    
+                    <!-- Move Left -->
+                    @if($index > 0)
+                    <button type="button"
+                            wire:click="moveImage({{ $index }}, 'left')"
+                            class="bg-white text-gray-600 p-2 rounded-full hover:bg-gray-50 transition-colors"
+                            title="ย้ายไปทางซ้าย">
+                        ←
+                    </button>
+                    @endif
+                    
+                    <!-- Move Right -->
+                    @if($index < count($images) - 1)
+                    <button type="button"
+                            wire:click="moveImage({{ $index }}, 'right')"
+                            class="bg-white text-gray-600 p-2 rounded-full hover:bg-gray-50 transition-colors"
+                            title="ย้ายไปทางขวา">
+                        →
+                    </button>
+                    @endif
+                    
+                    <!-- Delete Image -->
+                    <button type="button"
+                            wire:click="removeImage({{ $index }})"
+                            class="bg-white text-red-600 p-2 rounded-full hover:bg-red-50 transition-colors"
+                            title="ลบภาพ">
+                        🗑️
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Thumbnail Badge -->
+            @if($index === 0)
+            <div class="absolute top-2 left-2">
+                <span class="bg-yellow-500 text-white text-xs px-2 py-1 rounded-full">
+                    ภาพหลัก
+                </span>
+            </div>
+            @endif
+            
+            <!-- Image Info -->
+            <div class="absolute bottom-0 left-0 right-0 bg-black bg-opacity-70 text-white text-xs p-2">
+                <div class="truncate">
+                    {{ is_string($image) ? basename($image) : $image->getClientOriginalName() }}
+                </div>
+            </div>
+        </div>
+        @endforeach
+        
+        <!-- Add More Slot -->
+        @if(count($images) < $maxFiles)
+        <div class="add-more-item border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center cursor-pointer hover:border-gray-400 transition-colors"
+             onclick="document.getElementById('imageUpload').click()">
+            <div class="text-center p-4">
+                <div class="text-gray-400 text-2xl mb-2">➕</div>
+                <p class="text-sm text-gray-600">เพิ่มรูปภาพ</p>
+            </div>
+        </div>
+        @endif
+    </div>
+    @else
+    <!-- Empty State -->
+    <div class="empty-state text-center py-8 border-2 border-dashed border-gray-300 rounded-lg">
+        <div class="text-gray-400 text-4xl mb-2">🖼️</div>
+        <p class="text-gray-500">ยังไม่มีรูปภาพสินค้า</p>
+        <p class="text-sm text-gray-400 mt-1">อัพโหลดรูปภาพแรกของคุณเพื่อแสดงตัวอย่างสินค้า</p>
+    </div>
+    @endif
+
+    <!-- Validation Errors -->
+    @error('newImages.*')
+    <div class="mt-2 text-sm text-red-600">
+        {{ $message }}
+    </div>
+    @enderror
+</div>
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('imageUpload');
+    
+    // Drag and drop functionality
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, preventDefaults, false);
+    });
+    
+    function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+    
+    ['dragenter', 'dragover'].forEach(eventName => {
+        dropZone.addEventListener(eventName, highlight, false);
+    });
+    
+    ['dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, unhighlight, false);
+    });
+    
+    function highlight() {
+        dropZone.classList.add('border-blue-500', 'bg-blue-50');
+    }
+    
+    function unhighlight() {
+        dropZone.classList.remove('border-blue-500', 'bg-blue-50');
+    }
+    
+    // Handle file drop
+    dropZone.addEventListener('drop', handleDrop, false);
+    
+    function handleDrop(e) {
+        const dt = e.dataTransfer;
+        const files = dt.files;
+        handleFiles(files);
+    }
+    
+    // Handle file input change
+    fileInput.addEventListener('change', function() {
+        handleFiles(this.files);
+    });
+    
+    function handleFiles(files) {
+        if (files.length > 0) {
+            // Show upload progress
+            const progressBar = document.querySelector('.upload-progress');
+            const progressFill = document.querySelector('.upload-progress-bar');
+            const progressText = document.querySelector('.upload-percentage');
+            
+            document.querySelector('.upload-placeholder').classList.add('hidden');
+            progressBar.classList.remove('hidden');
+            
+            // Simulate upload progress (in real app, this would be handled by Livewire)
+            let progress = 0;
+            const interval = setInterval(() => {
+                progress += 10;
+                progressFill.style.width = progress + '%';
+                progressText.textContent = progress + '%';
+                
+                if (progress >= 100) {
+                    clearInterval(interval);
+                    // In real app, you would trigger Livewire upload here
+                    // @this.upload('newImages', files, (uploadedFilename) => {...}, () => {...}, (event) => {...})
+                }
+            }, 100);
+        }
+    }
+    
+    // Click on drop zone to trigger file input
+    dropZone.addEventListener('click', function() {
+        fileInput.click();
+    });
+});
+</script>
+@endpush
+```
+
+9. Category Selector (category-selector.blade.php)
+
+```blade
+{{-- components/vendor/products/category-selector.blade.php --}}
+@props([
+    'categories' => [],
+    'selectedCategory' => null,
+    'multiple' => false,
+    'showTree' => true
+])
+
+<div class="category-selector">
+    @if($showTree)
+    <!-- Category Tree View -->
+    <div class="category-tree border border-gray-200 rounded-lg max-h-64 overflow-y-auto">
+        @foreach($categories->where('parent_id', null) as $category)
+        <div class="category-item">
+            <label class="flex items-center space-x-3 p-3 hover:bg-gray-50 border-b border-gray-100 last:border-b-0">
+                @if($multiple)
+                <input type="checkbox" 
+                       value="{{ $category->id }}"
+                       wire:model="selectedCategories"
+                       class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                @else
+                <input type="radio" 
+                       name="category"
+                       value="{{ $category->id }}"
+                       wire:model="selectedCategory"
+                       class="rounded-full border-gray-300 text-blue-600 focus:ring-blue-500">
+                @endif
+                <div class="flex-1">
+                    <span class="font-medium text-gray-900">{{ $category->name }}</span>
+                    @if($category->products_count)
+                    <span class="text-xs text-gray-500 ml-2">
+                        ({{ $category->products_count }} สินค้า)
+                    </span>
+                    @endif
+                </div>
+                
+                @if($category->children->count() > 0)
+                <button type="button"
+                        class="text-gray-400 hover:text-gray-600"
+                        onclick="toggleSubcategories(this)">
+                    ▶
+                </button>
+                @endif
+            </label>
+            
+            <!-- Subcategories -->
+            @if($category->children->count() > 0)
+            <div class="subcategories hidden ml-6 border-l border-gray-200">
+                @foreach($category->children as $subcategory)
+                <label class="flex items-center space-x-3 p-3 hover:bg-gray-50 border-b border-gray-100 last:border-b-0">
+                    @if($multiple)
+                    <input type="checkbox" 
+                           value="{{ $subcategory->id }}"
+                           wire:model="selectedCategories"
+                           class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                    @else
+                    <input type="radio" 
+                           name="category"
+                           value="{{ $subcategory->id }}"
+                           wire:model="selectedCategory"
+                           class="rounded-full border-gray-300 text-blue-600 focus:ring-blue-500">
+                    @endif
+                    <div class="flex-1">
+                        <span class="text-gray-700">{{ $subcategory->name }}</span>
+                        @if($subcategory->products_count)
+                        <span class="text-xs text-gray-500 ml-2">
+                            ({{ $subcategory->products_count }} สินค้า)
+                        </span>
+                        @endif
+                    </div>
+                </label>
+                @endforeach
+            </div>
+            @endif
+        </div>
+        @endforeach
+        
+        @if($categories->count() === 0)
+        <div class="text-center py-8 text-gray-500">
+            ยังไม่มีหมวดหมู่
+        </div>
+        @endif
+    </div>
+    @else
+    <!-- Simple Select Dropdown -->
+    <select wire:model="selectedCategory"
+            class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+        <option value="">เลือกหมวดหมู่...</option>
+        @foreach($categories as $category)
+        <option value="{{ $category->id }}">{{ $category->name }}</option>
+            @if($category->children->count() > 0)
+            @foreach($category->children as $subcategory)
+            <option value="{{ $subcategory->id }}">&nbsp;&nbsp;{{ $subcategory->name }}</option>
+            @endforeach
+            @endif
+        @endforeach
+    </select>
+    @endif
+
+    <!-- Selected Categories Display -->
+    @if($multiple && count($selectedCategories) > 0)
+    <div class="selected-categories mt-3">
+        <div class="flex flex-wrap gap-2">
+            @foreach($selectedCategories as $categoryId)
+            @php $category = $categories->flatten()->where('id', $categoryId)->first(); @endphp
+            @if($category)
+            <span class="inline-flex items-center px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-800">
+                {{ $category->name }}
+                <button type="button"
+                        wire:click="removeCategory('{{ $categoryId }}')"
+                        class="ml-1 text-blue-600 hover:text-blue-800">
+                    ×
+                </button>
+            </span>
+            @endif
+            @endforeach
+        </div>
+    </div>
+    @endif
+
+    <!-- Quick Actions -->
+    <div class="category-actions mt-4 flex justify-between text-sm">
+        <button type="button"
+                wire:click="$set('showTree', !$showTree)"
+                class="text-blue-600 hover:text-blue-800">
+            {{ $showTree ? 'แสดงเป็นรายการ' : 'แสดงเป็น tree' }}
+        </button>
+        
+        @if($multiple)
+        <button type="button"
+                wire:click="clearSelection"
+                class="text-red-600 hover:text-red-800">
+            ล้างการเลือก
+        </button>
+        @endif
+    </div>
+</div>
+
+@push('scripts')
+<script>
+function toggleSubcategories(button) {
+    const subcategories = button.closest('.category-item').querySelector('.subcategories');
+    if (subcategories) {
+        subcategories.classList.toggle('hidden');
+        button.textContent = subcategories.classList.contains('hidden') ? '▶' : '▼';
+    }
+}
+</script>
+@endpush
+```
+
+---
+
+🎯 LIVEWIRE COMPONENTS FOR VENDOR DASHBOARD & PRODUCTS
+
+Vendor Dashboard Livewire Component
+
+```php
+<?php
+
+namespace App\Livewire\Vendor;
+
+use Livewire\Component;
+use App\Models\Order;
+use App\Models\Product;
+use App\Services\VendorStatsService;
+
+class Dashboard extends Component
+{
+    public $stats = [];
+    public $recentOrders = [];
+    public $topProducts = [];
+    public $salesData = [];
+
+    public function mount()
+    {
+        $this->loadDashboardData();
+    }
+
+    public function loadDashboardData()
+    {
+        $vendorId = auth()->user()->seller->id;
+        $statsService = app(VendorStatsService::class);
+        
+        $this->stats = $statsService->getVendorStats($vendorId);
+        $this->recentOrders = Order::whereHas('items.product', function($query) use ($vendorId) {
+            $query->where('seller_id', $vendorId);
+        })->with(['customer', 'items'])->latest()->take(5)->get();
+        
+        $this->topProducts = Product::where('seller_id', $vendorId)
+            ->withCount('orderItems')
+            ->orderBy('order_items_count', 'desc')
+            ->take(5)
+            ->get();
+            
+        $this->salesData = $statsService->getSalesData($vendorId, 30); // Last 30 days
+    }
+
+    public function render()
+    {
+        return view('livewire.vendor.dashboard', [
+            'vendor' => auth()->user()->seller
+        ]);
+    }
+}
+```
+
+Product Form Livewire Component
+
+```php
+<?php
+
+namespace App\Livewire\Vendor\Products;
+
+use Livewire\Component;
+use Livewire\WithFileUploads;
+use App\Models\Product;
+use App\Models\Category;
+use App\Models\SnowballPackage;
+
+class ProductForm extends Component
+{
+    use WithFileUploads;
+
+    public $product;
+    public $mode = 'create'; // create or edit
+    
+    // Form fields
+    public $name;
+    public $description;
+    public $category_id;
+    public $sku;
+    public $price;
+    public $compare_price;
+    public $stock_quantity;
+    public $weight;
+    public $dimensions;
+    public $is_published = true;
+    public $track_inventory = true;
+    
+    // Images
+    public $newImages = [];
+    public $images = [];
+    
+    // Snowball MLM
+    public $enable_snowball = false;
+    public $snowball_package_id;
+    public $snowball_pv;
+    public $snowball_level = 'member';
+    
+    // Calculated commission
+    public $calculated_commission = 0;
+
+    protected $rules = [
+        'name' => 'required|string|max:255',
+        'description' => 'required|string|min:50',
+        'category_id' => 'required|exists:categories,id',
+        'price' => 'required|numeric|min:0',
+        'stock_quantity' => 'required|integer|min:0',
+        'newImages.*' => 'image|max:5120', // 5MB
+    ];
+
+    public function mount($product = null)
+    {
+        if ($product) {
+            $this->product = $product;
+            $this->mode = 'edit';
+            $this->fillFormWithProductData();
+        }
+    }
+
+    public function fillFormWithProductData()
+    {
+        $this->name = $this->product->name;
+        $this->description = $this->product->description;
+        $this->category_id = $this->product->category_id;
+        $this->sku = $this->product->sku;
+        $this->price = $this->product->price;
+        $this->compare_price = $this->product->compare_price;
+        $this->stock_quantity = $this->product->stock_quantity;
+        $this->weight = $this->product->weight;
+        $this->dimensions = $this->product->dimensions;
+        $this->is_published = $this->product->is_published;
+        $this->images = $this->product->images ?? [];
+        
+        // Snowball data
+        if ($this->product->snowball_setting) {
+            $this->enable_snowball = true;
+            $this->snowball_package_id = $this->product->snowball_setting->package_id;
+            $this->snowball_pv = $this->product->snowball_setting->pv;
+            $this->snowball_level = $this->product->snowball_setting->level;
+        }
+    }
+
+    public function saveProduct()
+    {
+        $this->validate();
+
+        try {
+            $productData = [
+                'name' => $this->name,
+                'description' => $this->description,
+                'category_id' => $this->category_id,
+                'sku' => $this->sku,
+                'price' => $this->price,
+                'compare_price' => $this->compare_price,
+                'stock_quantity' => $this->stock_quantity,
+                'weight' => $this->weight,
+                'dimensions' => $this->dimensions,
+                'is_published' => $this->is_published,
+                'seller_id' => auth()->user()->seller->id,
+            ];
+
+            if ($this->mode === 'create') {
+                $product = Product::create($productData);
+                $this->product = $product;
+            } else {
+                $this->product->update($productData);
+            }
+
+            // Handle image uploads
+            $this->handleImageUploads();
+
+            // Handle Snowball MLM
+            $this->handleSnowballSettings();
+
+            session()->flash('success', $this->mode === 'create' 
+                ? 'เพิ่มสินค้าเรียบร้อยแล้ว' 
+                : 'อัพเดทสินค้าเรียบร้อยแล้ว');
+
+            return redirect()->route('vendor.products.index');
+
+        } catch (\Exception $e) {
+            session()->flash('error', 'เกิดข้อผิดพลาด: ' . $e->getMessage());
+        }
+    }
+
+    public function handleImageUploads()
+    {
+        if ($this->newImages) {
+            $uploadedImages = [];
+            
+            foreach ($this->newImages as $image) {
+                $path = $image->store('products/' . $this->product->id, 'public');
+                $uploadedImages[] = $path;
+            }
+            
+            // Merge with existing images
+            $allImages = array_merge($this->images, $uploadedImages);
+            $this->product->update(['images' => $allImages]);
+        }
+    }
+
+    public function handleSnowballSettings()
+    {
+        if ($this->enable_snowball && $this->snowball_package_id) {
+            $this->product->snowball_setting()->updateOrCreate(
+                ['product_id' => $this->product->id],
+                [
+                    'snowball_package_id' => $this->snowball_package_id,
+                    'pv' => $this->snowball_pv,
+                    'level' => $this->snowball_level,
+                    'input_values' => [
+                        'pv' => $this->snowball_pv,
+                        'level' => $this->snowball_level,
+                    ]
+                ]
+            );
+        } else {
+            $this->product->snowball_setting()->delete();
+        }
+    }
+
+    public function calculateCommission()
+    {
+        if ($this->enable_snowball && $this->snowball_package_id && $this->price) {
+            $package = SnowballPackage::find($this->snowball_package_id);
+            // Implement commission calculation logic based on package formula
+            $this->calculated_commission = $this->price * ($package->commission_rate / 100);
+        } else {
+            $this->calculated_commission = 0;
+        }
+    }
+
+    public function updated($property)
+    {
+        if (in_array($property, ['enable_snowball', 'snowball_package_id', 'price', 'snowball_pv'])) {
+            $this->calculateCommission();
+        }
+    }
+
+    public function render()
+    {
+        return view('livewire.vendor.products.product-form', [
+            'categories' => Category::where('is_active', true)->get(),
+            'snowballPackages' => SnowballPackage::where('is_active', true)->get(),
+        ]);
+    }
+}
+```
+
+ระบบ Vendor Dashboard และ Product Management นี้ครอบคลุมทุกความต้องการสำหรับผู้ขาย พร้อมรองรับ MLM Snowball และการจัดการสินค้าที่สมบูรณ์แบบ! 🚀                          
