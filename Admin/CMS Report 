@@ -1,0 +1,1398 @@
+🎯 Advanced Admin Components - CMS, Reports & System
+
+📝 CMS COMPONENTS
+
+1. Page Editor Component
+
+```blade
+{{-- components/admin/cms/page-editor.blade.php --}}
+@props([
+    'page' => null,
+    'mode' => 'create' // create, edit
+])
+
+<div class="page-editor" x-data="pageEditor()">
+    <!-- Editor Header -->
+    <div class="editor-header bg-white border-b p-6">
+        <div class="flex justify-between items-center">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-900">
+                    {{ $mode === 'create' ? 'สร้างหน้าใหม่' : 'แก้ไขหน้า: ' . $page->title }}
+                </h1>
+                <p class="text-gray-600">จัดการเนื้อหาและ SEO ของหน้าเพจ</p>
+            </div>
+            <div class="flex space-x-3">
+                <button class="btn btn-outline">ดูตัวอย่าง</button>
+                <button class="btn btn-primary" @click="savePage">บันทึกหน้า</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="editor-container grid grid-cols-1 lg:grid-cols-4 gap-6 p-6">
+        <!-- Main Content -->
+        <div class="lg:col-span-3 space-y-6">
+            <!-- Title & Slug -->
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">ข้อมูลพื้นฐาน</h3>
+                </div>
+                <div class="card-body space-y-4">
+                    <x-global.form-input
+                        label="ชื่อหน้า"
+                        wire:model="title"
+                        placeholder="เช่น เกี่ยวกับเรา, วิธีการชำระเงิน"
+                        required
+                    />
+                    
+                    <x-global.form-input
+                        label="Slug URL"
+                        wire:model="slug"
+                        placeholder="about-us, payment-methods"
+                        help-text="ใช้สำหรับสร้าง URL ของหน้า (ภาษาอังกฤษเท่านั้น)"
+                    />
+                    
+                    <x-global.form-textarea
+                        label="คำอธิบายสั้น"
+                        wire:model="excerpt"
+                        rows="3"
+                        placeholder="คำอธิบายสรุปเกี่ยวกับหน้านี้"
+                    />
+                </div>
+            </div>
+
+            <!-- Content Editor -->
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">เนื้อหาหลัก</h3>
+                    <div class="editor-toolbar flex space-x-2">
+                        <button type="button" class="toolbar-btn" data-format="bold">B</button>
+                        <button type="button" class="toolbar-btn" data-format="italic">I</button>
+                        <button type="button" class="toolbar-btn" data-format="underline">U</button>
+                        <select class="toolbar-select" data-format="heading">
+                            <option value="">หัวข้อ</option>
+                            <option value="h1">หัวข้อ 1</option>
+                            <option value="h2">หัวข้อ 2</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div 
+                        id="content-editor"
+                        wire:model="content"
+                        class="min-h-96 border rounded p-4 prose max-w-none"
+                        x-ref="editor"
+                        contenteditable="true"
+                    ></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="space-y-6">
+            <!-- Publish Settings -->
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">การเผยแพร่</h3>
+                </div>
+                <div class="card-body space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">สถานะ</label>
+                        <select wire:model="status" class="w-full border rounded px-3 py-2">
+                            <option value="draft">แบบร่าง</option>
+                            <option value="published">เผยแพร่</option>
+                            <option value="private">ส่วนตัว</option>
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">วันที่เผยแพร่</label>
+                        <input type="datetime-local" wire:model="published_at" class="w-full border rounded px-3 py-2">
+                    </div>
+                    
+                    <button class="btn btn-success w-full" @click="saveAndPublish">
+                        💾 บันทึกและเผยแพร่
+                    </button>
+                </div>
+            </div>
+
+            <!-- Featured Image -->
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">รูปภาพปก</h3>
+                </div>
+                <div class="card-body">
+                    <x-admin.cms.media-selector
+                        wire:model="featured_image"
+                        :current-image="$page->featured_image ?? null"
+                    />
+                </div>
+            </div>
+
+            <!-- SEO Manager -->
+            <x-admin.cms.seo-manager
+                wire:model="seo"
+                :page="$page"
+            />
+        </div>
+    </div>
+</div>
+
+<script>
+function pageEditor() {
+    return {
+        savePage() {
+            // Get content from editor
+            const content = this.$refs.editor.innerHTML;
+            this.$wire.set('content', content);
+            this.$wire.save();
+        },
+        
+        saveAndPublish() {
+            this.$wire.set('status', 'published');
+            this.savePage();
+        }
+    }
+}
+</script>
+```
+
+2. Media Library Component
+
+```blade
+{{-- components/admin/cms/media-library.blade.php --}}
+@props([
+    'files' => [],
+    'selectedFiles' => [],
+    'onFileSelect' => null,
+    'multiple' => false
+])
+
+<div class="media-library" x-data="mediaLibrary()">
+    <!-- Header -->
+    <div class="library-header bg-white border-b p-4">
+        <div class="flex justify-between items-center">
+            <h2 class="text-lg font-semibold">คลังสื่อ</h2>
+            <div class="flex space-x-3">
+                <!-- Upload Button -->
+                <x-admin.cms.file-uploader
+                    wire:model="newFiles"
+                    multiple
+                />
+                
+                <!-- Filter -->
+                <select wire:model="filterType" class="border rounded px-3 py-1">
+                    <option value="all">ทั้งหมด</option>
+                    <option value="image">รูปภาพ</option>
+                    <option value="document">เอกสาร</option>
+                    <option value="video">วิดีโอ</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- Media Grid -->
+    <div class="media-grid p-4">
+        @if($files->count() > 0)
+            <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                @foreach($files as $file)
+                    <div class="media-item relative group cursor-pointer"
+                         :class="{ 'border-2 border-blue-500': isSelected({{ $file->id }}) }"
+                         @click="toggleSelect({{ $file->id }})">
+                        
+                        <!-- File Preview -->
+                        @if($file->type === 'image')
+                            <img src="{{ $file->url }}" 
+                                 alt="{{ $file->name }}"
+                                 class="w-full h-24 object-cover rounded">
+                        @else
+                            <div class="w-full h-24 bg-gray-100 rounded flex items-center justify-center">
+                                <span class="text-2xl">
+                                    @if($file->type === 'document') 📄
+                                    @elseif($file->type === 'video') 🎥
+                                    @else 📁
+                                    @endif
+                                </span>
+                            </div>
+                        @endif
+
+                        <!-- File Info -->
+                        <div class="p-2">
+                            <p class="text-xs font-medium truncate">{{ $file->name }}</p>
+                            <p class="text-xs text-gray-500">{{ $file->formatted_size }}</p>
+                        </div>
+
+                        <!-- Actions Overlay -->
+                        <div class="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity rounded flex items-center justify-center space-x-2">
+                            <button class="text-white p-1 hover:bg-white hover:bg-opacity-20 rounded" title="ดู">
+                                👁️
+                            </button>
+                            <button class="text-white p-1 hover:bg-white hover:bg-opacity-20 rounded" title="ลบ">
+                                🗑️
+                            </button>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+            
+            <!-- Pagination -->
+            <div class="mt-4">
+                {{ $files->links() }}
+            </div>
+        @else
+            <x-global.empty-state
+                icon="📁"
+                title="ยังไม่มีไฟล์"
+                description="อัพโหลดไฟล์แรกของคุณเพื่อเริ่มต้น"
+            />
+        @endif
+    </div>
+
+    <!-- Selected Files Panel -->
+    <div x-show="selectedFiles.length > 0" class="selected-panel bg-gray-50 border-t p-4">
+        <div class="flex justify-between items-center">
+            <span class="text-sm text-gray-600">
+                เลือกแล้ว <span x-text="selectedFiles.length"></span> ไฟล์
+            </span>
+            <div class="flex space-x-2">
+                <button class="btn btn-outline btn-sm" @click="clearSelection">
+                    ล้างการเลือก
+                </button>
+                <button class="btn btn-primary btn-sm" @click="insertSelected">
+                    ใช้ไฟล์ที่เลือก
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function mediaLibrary() {
+    return {
+        selectedFiles: @entangle('selectedFiles'),
+        
+        isSelected(fileId) {
+            return this.selectedFiles.includes(fileId);
+        },
+        
+        toggleSelect(fileId) {
+            if (this.isSelected(fileId)) {
+                this.selectedFiles = this.selectedFiles.filter(id => id !== fileId);
+            } else {
+                if (this.multiple) {
+                    this.selectedFiles.push(fileId);
+                } else {
+                    this.selectedFiles = [fileId];
+                }
+            }
+        },
+        
+        clearSelection() {
+            this.selectedFiles = [];
+        },
+        
+        insertSelected() {
+            // Emit event to parent component
+            this.$dispatch('media-selected', this.selectedFiles);
+            this.clearSelection();
+        }
+    }
+}
+</script>
+```
+
+3. SEO Manager Component
+
+```blade
+{{-- components/admin/cms/seo-manager.blade.php --}}
+@props([
+    'seo' => [],
+    'page' => null,
+    'model' => 'page' // page, post, product
+])
+
+<div class="seo-manager" x-data="seoManager()">
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">🔍 การตั้งค่า SEO</h3>
+        </div>
+        <div class="card-body space-y-4">
+            <!-- Meta Title -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">
+                    Meta Title
+                    <span class="text-xs text-gray-500 float-right">
+                        <span x-text="metaTitleLength"></span>/60
+                    </span>
+                </label>
+                <input type="text" 
+                       wire:model="seo.meta_title" 
+                       x-ref="metaTitle"
+                       class="w-full border rounded px-3 py-2"
+                       placeholder="หัวเรื่องสำหรับ SEO">
+                <p class="text-xs text-gray-500 mt-1">
+                    หัวเรื่องที่แสดงในผลการค้นหา (แนะนำไม่เกิน 60 ตัวอักษร)
+                </p>
+            </div>
+
+            <!-- Meta Description -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">
+                    Meta Description
+                    <span class="text-xs text-gray-500 float-right">
+                        <span x-text="metaDescriptionLength"></span>/160
+                    </span>
+                </label>
+                <textarea wire:model="seo.meta_description" 
+                          x-ref="metaDescription"
+                          rows="3"
+                          class="w-full border rounded px-3 py-2"
+                          placeholder="คำอธิบายสำหรับ SEO"></textarea>
+                <p class="text-xs text-gray-500 mt-1">
+                    คำอธิบายที่แสดงในผลการค้นหา (แนะนำไม่เกิน 160 ตัวอักษร)
+                </p>
+            </div>
+
+            <!-- Focus Keyword -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">
+                    คำหลักสำคัญ
+                </label>
+                <input type="text" 
+                       wire:model="seo.focus_keyword" 
+                       class="w-full border rounded px-3 py-2"
+                       placeholder="เช่น e-commerce, online shopping">
+            </div>
+
+            <!-- Open Graph Image -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">
+                    Open Graph Image
+                </label>
+                <x-admin.cms.media-selector
+                    wire:model="seo.og_image"
+                    :current-image="$seo['og_image'] ?? null"
+                />
+                <p class="text-xs text-gray-500 mt-1">
+                    รูปภาพที่แสดงเมื่อแชร์บนโซเชียลมีเดีย (แนะนำ 1200x630px)
+                </p>
+            </div>
+
+            <!-- SEO Preview -->
+            <div class="seo-preview mt-4 p-4 bg-gray-50 rounded border">
+                <h4 class="font-semibold mb-2">ตัวอย่างผลการค้นหา:</h4>
+                <div class="preview-container">
+                    <div class="preview-title text-blue-600 text-lg font-medium truncate">
+                        {{ $seo['meta_title'] ?: 'ตัวอย่างหัวเรื่องหน้าเว็บ' }}
+                    </div>
+                    <div class="preview-url text-green-700 text-sm">
+                        {{ config('app.url') }}/{{ $page->slug ?? 'example-page' }}
+                    </div>
+                    <div class="preview-description text-gray-600 text-sm mt-1">
+                        {{ $seo['meta_description'] ?: 'ตัวอย่างคำอธิบายหน้าเว็บที่จะแสดงในผลการค้นหา...' }}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Advanced SEO -->
+            <div x-data="{ showAdvanced: false }" class="mt-4">
+                <button type="button" 
+                        @click="showAdvanced = !showAdvanced"
+                        class="text-blue-600 text-sm font-medium">
+                    การตั้งค่า SEO ขั้นสูง →
+                </button>
+                
+                <div x-show="showAdvanced" class="mt-3 space-y-4 p-3 bg-gray-50 rounded">
+                    <!-- Canonical URL -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">
+                            Canonical URL
+                        </label>
+                        <input type="url" 
+                               wire:model="seo.canonical_url"
+                               class="w-full border rounded px-3 py-2"
+                               placeholder="https://example.com/canonical-page">
+                    </div>
+                    
+                    <!-- Robots Meta -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">
+                            Robots Meta
+                        </label>
+                        <select wire:model="seo.robots" class="w-full border rounded px-3 py-2">
+                            <option value="index,follow">index, follow</option>
+                            <option value="noindex,follow">noindex, follow</option>
+                            <option value="index,nofollow">index, nofollow</option>
+                            <option value="noindex,nofollow">noindex, nofollow</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Structured Data -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">
+                            Structured Data (JSON-LD)
+                        </label>
+                        <textarea wire:model="seo.structured_data"
+                                  rows="4"
+                                  class="w-full border rounded px-3 py-2 font-mono text-sm"
+                                  placeholder='{"@context":"https://schema.org",...}'></textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function seoManager() {
+    return {
+        get metaTitleLength() {
+            return this.$wire.get('seo.meta_title')?.length || 0;
+        },
+        
+        get metaDescriptionLength() {
+            return this.$wire.get('seo.meta_description')?.length || 0;
+        }
+    }
+}
+</script>
+```
+
+---
+
+📊 REPORTS COMPONENTS
+
+4. Analytics Dashboard
+
+```blade
+{{-- components/admin/reports/analytics-dashboard.blade.php --}}
+@props([
+    'period' => '30d', // 7d, 30d, 90d, 1y
+    'metrics' => [],
+    'charts' => []
+])
+
+<div class="analytics-dashboard" x-data="analyticsDashboard()">
+    <!-- Period Selector -->
+    <div class="dashboard-header bg-white border-b p-6">
+        <div class="flex justify-between items-center">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-900">แดชบอร์ดวิเคราะห์</h1>
+                <p class="text-gray-600">ติดตามประสิทธิภาพและสถิติของระบบ</p>
+            </div>
+            <div class="flex space-x-3">
+                <select wire:model="period" class="border rounded px-3 py-2">
+                    <option value="7d">7 วัน</option>
+                    <option value="30d">30 วัน</option>
+                    <option value="90d">90 วัน</option>
+                    <option value="1y">1 ปี</option>
+                </select>
+                <button class="btn btn-outline" wire:click="exportReport">
+                    📊 ส่งออกรายงาน
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Key Metrics -->
+    <div class="p-6">
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">
+            <x-admin.reports.metric-card
+                title="ผู้เข้าใช้งาน"
+                :value="$metrics['visitors']"
+                change="{{ $metrics['visitors_change'] }}%"
+                trend="up"
+                icon="👥"
+                color="blue"
+            />
+            
+            <x-admin.reports.metric-card
+                title="ยอดขาย"
+                :value="$metrics['revenue']"
+                format="currency"
+                change="{{ $metrics['revenue_change'] }}%"
+                trend="up"
+                icon="💰"
+                color="green"
+            />
+            
+            <x-admin.reports.metric-card
+                title="อัตราการแปลง"
+                :value="$metrics['conversion_rate']"
+                format="percentage"
+                change="{{ $metrics['conversion_change'] }}%"
+                trend="up"
+                icon="📈"
+                color="purple"
+            />
+            
+            <x-admin.reports.metric-card
+                title="สินค้าขายดี"
+                :value="$metrics['top_product_sales']"
+                change="{{ $metrics['product_sales_change'] }}%"
+                trend="up"
+                icon="🏆"
+                color="orange"
+            />
+        </div>
+
+        <!-- Charts Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            <!-- Revenue Chart -->
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">รายได้และยอดขาย</h3>
+                </div>
+                <div class="card-body">
+                    <div id="revenue-chart" class="h-64"></div>
+                </div>
+            </div>
+
+            <!-- Traffic Sources -->
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">แหล่งที่มาผู้ใช้งาน</h3>
+                </div>
+                <div class="card-body">
+                    <div id="traffic-chart" class="h-64"></div>
+                </div>
+            </div>
+
+            <!-- Product Performance -->
+            <div class="card lg:col-span-2">
+                <div class="card-header">
+                    <h3 class="card-title">ประสิทธิภาพสินค้า</h3>
+                </div>
+                <div class="card-body">
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead>
+                                <tr>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">สินค้า</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">ยอดขาย</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">จำนวน</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">รายได้</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">อัตราการแปลง</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-200">
+                                @foreach($metrics['top_products'] as $product)
+                                <tr>
+                                    <td class="px-4 py-3">
+                                        <div class="flex items-center">
+                                            <img src="{{ $product->thumbnail }}" 
+                                                 alt="{{ $product->name }}"
+                                                 class="w-8 h-8 rounded mr-3">
+                                            <span class="font-medium">{{ $product->name }}</span>
+                                        </div>
+                                    </td>
+                                    <td class="px-4 py-3">{{ $product->sales_count }}</td>
+                                    <td class="px-4 py-3">{{ $product->quantity_sold }}</td>
+                                    <td class="px-4 py-3">฿{{ number_format($product->revenue) }}</td>
+                                    <td class="px-4 py-3">
+                                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                            {{ $product->conversion_rate }}%
+                                        </span>
+                                    </td>
+                                </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Vendor Performance -->
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">ประสิทธิภาพผู้ขาย</h3>
+            </div>
+            <div class="card-body">
+                <div id="vendor-performance-chart" class="h-80"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@push('scripts')
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+function analyticsDashboard() {
+    return {
+        initCharts() {
+            // Revenue Chart
+            new Chart(document.getElementById('revenue-chart'), {
+                type: 'line',
+                data: {
+                    labels: @json($charts['revenue']['labels']),
+                    datasets: [{
+                        label: 'รายได้',
+                        data: @json($charts['revenue']['data']),
+                        borderColor: '#10B981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+
+            // Traffic Sources Chart
+            new Chart(document.getElementById('traffic-chart'), {
+                type: 'doughnut',
+                data: {
+                    labels: @json($charts['traffic']['labels']),
+                    datasets: [{
+                        data: @json($charts['traffic']['data']),
+                        backgroundColor: [
+                            '#3B82F6', '#10B981', '#8B5CF6', '#F59E0B', '#EF4444'
+                        ]
+                    }]
+                }
+            });
+        }
+    }
+}
+</script>
+@endpush
+```
+
+5. Export Tool Component
+
+```blade
+{{-- components/admin/reports/export-tool.blade.php --}}
+@props([
+    'exportTypes' => [],
+    'availableFormats' => ['csv', 'excel', 'pdf']
+])
+
+<div class="export-tool" x-data="exportTool()">
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">📤 เครื่องมือส่งออกรายงาน</h3>
+        </div>
+        <div class="card-body">
+            <!-- Export Configuration -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <!-- Report Type -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        ประเภทรายงาน
+                    </label>
+                    <select x-model="exportType" class="w-full border rounded px-3 py-2">
+                        <option value="">เลือกประเภทรายงาน</option>
+                        @foreach($exportTypes as $type)
+                        <option value="{{ $type['value'] }}">{{ $type['label'] }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <!-- Format -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        รูปแบบไฟล์
+                    </label>
+                    <div class="flex space-x-3">
+                        @foreach($availableFormats as $format)
+                        <label class="flex items-center">
+                            <input type="radio" x-model="format" value="{{ $format }}" class="mr-2">
+                            <span class="text-sm">{{ strtoupper($format) }}</span>
+                        </label>
+                        @endforeach
+                    </div>
+                </div>
+            </div>
+
+            <!-- Date Range -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        วันที่เริ่มต้น
+                    </label>
+                    <input type="date" x-model="startDate" class="w-full border rounded px-3 py-2">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        วันที่สิ้นสุด
+                    </label>
+                    <input type="date" x-model="endDate" class="w-full border rounded px-3 py-2">
+                </div>
+            </div>
+
+            <!-- Additional Options -->
+            <div class="mb-6" x-show="exportType">
+                <h4 class="font-medium text-gray-700 mb-3">ตัวเลือกเพิ่มเติม:</h4>
+                <div class="space-y-2">
+                    <label class="flex items-center">
+                        <input type="checkbox" x-model="includeVendorDetails" class="mr-2">
+                        <span class="text-sm">รวมรายละเอียดผู้ขาย</span>
+                    </label>
+                    <label class="flex items-center">
+                        <input type="checkbox" x-model="includeProductDetails" class="mr-2">
+                        <span class="text-sm">รวมรายละเอียดสินค้า</span>
+                    </label>
+                    <label class="flex items-center">
+                        <input type="checkbox" x-model="groupByCategory" class="mr-2">
+                        <span class="text-sm">จัดกลุ่มตามหมวดหมู่</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Preview & Export -->
+            <div class="flex justify-between items-center">
+                <button class="btn btn-outline" 
+                        :disabled="!exportType"
+                        @click="generatePreview">
+                    👁️ ดูตัวอย่าง
+                </button>
+                
+                <button class="btn btn-primary" 
+                        :disabled="!exportType"
+                        @click="exportReport">
+                    📥 ส่งออกรายงาน
+                </button>
+            </div>
+
+            <!-- Preview Section -->
+            <div x-show="showPreview" class="mt-6 border rounded p-4">
+                <h4 class="font-medium mb-3">ตัวอย่างรายงาน:</h4>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full text-sm">
+                        <thead>
+                            <tr class="border-b">
+                                <template x-for="column in previewColumns">
+                                    <th class="text-left p-2 font-medium" x-text="column"></th>
+                                </template>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <template x-for="row in previewData">
+                                <tr class="border-b">
+                                    <template x-for="cell in row">
+                                        <td class="p-2" x-text="cell"></td>
+                                    </template>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function exportTool() {
+    return {
+        exportType: '',
+        format: 'csv',
+        startDate: '',
+        endDate: '',
+        includeVendorDetails: false,
+        includeProductDetails: false,
+        groupByCategory: false,
+        showPreview: false,
+        previewColumns: [],
+        previewData: [],
+        
+        generatePreview() {
+            // Simulate API call for preview
+            this.showPreview = true;
+            this.previewColumns = ['วันที่', 'ยอดขาย', 'จำนวนคำสั่งซื้อ', 'รายได้'];
+            this.previewData = [
+                ['2024-01-01', '25', '30', '฿15,000'],
+                ['2024-01-02', '30', '35', '฿18,000']
+            ];
+        },
+        
+        async exportReport() {
+            const params = {
+                type: this.exportType,
+                format: this.format,
+                start_date: this.startDate,
+                end_date: this.endDate,
+                include_vendor_details: this.includeVendorDetails,
+                include_product_details: this.includeProductDetails,
+                group_by_category: this.groupByCategory
+            };
+            
+            try {
+                // Trigger export
+                const response = await this.$wire.exportReport(params);
+                
+                // Download file
+                const blob = new Blob([response.data], { type: this.getMimeType() });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = this.generateFilename();
+                a.click();
+                window.URL.revokeObjectURL(url);
+                
+            } catch (error) {
+                console.error('Export failed:', error);
+            }
+        },
+        
+        getMimeType() {
+            const types = {
+                'csv': 'text/csv',
+                'excel': 'application/vnd.ms-excel',
+                'pdf': 'application/pdf'
+            };
+            return types[this.format];
+        },
+        
+        generateFilename() {
+            const timestamp = new Date().toISOString().split('T')[0];
+            return `report-${this.exportType}-${timestamp}.${this.format}`;
+        }
+    }
+}
+</script>
+```
+
+---
+
+🔧 SYSTEM COMPONENTS
+
+6. Service Integration Manager
+
+```blade
+{{-- components/admin/system/service-integration.blade.php --}}
+@props([
+    'services' => [],
+    'systemHealth' => []
+])
+
+<div class="service-integration" x-data="serviceIntegration()">
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">🔌 การจัดการบริการภายนอก</h3>
+            <p class="text-gray-600">จัดการการเชื่อมต่อ API และบริการต่างๆ</p>
+        </div>
+        <div class="card-body">
+            <!-- Services Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                @foreach($services as $service)
+                <x-admin.system.service-card
+                    :service="$service"
+                    wire:key="service-{{ $service['id'] }}"
+                />
+                @endforeach
+            </div>
+
+            <!-- System Health Overview -->
+            <div class="mt-8">
+                <h4 class="font-semibold text-lg mb-4">🧪 สุขภาพระบบ</h4>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="health-card {{ $systemHealth['overall'] === 'healthy' ? 'health-good' : 'health-bad' }}">
+                        <div class="health-icon">
+                            @if($systemHealth['overall'] === 'healthy') ✅ @else ❌ @endif
+                        </div>
+                        <div class="health-info">
+                            <div class="health-title">สถานะระบบโดยรวม</div>
+                            <div class="health-status">{{ $systemHealth['overall'] === 'healthy' ? 'ปกติ' : 'มีปัญหา' }}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="health-card">
+                        <div class="health-icon">🔄</div>
+                        <div class="health-info">
+                            <div class="health-title">บริการที่ทำงาน</div>
+                            <div class="health-status">{{ $systemHealth['active_services'] }}/{{ $systemHealth['total_services'] }}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="health-card">
+                        <div class="health-icon">⏱️</div>
+                        <div class="health-info">
+                            <div class="health-title">ตอบสนองล่าสุด</div>
+                            <div class="health-status">{{ $systemHealth['last_check'] }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="mt-6 flex space-x-3">
+                <button class="btn btn-outline" wire:click="testAllServices">
+                    🧪 ทดสอบการเชื่อมต่อทั้งหมด
+                </button>
+                <button class="btn btn-outline" wire:click="viewSystemLogs">
+                    📋 ดูบันทึกระบบ
+                </button>
+                <button class="btn btn-primary" wire:click="refreshStatus">
+                    🔄 รีเฟรชสถานะ
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function serviceIntegration() {
+    return {
+        testService(serviceId) {
+            this.$wire.testService(serviceId);
+        },
+        
+        toggleService(serviceId, currentStatus) {
+            this.$wire.toggleService(serviceId, !currentStatus);
+        }
+    }
+}
+</script>
+```
+
+7. API Status Monitor
+
+```blade
+{{-- components/admin/system/api-status-monitor.blade.php --}}
+@props([
+    'apis' => [],
+    'refreshInterval' => 30000 // 30 seconds
+])
+
+<div class="api-status-monitor" x-data="apiStatusMonitor()" x-init="startMonitoring()">
+    <div class="card">
+        <div class="card-header">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h3 class="card-title">📡 ตรวจสอบสถานะ API</h3>
+                    <p class="text-gray-600">การตรวจสอบสถานะแบบเรียลไทม์</p>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <div class="text-sm text-gray-500" x-text="lastUpdate"></div>
+                    <button class="btn btn-outline btn-sm" @click="refreshAll">
+                        🔄 รีเฟรช
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="card-body">
+            <!-- API Status List -->
+            <div class="space-y-3">
+                @foreach($apis as $api)
+                <div class="api-status-item flex items-center justify-between p-3 border rounded"
+                     :class="{
+                         'bg-green-50 border-green-200': {{ $api['status'] }} === 'up',
+                         'bg-red-50 border-red-200': {{ $api['status'] }} === 'down',
+                         'bg-yellow-50 border-yellow-200': {{ $api['status'] }} === 'degraded'
+                     }">
+                    
+                    <div class="flex items-center space-x-3">
+                        <!-- Status Indicator -->
+                        <div class="status-indicator w-3 h-3 rounded-full"
+                             :class="{
+                                 'bg-green-500': {{ $api['status'] }} === 'up',
+                                 'bg-red-500': {{ $api['status'] }} === 'down',
+                                 'bg-yellow-500': {{ $api['status'] }} === 'degraded'
+                             }"></div>
+                        
+                        <!-- API Info -->
+                        <div>
+                            <div class="font-medium">{{ $api['name'] }}</div>
+                            <div class="text-sm text-gray-500">{{ $api['endpoint'] }}</div>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center space-x-4">
+                        <!-- Response Time -->
+                        <div class="text-sm" x-show="{{ $api['response_time'] }}">
+                            <span class="font-medium">{{ $api['response_time'] }}ms</span>
+                        </div>
+
+                        <!-- Last Checked -->
+                        <div class="text-sm text-gray-500">
+                            {{ $api['last_checked'] }}
+                        </div>
+
+                        <!-- Actions -->
+                        <div class="flex space-x-2">
+                            <button class="text-blue-600 hover:text-blue-800 text-sm"
+                                    @click="testApi({{ $api['id'] }})">
+                                ทดสอบ
+                            </button>
+                            <button class="text-gray-600 hover:text-gray-800 text-sm"
+                                    @click="viewApiLogs({{ $api['id'] }})">
+                                บันทึก
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                @endforeach
+            </div>
+
+            <!-- Statistics -->
+            <div class="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div class="stat-box text-center p-4 border rounded">
+                    <div class="text-2xl font-bold text-green-600">{{ $stats['up'] }}</div>
+                    <div class="text-sm text-gray-600">ทำงานปกติ</div>
+                </div>
+                <div class="stat-box text-center p-4 border rounded">
+                    <div class="text-2xl font-bold text-red-600">{{ $stats['down'] }}</div>
+                    <div class="text-sm text-gray-600">มีปัญหา</div>
+                </div>
+                <div class="stat-box text-center p-4 border rounded">
+                    <div class="text-2xl font-bold text-yellow-600">{{ $stats['degraded'] }}</div>
+                    <div class="text-sm text-gray-600">ประสิทธิภาพต่ำ</div>
+                </div>
+                <div class="stat-box text-center p-4 border rounded">
+                    <div class="text-2xl font-bold text-blue-600">{{ $stats['avg_response'] }}ms</div>
+                    <div class="text-sm text-gray-600">ตอบสนองเฉลี่ย</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function apiStatusMonitor() {
+    return {
+        lastUpdate: 'กำลังโหลด...',
+        
+        startMonitoring() {
+            this.updateTimestamp();
+            // Refresh every 30 seconds
+            setInterval(() => {
+                this.$wire.refreshStatus();
+                this.updateTimestamp();
+            }, 30000);
+        },
+        
+        updateTimestamp() {
+            const now = new Date();
+            this.lastUpdate = `อัพเดท: ${now.toLocaleTimeString('th-TH')}`;
+        },
+        
+        refreshAll() {
+            this.$wire.refreshStatus();
+            this.updateTimestamp();
+        },
+        
+        testApi(apiId) {
+            this.$wire.testApi(apiId);
+        },
+        
+        viewApiLogs(apiId) {
+            this.$wire.viewApiLogs(apiId);
+        }
+    }
+}
+</script>
+```
+
+8. Log Viewer Component
+
+```blade
+{{-- components/admin/system/log-viewer.blade.php --}}
+@props([
+    'logFiles' => [],
+    'currentLog' => null,
+    'logEntries' => []
+])
+
+<div class="log-viewer" x-data="logViewer()">
+    <div class="card">
+        <div class="card-header">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h3 class="card-title">📋 ตัวดูบันทึกระบบ</h3>
+                    <p class="text-gray-600">ตรวจสอบและวิเคราะห์บันทึกระบบ</p>
+                </div>
+                <div class="flex space-x-3">
+                    <button class="btn btn-outline" @click="refreshLogs">
+                        🔄 รีเฟรช
+                    </button>
+                    <button class="btn btn-outline" @click="clearLogs" x-show="currentLog">
+                        🗑️ ล้างบันทึก
+                    </button>
+                    <button class="btn btn-primary" @click="downloadLog" x-show="currentLog">
+                        📥 ดาวน์โหลด
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card-body">
+            <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                <!-- Log Files Sidebar -->
+                <div class="lg:col-span-1">
+                    <div class="border rounded">
+                        <div class="p-3 border-b bg-gray-50">
+                            <h4 class="font-semibold">ไฟล์บันทึก</h4>
+                        </div>
+                        <div class="max-h-96 overflow-y-auto">
+                            @foreach($logFiles as $logFile)
+                            <div class="log-file-item p-3 border-b hover:bg-gray-50 cursor-pointer"
+                                 :class="{ 'bg-blue-50': '{{ $logFile }}' === currentLog }"
+                                 @click="loadLog('{{ $logFile }}')">
+                                <div class="flex justify-between items-center">
+                                    <span class="font-medium text-sm">{{ $logFile }}</span>
+                                    <span class="text-xs text-gray-500">{{ $logFile->size }}</span>
+                                </div>
+                                <div class="text-xs text-gray-500 mt-1">
+                                    แก้ไขล่าสุด: {{ $logFile->modified }}
+                                </div>
+                            </div>
+                            @endforeach
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Log Content -->
+                <div class="lg:col-span-3">
+                    <div class="border rounded">
+                        <div class="p-3 border-b bg-gray-50 flex justify-between items-center">
+                            <h4 class="font-semibold" x-text="currentLog || 'เลือกไฟล์บันทึก'"></h4>
+                            <div class="flex space-x-2">
+                                <select x-model="logLevel" class="border rounded px-2 py-1 text-sm">
+                                    <option value="all">ทั้งหมด</option>
+                                    <option value="error">Error</option>
+                                    <option value="warning">Warning</option>
+                                    <option value="info">Info</option>
+                                    <option value="debug">Debug</option>
+                                </select>
+                                <input type="text" x-model="searchQuery" 
+                                       placeholder="ค้นหา..."
+                                       class="border rounded px-2 py-1 text-sm">
+                            </div>
+                        </div>
+                        
+                        <div class="log-content max-h-96 overflow-y-auto font-mono text-sm">
+                            <template x-if="!currentLog">
+                                <div class="p-4 text-center text-gray-500">
+                                    เลือกไฟล์บันทึกเพื่อดูเนื้อหา
+                                </div>
+                            </template>
+                            
+                            <template x-if="currentLog && filteredLogs.length === 0">
+                                <div class="p-4 text-center text-gray-500">
+                                    ไม่พบบันทึกที่ตรงกับการค้นหา
+                                </div>
+                            </template>
+                            
+                            <template x-for="entry in filteredLogs" :key="entry.id">
+                                <div class="log-entry p-2 border-b hover:bg-gray-50"
+                                     :class="getLogLevelClass(entry.level)">
+                                    <div class="flex justify-between">
+                                        <span class="text-xs text-gray-500" x-text="entry.timestamp"></span>
+                                        <span class="text-xs px-2 py-1 rounded" 
+                                              :class="getLevelBadgeClass(entry.level)"
+                                              x-text="entry.level.toUpperCase()"></span>
+                                    </div>
+                                    <div class="mt-1" x-text="entry.message"></div>
+                                    <div x-show="entry.context" class="mt-1 text-xs text-gray-600">
+                                        <span x-text="entry.context"></span>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+
+                    <!-- Log Statistics -->
+                    <div x-show="currentLog" class="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div class="stat-box text-center p-3 border rounded">
+                            <div class="text-lg font-bold" x-text="statistics.total"></div>
+                            <div class="text-xs text-gray-600">ทั้งหมด</div>
+                        </div>
+                        <div class="stat-box text-center p-3 border rounded">
+                            <div class="text-lg font-bold text-red-600" x-text="statistics.errors"></div>
+                            <div class="text-xs text-gray-600">ข้อผิดพลาด</div>
+                        </div>
+                        <div class="stat-box text-center p-3 border rounded">
+                            <div class="text-lg font-bold text-yellow-600" x-text="statistics.warnings"></div>
+                            <div class="text-xs text-gray-600">คำเตือน</div>
+                        </div>
+                        <div class="stat-box text-center p-3 border rounded">
+                            <div class="text-lg font-bold text-blue-600" x-text="statistics.info"></div>
+                            <div class="text-xs text-gray-600">ข้อมูล</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function logViewer() {
+    return {
+        currentLog: @entangle('currentLog'),
+        logLevel: 'all',
+        searchQuery: '',
+        statistics: {
+            total: 0,
+            errors: 0,
+            warnings: 0,
+            info: 0
+        },
+        
+        get filteredLogs() {
+            let logs = @json($logEntries);
+            
+            // Filter by level
+            if (this.logLevel !== 'all') {
+                logs = logs.filter(log => log.level === this.logLevel);
+            }
+            
+            // Filter by search query
+            if (this.searchQuery) {
+                const query = this.searchQuery.toLowerCase();
+                logs = logs.filter(log => 
+                    log.message.toLowerCase().includes(query) ||
+                    log.context?.toLowerCase().includes(query)
+                );
+            }
+            
+            // Update statistics
+            this.updateStatistics(logs);
+            
+            return logs;
+        },
+        
+        updateStatistics(logs) {
+            this.statistics = {
+                total: logs.length,
+                errors: logs.filter(log => log.level === 'error').length,
+                warnings: logs.filter(log => log.level === 'warning').length,
+                info: logs.filter(log => log.level === 'info').length
+            };
+        },
+        
+        getLogLevelClass(level) {
+            const classes = {
+                'error': 'bg-red-50',
+                'warning': 'bg-yellow-50', 
+                'info': 'bg-blue-50',
+                'debug': 'bg-gray-50'
+            };
+            return classes[level] || '';
+        },
+        
+        getLevelBadgeClass(level) {
+            const classes = {
+                'error': 'bg-red-100 text-red-800',
+                'warning': 'bg-yellow-100 text-yellow-800',
+                'info': 'bg-blue-100 text-blue-800',
+                'debug': 'bg-gray-100 text-gray-800'
+            };
+            return classes[level] || '';
+        },
+        
+        loadLog(logFile) {
+            this.currentLog = logFile;
+            this.$wire.loadLog(logFile);
+        },
+        
+        refreshLogs() {
+            this.$wire.refreshLogs();
+        },
+        
+        clearLogs() {
+            if (confirm('คุณแน่ใจว่าต้องการล้างบันทึกนี้?')) {
+                this.$wire.clearLogs(this.currentLog);
+            }
+        },
+        
+        downloadLog() {
+            this.$wire.downloadLog(this.currentLog);
+        }
+    }
+}
+</script>
+```
+
+---
+
+🎨 SUPPORTING STYLES
+
+CSS Classes สำหรับ Components
+
+```scss
+// components/admin/cms/_styles.scss
+.page-editor {
+    .editor-toolbar {
+        .toolbar-btn {
+            @apply px-3 py-1 border rounded text-sm font-medium bg-white hover:bg-gray-50;
+        }
+        
+        .toolbar-select {
+            @apply border rounded px-2 py-1 text-sm;
+        }
+    }
+    
+    #content-editor {
+        &:focus {
+            @apply ring-2 ring-blue-500 border-blue-500;
+        }
+    }
+}
+
+.media-library {
+    .media-item {
+        transition: all 0.2s ease;
+        
+        &:hover {
+            transform: scale(1.05);
+        }
+    }
+}
+
+// components/admin/reports/_styles.scss
+.analytics-dashboard {
+    .metric-card {
+        @apply p-4 border rounded-lg bg-white;
+        
+        &.trend-up {
+            .trend-indicator { @apply text-green-500; }
+        }
+        
+        &.trend-down {
+            .trend-indicator { @apply text-red-500; }
+        }
+    }
+}
+
+// components/admin/system/_styles.scss
+.service-integration {
+    .health-card {
+        @apply p-4 border rounded-lg flex items-center space-x-3;
+        
+        &.health-good { @apply bg-green-50 border-green-200; }
+        &.health-bad { @apply bg-red-50 border-red-200; }
+        
+        .health-icon { @apply text-2xl; }
+        
+        .health-title { @apply text-sm text-gray-600; }
+        .health-status { @apply font-semibold text-lg; }
+    }
+}
+
+.api-status-monitor {
+    .status-indicator {
+        animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.5; }
+    }
+}
+
+.log-viewer {
+    .log-entry {
+        .log-level {
+            &-error { @apply text-red-700 bg-red-50; }
+            &-warning { @apply text-yellow-700 bg-yellow-50; }
+            &-info { @apply text-blue-700 bg-blue-50; }
+            &-debug { @apply text-gray-700 bg-gray-50; }
+        }
+    }
+}
+```
+
+ระบบ Components นี้ครอบคลุมการจัดการ CMS, Reports และ System อย่างสมบูรณ์ พร้อมฟังก์ชันการทำงานที่ครบถ้วนและการออกแบบที่สวยงามตามมาตรฐาน
